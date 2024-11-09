@@ -1,3 +1,6 @@
+import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
+import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:finance_tracker/widgets/homePage/TotalBalanceWidget.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return SafeArea(
         child: Scaffold(
+      backgroundColor: const Color(0xfff8f8fa),
       appBar: AppBar(
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.notifications)),
@@ -27,7 +31,23 @@ class _HomePageState extends State<HomePage> {
         height: double.infinity,
         width: double.infinity,
         child: Column(
-          children: [TotalBalanceWidget()],
+          children: [
+            TotalBalanceWidget(),
+            SizedBox(
+              height: 20,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                BalaceDisplayBox(type: TransactionType.INCOME),
+                BalaceDisplayBox(type: TransactionType.EXPENSE)
+              ],
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Expanded(child: RecentTransactionsWidget())
+          ],
         ),
       ),
     ));
