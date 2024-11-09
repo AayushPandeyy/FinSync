@@ -34,7 +34,8 @@ class FirestoreService {
         .collection("Transactions")
         .doc(uid)
         .collection("transaction")
-        .orderBy("date")
+        .orderBy("date", descending: true)
+        .limit(7)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -57,6 +58,7 @@ class FirestoreService {
       "date": transaction.date,
       "description": transaction.transactionDescription,
       "amount": transaction.amount,
+      "category": transaction.category,
       "type": transaction.type
     });
   }
@@ -81,18 +83,24 @@ class FirestoreService {
   Future<void> deleteTransaction(
       String uid, String transactionId, int amount, String type) async {
     bool isExpense = TransactionType.EXPENSE.name == type;
+
+    // Delete the transaction document from Firestore
     await FirebaseFirestore.instance
         .collection("Transactions")
         .doc(uid)
         .collection("transaction")
         .doc(transactionId)
         .delete();
+
+    // Update user's totalBalance, income, and expense fields
     await FirebaseFirestore.instance.collection("Users").doc(uid).update({
-      "totalBalance": FieldValue.increment(-amount),
-      "income":
-          isExpense ? FieldValue.increment(0) : FieldValue.increment(-amount),
-      "expense":
-          !isExpense ? FieldValue.increment(0) : FieldValue.increment(-amount),
+      "totalBalance": FieldValue.increment(isExpense ? amount : -amount),
+      "income": isExpense
+          ? FieldValue.increment(0)
+          : FieldValue.increment(-amount), // Decrease income if not an expense
+      "expense": isExpense
+          ? FieldValue.increment(-amount)
+          : FieldValue.increment(0), // Decrease expense if it's an expense
     });
   }
 }

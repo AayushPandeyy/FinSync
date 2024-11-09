@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/v6.dart';
 
@@ -15,11 +17,12 @@ class AddTransactionPage extends StatefulWidget {
 }
 
 class _AddTransactionPageState extends State<AddTransactionPage> {
+  String? _selectedValue;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  String _transactionType = 'EXPENSE';
+  String _transactionType = 'INCOME';
   FirestoreService service = FirestoreService();
 
   void _selectDate(BuildContext context) async {
@@ -39,6 +42,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   void _saveTransaction() async {
     TransactionModel transaction = TransactionModel(
         id: const UuidV6().generate(),
+        category: _selectedValue!,
         title: _titleController.text,
         amount: int.parse(_amountController.text),
         date: _selectedDate,
@@ -77,7 +81,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 5,
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -116,7 +122,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               // Amount
               const Text("Title",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 5,
+              ),
               TextField(
                 controller: _titleController,
                 decoration: InputDecoration(
@@ -132,13 +140,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               const SizedBox(height: 20),
               const Text("Amount",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 5,
+              ),
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   hintText: "Enter amount",
-                  prefixIcon: const Icon(Icons.attach_money),
+                  prefixIcon: const Icon(Icons.money),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -151,7 +161,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               // Description
               const Text("Description",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 5,
+              ),
               TextField(
                 controller: _descriptionController,
                 maxLines: 2,
@@ -168,9 +180,72 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               const SizedBox(height: 20),
 
               // Date
+              const Text("Category",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(
+                height: 5,
+              ),
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        // width: 1,
+                        ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedValue,
+                      hint: Text("Select an option",
+                          style: GoogleFonts.afacad(fontSize: 16)),
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: Colors.black,
+                        size: 28,
+                      ),
+                      dropdownColor: Colors.white,
+                      isExpanded: true,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedValue = value;
+                        });
+                      },
+                      items: Categories().categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['name'],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(category['icon'], color: Colors.blueGrey),
+                                const SizedBox(width: 10),
+                                Text(category['name'],
+                                    style: const TextStyle(fontSize: 16)),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 5,
+              ),
               const Text("Date",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              const SizedBox(
+                height: 5,
+              ),
               InkWell(
                 onTap: () => _selectDate(context),
                 child: Container(
@@ -188,7 +263,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         DateFormat.yMMMMd().format(_selectedDate),
                         style: const TextStyle(fontSize: 16),
                       ),
-                      const Icon(Icons.calendar_today, color: Colors.teal),
+                      Icon(
+                        Icons.calendar_today,
+                        color: _transactionType == "EXPENSE"
+                            ? Colors.red
+                            : Colors.green,
+                      ),
                     ],
                   ),
                 ),
@@ -199,7 +279,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: _transactionType == "EXPENSE"
+                        ? Colors.red
+                        : Colors.green,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 15),
                     shape: RoundedRectangleBorder(

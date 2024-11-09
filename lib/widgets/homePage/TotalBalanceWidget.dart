@@ -23,7 +23,7 @@ class TotalBalanceWidget extends StatelessWidget {
               style: TextStyle(fontSize: 15, color: Colors.white),
             ),
             Text(
-              "\$$balance",
+              "Rs $balance",
               style: const TextStyle(fontSize: 45, color: Colors.black),
             ),
           ],

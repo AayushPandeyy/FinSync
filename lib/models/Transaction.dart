@@ -15,17 +15,21 @@ class TransactionModel {
   
   // A brief transactionDescription or notes for the transaction
   final String transactionDescription;
+
+  // Transaction Category
+  final String category;
   
   // The type of the transaction, such as "Income", "Expense", etc.
   final String type;
 
   // Constructor for creating a new TransactionModel instance
-  TransactionModel( {
+  TransactionModel(  {
     required this.id,
     required this.title,
     required this.amount,
     required this.date,
     required this.transactionDescription,
+    required this.category,
     required this.type,
   });
 
@@ -38,6 +42,7 @@ class TransactionModel {
       amount: json['amount'],  // The amount of the transaction
       transactionDescription: json["transactionDescription"],  // A transactionDescription of the transaction
       date: DateTime.parse(json['date']),  // The date of the transaction (converted to DateTime)
+      category : json['category'], // The category of the transaction
       type: json["type"]// The transaction type (Income/Expense)
     );
   }
@@ -48,7 +53,8 @@ class TransactionModel {
       'id': id,  // The ID of the transaction
       'title': title,  // The title of the transaction
       'amount': amount,  // The amount of the transaction
-      'date': date.toIso8601String(),  // The date in ISO8601 string format
+      'date': date.toIso8601String(),
+      'category':category,  // The date in ISO8601 string format
       'type': type,  // The name of the transaction type (e.g., "Income")
     };
   }
