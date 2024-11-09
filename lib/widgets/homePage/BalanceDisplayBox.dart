@@ -2,8 +2,9 @@ import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:flutter/material.dart';
 
 class BalaceDisplayBox extends StatefulWidget {
+  final int balance;
   final TransactionType type;
-  const BalaceDisplayBox({super.key, required this.type});
+  const BalaceDisplayBox({super.key, required this.type, required this.balance});
 
   @override
   State<BalaceDisplayBox> createState() => _BalaceDisplayBoxState();
@@ -36,8 +37,8 @@ class _BalaceDisplayBoxState extends State<BalaceDisplayBox> {
             style: const TextStyle(
                 color: Colors.grey, fontSize: 15, fontWeight: FontWeight.bold),
           ),
-          const Text(
-            "\$10500",
+           Text(
+            "\$${widget.balance}",
             style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
           )
         ],

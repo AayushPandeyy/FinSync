@@ -1,3 +1,5 @@
+import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class RecentTransactionsWidget extends StatefulWidget {
@@ -40,14 +42,38 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
           const SizedBox(
             height: 10,
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return TransactionTile();
-              },
-            ),
-          )
+          StreamBuilder(
+              stream: FirestoreService().getTransactionsOfUser(
+                  FirebaseAuth.instance.currentUser!.uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                final data = snapshot.data;
+                if (data!.isEmpty) {
+                  return const Expanded(
+                      child: Center(
+                    child: Text(
+                      "No Transactions Yet :(",
+                      style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
+                    ),
+                  ));
+                }
+
+                return Expanded(
+                  child: ListView.builder(
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      return TransactionTile();
+                    },
+                  ),
+                );
+              })
         ],
       ),
     );

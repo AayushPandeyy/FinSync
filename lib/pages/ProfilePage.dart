@@ -1,3 +1,5 @@
+import 'package:finance_tracker/pages/auth/LoginChecker.dart';
+import 'package:finance_tracker/service/AuthFirebaseService.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -10,8 +12,20 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      body: Text("profile"),
+    AuthFirebaseService authService = AuthFirebaseService();
+    return SafeArea(
+        child: Scaffold(
+      body: Center(
+        child: GestureDetector(
+            onTap: () {
+              authService.logout();
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const LoginChecker()));
+            },
+            child: const Text("profile")),
+      ),
     ));
   }
 }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 class TotalBalanceWidget extends StatelessWidget {
-  const TotalBalanceWidget({super.key});
+  final int balance;
+  const TotalBalanceWidget({super.key, required this.balance});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: 100,
+        height: 150,
         width: MediaQuery.sizeOf(context).width * 0.9,
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
@@ -14,16 +15,16 @@ class TotalBalanceWidget extends StatelessWidget {
                 image: NetworkImage(
                     "https://w0.peakpx.com/wallpaper/544/197/HD-wallpaper-circles-android-bubbles-colorful-colour-colourful-pattern.jpg"),
                 fit: BoxFit.cover)),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               "Total Balance",
               style: TextStyle(fontSize: 15, color: Colors.white),
             ),
             Text(
-              "\$15000",
-              style: TextStyle(fontSize: 45, color: Colors.black),
+              "\$$balance",
+              style: const TextStyle(fontSize: 45, color: Colors.black),
             ),
           ],
         ));

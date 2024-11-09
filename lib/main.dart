@@ -1,5 +1,6 @@
 import 'package:finance_tracker/firebase_options.dart';
 import 'package:finance_tracker/pages/NavigatorPage.dart';
+import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:finance_tracker/pages/auth/LoginPage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: const LoginChecker(),
       debugShowCheckedModeBanner: false,
     );
   }

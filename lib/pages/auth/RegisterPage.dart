@@ -1,7 +1,84 @@
+import 'package:finance_tracker/pages/auth/LoginPage.dart';
+import 'package:finance_tracker/service/AuthFirebaseService.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class RegisterPage extends StatelessWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final dialogBox = DialogBox();
+
+  bool obscure = true;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    usernameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> signUp(BuildContext context) async {
+    final AuthFirebaseService authService = AuthFirebaseService();
+    try {
+      dialogBox.showLoadingDialog(context); // Debug print
+      UserCredential user = await authService.signUp(emailController.text,
+          passwordController.text, usernameController.text);
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Verification Email Sent"),
+          content: const Text(
+              "A verification email has been sent. Please verify your email and login to your account."),
+          actions: [
+            TextButton(
+              onPressed: () => {
+                Navigator.pop(context),
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()))
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } catch (err) {
+      print(err.runtimeType);
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Error"),
+          content: Text("Error: $err"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+      );
+      throw Exception(err);
+    }
+  }
+
+  void reset() {
+    emailController.clear();
+    passwordController.clear();
+    usernameController.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +120,11 @@ class RegisterPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  _buildTextField(Icons.person, "Full Name", false),
+                  _buildTextField(Icons.person, "Username", false,usernameController),
                   const SizedBox(height: 20),
-                  _buildTextField(Icons.email, "Email", false),
+                  _buildTextField(Icons.email, "Email", false,emailController),
                   const SizedBox(height: 20),
-                  _buildTextField(Icons.lock, "Password", true),
-                  const SizedBox(height: 20),
-                  _buildTextField(Icons.lock, "Confirm Password", true),
+                  _buildTextField(Icons.lock, "Password", true,passwordController),
                   const SizedBox(height: 30),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -61,7 +136,7 @@ class RegisterPage extends StatelessWidget {
                       shadowColor: Colors.transparent,
                     ),
                     onPressed: () {
-                      // Handle registration
+                      signUp(context);
                     },
                     child: Ink(
                       decoration: BoxDecoration(
@@ -112,8 +187,10 @@ class RegisterPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(IconData icon, String hintText, bool isPassword) {
+  Widget _buildTextField(IconData icon, String hintText, bool isPassword,
+      TextEditingController controller) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.white),
