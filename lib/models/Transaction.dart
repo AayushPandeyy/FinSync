@@ -1,49 +1,65 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
 
-class Transaction {
+class TransactionModel {
+  // The unique ID of the transaction
   final String id;
+  
+  // The title of the transaction (e.g., "Grocery Shopping", "Salary", etc.)
   final String title;
-  final double amount;
+  
+  // The amount involved in the transaction (positive for income, negative for expenses)
+  final int amount;
+  
+  // The date and time when the transaction occurred
   final DateTime date;
-  final TransactionType type;
+  
+  // A brief transactionDescription or notes for the transaction
+  final String transactionDescription;
+  
+  // The type of the transaction, such as "Income", "Expense", etc.
+  final String type;
 
-  Transaction({
+  // Constructor for creating a new TransactionModel instance
+  TransactionModel( {
     required this.id,
     required this.title,
     required this.amount,
     required this.date,
+    required this.transactionDescription,
     required this.type,
   });
 
-  // Method to convert JSON data to a Transaction object
-  factory Transaction.fromJson(Map<String, dynamic> json) {
-    return Transaction(
-      id: json['id'],
-      title: json['title'],
-      amount: json['amount'],
-      date: DateTime.parse(json['date']),
-      type: TransactionType.values.byName(json['type']),
+  // Factory method to create a TransactionModel from a JSON map
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    return TransactionModel(
+      
+      id: json['id'],  // The ID of the transaction
+      title: json['title'],  // The title of the transaction
+      amount: json['amount'],  // The amount of the transaction
+      transactionDescription: json["transactionDescription"],  // A transactionDescription of the transaction
+      date: DateTime.parse(json['date']),  // The date of the transaction (converted to DateTime)
+      type: json["type"]// The transaction type (Income/Expense)
     );
   }
 
-  // Method to convert Transaction object to JSON format
+  // Method to convert TransactionModel to a JSON map for storage or API requests
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'title': title,
-      'amount': amount,
-      'date': date.toIso8601String(),
-      'type': type.name,
+      'id': id,  // The ID of the transaction
+      'title': title,  // The title of the transaction
+      'amount': amount,  // The amount of the transaction
+      'date': date.toIso8601String(),  // The date in ISO8601 string format
+      'type': type,  // The name of the transaction type (e.g., "Income")
     };
   }
 
-  // Method to convert a list of Transactions to JSON format
-  static List<Map<String, dynamic>> listToJson(List<Transaction> transactions) {
-    return transactions.map((transaction) => transaction.toJson()).toList();
+  // Method to convert a list of TransactionModel objects to a list of JSON maps
+  static List<Map<String, dynamic>> listToJson(List<TransactionModel> TransactionModels) {
+    return TransactionModels.map((TransactionModel) => TransactionModel.toJson()).toList();
   }
 
-  // Method to convert a JSON list to a list of Transaction objects
-  static List<Transaction> listFromJson(List<dynamic> jsonList) {
-    return jsonList.map((json) => Transaction.fromJson(json)).toList();
+  // Method to convert a list of JSON maps to a list of TransactionModel objects
+  static List<TransactionModel> listFromJson(List<dynamic> jsonList) {
+    return jsonList.map((json) => TransactionModel.fromJson(json)).toList();
   }
 }

@@ -1,6 +1,11 @@
+// ignore_for_file: non_constant_identifier_names
+
+import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 
 class RecentTransactionsWidget extends StatefulWidget {
   const RecentTransactionsWidget({super.key});
@@ -13,6 +18,7 @@ class RecentTransactionsWidget extends StatefulWidget {
 class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
   @override
   Widget build(BuildContext context) {
+    FirestoreService service = FirestoreService();
     return Container(
       decoration: const BoxDecoration(
           color: Colors.white,
@@ -66,13 +72,43 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                 }
 
                 return Expanded(
-                  child: ListView.builder(
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      return TransactionTile();
-                    },
-                  ),
-                );
+                    child: ListView(
+                        children: data
+                            .map((data) => Slidable(
+                                  endActionPane: ActionPane(
+                                      extentRatio: 0.6,
+                                      motion: const ScrollMotion(),
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (context) async {
+                                            await service.deleteTransaction(
+                                                FirebaseAuth
+                                                    .instance.currentUser!.uid,
+                                                data["id"],
+                                                data["amount"],
+                                                data["type"]);
+                                          },
+                                          backgroundColor:
+                                              const Color(0xFFFE4A49),
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.delete,
+                                          label: 'Delete',
+                                        ),
+                                        SlidableAction(
+                                          onPressed: (context) {},
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.edit,
+                                          label: 'Edit',
+                                        ),
+                                      ]),
+                                  child: TransactionTile(
+                                      data["title"],
+                                      data["date"].toDate(),
+                                      data["amount"],
+                                      data["type"]),
+                                ))
+                            .toList()));
               })
         ],
       ),
@@ -80,9 +116,10 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
   }
 }
 
-Widget TransactionTile() {
+Widget TransactionTile(String title, DateTime date, int amount, String type) {
+  bool isExpense = TransactionType.EXPENSE.name == type;
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 4,
@@ -94,9 +131,15 @@ Widget TransactionTile() {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: Colors.blue.shade100,
-              child: Icon(Icons.attach_money,
-                  color: Colors.blue.shade600, size: 28),
+              child: CircleAvatar(
+                  backgroundColor: !isExpense
+                      ? const Color.fromARGB(255, 161, 225, 163)
+                      : const Color.fromARGB(255, 233, 156, 151),
+                  radius: 24,
+                  child: Icon(
+                    isExpense ? Icons.arrow_downward : Icons.arrow_upward,
+                    color: isExpense ? Colors.red : Colors.green,
+                  )),
             ),
             const SizedBox(width: 16), // Spacing between avatar and details
             Expanded(
@@ -104,7 +147,7 @@ Widget TransactionTile() {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Donation",
+                    title,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -113,7 +156,7 @@ Widget TransactionTile() {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "4 Apr 2020",
+                    DateFormat("d MMM yyyy").format(date),
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -123,9 +166,9 @@ Widget TransactionTile() {
               ),
             ),
             Text(
-              "- ₹500.00",
+              isExpense ? "- ₹$amount" : "+ ₹$amount",
               style: TextStyle(
-                color: Colors.red.shade400,
+                color: isExpense ? Colors.red.shade400 : Colors.green,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),

@@ -1,3 +1,4 @@
+import 'package:finance_tracker/pages/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/GoalsPage.dart';
 import 'package:finance_tracker/pages/HomePage.dart';
 import 'package:finance_tracker/pages/ProfilePage.dart';
@@ -27,7 +28,9 @@ class _NavigatorPageState extends State<NavigatorPage> {
         floatingActionButton: FloatingActionButton(
           backgroundColor: const Color(0xff5a8eff),
           shape: const CircleBorder(),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context)=>const AddTransactionPage()));
+          },
           child: const Icon(
             Icons.add,
             color: Colors.white,

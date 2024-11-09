@@ -7,7 +7,7 @@ class TotalBalanceWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: 150,
+        height: 100,
         width: MediaQuery.sizeOf(context).width * 0.9,
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
