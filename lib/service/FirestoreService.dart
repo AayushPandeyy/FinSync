@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/models/Transaction.dart';
+import 'package:intl/intl.dart';
 
 class FirestoreService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -78,6 +79,54 @@ class FirestoreService {
       "expense":
           !isExpense ? FieldValue.increment(0) : FieldValue.increment(amount),
     });
+  }
+
+  Future<void> updateTransaction(
+      {required String uid, required TransactionModel transaction}) async {
+    try {
+      // Fetch the previous data of the transaction to adjust balances
+      final transactionRef = FirebaseFirestore.instance
+          .collection("Transactions")
+          .doc(uid)
+          .collection("transaction")
+          .doc(transaction.id);
+
+      final transactionSnapshot = await transactionRef.get();
+      if (!transactionSnapshot.exists) {
+        throw Exception("Transaction not found.");
+      }
+
+      final oldData = transactionSnapshot.data();
+      final oldAmount = oldData?["amount"] ?? 0;
+      final oldType = oldData?["type"] ?? '';
+
+      // Update total balance, income, and expense based on the new data
+      bool isOldExpense = oldType == 'EXPENSE';
+      bool isNewExpense = transaction.type == 'EXPENSE';
+
+      await FirebaseFirestore.instance.collection("Users").doc(uid).update({
+        "totalBalance": FieldValue.increment(
+            (isOldExpense ? oldAmount : -oldAmount) +
+                (isNewExpense ? -transaction.amount : transaction.amount)),
+        "income": FieldValue.increment((isOldExpense ? 0 : -oldAmount) +
+            (isNewExpense ? 0 : transaction.amount)),
+        "expense": FieldValue.increment((isOldExpense ? -oldAmount : 0) +
+            (isNewExpense ? transaction.amount : 0)),
+      });
+
+      // Update the transaction fields
+      await transactionRef.update({
+        "title": transaction.title,
+        "amount": transaction.amount,
+        "date": transaction.date,
+        "category": transaction.category,
+        "type": transaction.type,
+      });
+      print("Transaction updated successfully");
+    } catch (e) {
+      print("Failed to update transaction: $e");
+      rethrow;
+    }
   }
 
   Future<void> deleteTransaction(

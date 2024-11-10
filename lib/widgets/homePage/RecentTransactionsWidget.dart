@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/pages/EditTransactionPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -89,7 +90,24 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                         label: 'Delete',
                                       ),
                                       SlidableAction(
-                                        onPressed: (context) {},
+                                        onPressed: (context) {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      EditTransactionPage(
+                                                          id: data["id"],
+                                                          type: data["type"],
+                                                          title: data["title"],
+                                                          description: data[
+                                                              "description"],
+                                                          amount:
+                                                              data["amount"],
+                                                          category:
+                                                              data["category"],
+                                                          date: data["date"]
+                                                              .toDate())));
+                                        },
                                         backgroundColor: Colors.blue,
                                         foregroundColor: Colors.white,
                                         icon: Icons.edit,

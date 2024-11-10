@@ -10,8 +10,11 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      body: Text("Report"),
+    return const SafeArea(
+        child: Scaffold(
+      body: Center(
+        child: Text("hELLO"),
+      ),
     ));
   }
 }

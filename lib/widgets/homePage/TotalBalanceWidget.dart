@@ -12,8 +12,7 @@ class TotalBalanceWidget extends StatelessWidget {
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             image: const DecorationImage(
-                image: NetworkImage(
-                    "https://w0.peakpx.com/wallpaper/544/197/HD-wallpaper-circles-android-bubbles-colorful-colour-colourful-pattern.jpg"),
+                image: AssetImage("assets/images/bubble_bg.jpg"),
                 fit: BoxFit.cover)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
