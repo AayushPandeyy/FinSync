@@ -1,3 +1,6 @@
+import 'package:finance_tracker/widgets/reportPage/TransactionChartWidget.dart';
+import 'package:finance_tracker/widgets/reportPage/TransactionPieChartWidget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ReportPage extends StatefulWidget {
@@ -10,10 +13,24 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
+    return SafeArea(
         child: Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "Your Financial Report",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: Center(
-        child: Text("hELLO"),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TransactionChartWidget(
+                  uid: FirebaseAuth.instance.currentUser!.uid),
+              const TransactionPieChartsWidget()
+            ],
+          ),
+        ),
       ),
     ));
   }

@@ -45,15 +45,19 @@ class _NavigatorPageState extends State<NavigatorPage> {
           shape: const CircularNotchedRectangle(),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           notchMargin: 5,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              _buildNavItem(icon: Icons.home, label: "Home", index: 0),
-              _buildNavItem(icon: Icons.pie_chart, label: "Reports", index: 1),
-              _buildNavItem(
-                  icon: Icons.track_changes, label: "Goals", index: 2),
-              _buildNavItem(icon: Icons.person, label: "Profile", index: 3),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                _buildNavItem(icon: Icons.home, label: "Home", index: 0),
+                _buildNavItem(
+                    icon: Icons.pie_chart, label: "Reports", index: 1),
+                _buildNavItem(
+                    icon: Icons.track_changes, label: "Goals", index: 2),
+                _buildNavItem(icon: Icons.person, label: "Profile", index: 3),
+              ],
+            ),
           ),
         ),
         body: pages[_currentIndex],

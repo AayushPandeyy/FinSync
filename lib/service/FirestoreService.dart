@@ -152,4 +152,49 @@ class FirestoreService {
           : FieldValue.increment(0), // Decrease expense if it's an expense
     });
   }
+
+  Future<Map<String, Map<String, double>>> getTransactionsGroupedByDay(
+      String uid) async {
+    final DateTime now = DateTime.now();
+    final DateTime sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection("Transactions")
+        .doc(uid)
+        .collection("transaction")
+        .where("date", isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
+        .orderBy("date", descending: true)
+        .get();
+
+    // Create maps for income and expense transactions
+    Map<String, double> incomeTransactions = {};
+    Map<String, double> expenseTransactions = {};
+
+    for (var doc in snapshot.docs) {
+      Map<String, dynamic> transaction = doc.data();
+      DateTime transactionDate = (transaction["date"] as Timestamp).toDate();
+      String dayKey = DateFormat('yyyy-MM-dd').format(transactionDate);
+
+      double amount = transaction["amount"]?.toDouble() ?? 0.0;
+      String type = transaction["type"];
+
+      // Add the amount to the corresponding map (income or expense)
+      if (type == TransactionType.EXPENSE.name) {
+        if (!expenseTransactions.containsKey(dayKey)) {
+          expenseTransactions[dayKey] = 0.0;
+        }
+        expenseTransactions[dayKey] = expenseTransactions[dayKey]! + amount;
+      } else {
+        if (!incomeTransactions.containsKey(dayKey)) {
+          incomeTransactions[dayKey] = 0.0;
+        }
+        incomeTransactions[dayKey] = incomeTransactions[dayKey]! + amount;
+      }
+    }
+
+    return {
+      'income': incomeTransactions,
+      'expense': expenseTransactions,
+    };
+  }
 }

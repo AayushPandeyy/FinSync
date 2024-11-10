@@ -1,9 +1,11 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/EditTransactionPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -69,57 +71,83 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
               return Expanded(
                   child: ListView(
                       children: data
-                          .map((data) => Slidable(
-                                endActionPane: ActionPane(
-                                    extentRatio: 0.6,
-                                    motion: const ScrollMotion(),
-                                    children: [
-                                      SlidableAction(
-                                        onPressed: (context) async {
-                                          await service.deleteTransaction(
-                                              FirebaseAuth
-                                                  .instance.currentUser!.uid,
-                                              data["id"],
-                                              data["amount"],
-                                              data["type"]);
-                                        },
-                                        backgroundColor:
-                                            const Color(0xFFFE4A49),
-                                        foregroundColor: Colors.white,
-                                        icon: Icons.delete,
-                                        label: 'Delete',
+                          .map((data) => GestureDetector(
+                                onTap: () {
+                                  IconData categoryIcon = Categories()
+                                      .categories
+                                      .firstWhere(
+                                          (cat) =>
+                                              cat['name'] == data["category"],
+                                          orElse: () => {
+                                                'icon': Icons.help_outline
+                                              })['icon'];
+                                  DialogBox().showTransactionDetailPopUp(
+                                      context,
+                                      TransactionModel(
+                                        id: data["id"],
+                                        title: data["title"],
+                                        amount: data["amount"],
+                                        date: data["date"].toDate(),
+                                        transactionDescription:
+                                            data["description"],
+                                        category: data["category"],
+                                        type: data["type"],
                                       ),
-                                      SlidableAction(
-                                        onPressed: (context) {
-                                          Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      EditTransactionPage(
-                                                          id: data["id"],
-                                                          type: data["type"],
-                                                          title: data["title"],
-                                                          description: data[
-                                                              "description"],
-                                                          amount:
-                                                              data["amount"],
-                                                          category:
-                                                              data["category"],
-                                                          date: data["date"]
-                                                              .toDate())));
-                                        },
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                        icon: Icons.edit,
-                                        label: 'Edit',
-                                      ),
-                                    ]),
-                                child: TransactionTile(
-                                    data["title"],
-                                    data["date"].toDate(),
-                                    data["amount"],
-                                    data["type"],
-                                    data["category"]),
+                                      categoryIcon);
+                                },
+                                child: Slidable(
+                                  endActionPane: ActionPane(
+                                      extentRatio: 0.6,
+                                      motion: const ScrollMotion(),
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (context) async {
+                                            await service.deleteTransaction(
+                                                FirebaseAuth
+                                                    .instance.currentUser!.uid,
+                                                data["id"],
+                                                data["amount"],
+                                                data["type"]);
+                                          },
+                                          backgroundColor:
+                                              const Color(0xFFFE4A49),
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.delete,
+                                          label: 'Delete',
+                                        ),
+                                        SlidableAction(
+                                          onPressed: (context) {
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        EditTransactionPage(
+                                                            id: data["id"],
+                                                            type: data["type"],
+                                                            title:
+                                                                data["title"],
+                                                            description: data[
+                                                                "description"],
+                                                            amount:
+                                                                data["amount"],
+                                                            category: data[
+                                                                "category"],
+                                                            date: data["date"]
+                                                                .toDate())));
+                                          },
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          icon: Icons.edit,
+                                          label: 'Edit',
+                                        ),
+                                      ]),
+                                  child: TransactionTile(
+                                      data["title"],
+                                      data["date"].toDate(),
+                                      data["amount"],
+                                      data["type"],
+                                      data["category"]),
+                                ),
                               ))
                           .toList()));
             })
@@ -185,7 +213,7 @@ Widget TransactionTile(
               ),
             ),
             Text(
-              isExpense ? "- $amount" : "+ $amount",
+              isExpense ? "Rs - $amount" : "+ $amount",
               style: TextStyle(
                 color: isExpense ? Colors.red.shade400 : Colors.green,
                 fontSize: 16,
