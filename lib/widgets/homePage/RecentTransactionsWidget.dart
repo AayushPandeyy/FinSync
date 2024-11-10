@@ -3,11 +3,11 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/EditTransactionPage.dart';
+import 'package:finance_tracker/pages/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
@@ -26,18 +26,27 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
     FirestoreService service = FirestoreService();
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.all(20.0),
+        Padding(
+          padding: const EdgeInsets.all(20.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Transactions",
+              const Text(
+                "Recent Transactions",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              Text(
-                "See All",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              const SeeAllTransactionsPage()));
+                },
+                child: const Text(
+                  "See All",
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+                ),
               ),
             ],
           ),

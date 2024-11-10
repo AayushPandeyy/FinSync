@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:uuid/v6.dart';
 
 class TransactionDetailPopUp extends StatelessWidget {
@@ -45,20 +46,21 @@ class TransactionDetailPopUp extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                const Column(
+                Column(
                   children: [
                     // CircleAvatar(
                     //   backgroundColor: const Color.fromARGB(255, 184, 230, 186),
                     //   radius: 24,
                     //   child: Icon(icon, color: Colors.red),
                     // ),
-                    Text(
-                      "Transaction Successful",
-                      style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    )
+                    // Text(
+                    //   "Transaction Successful",
+                    //   style: TextStyle(
+                    //       fontSize: 25,
+                    //       fontWeight: FontWeight.bold,
+                    //       color: Colors.white),
+                    // )
+                    LottieBuilder.asset("assets/lottiejson/success.json")
                   ],
                 ),
                 const Divider(),
