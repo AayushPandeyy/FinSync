@@ -221,6 +221,6 @@ class TransactionChartWidget extends StatelessWidget {
       if (amount > maxExpense) maxExpense = amount;
     });
 
-    return (maxIncome > maxExpense ? maxIncome : maxExpense) * 1.2;
+    return (maxIncome > maxExpense ? maxIncome : maxExpense);
   }
 }

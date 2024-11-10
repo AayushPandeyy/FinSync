@@ -166,7 +166,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
               TextField(
                 controller: _descriptionController,
-                maxLines: 2,
+                maxLines: 1,
                 decoration: InputDecoration(
                   hintText: "Enter description",
                   prefixIcon: const Icon(Icons.description),

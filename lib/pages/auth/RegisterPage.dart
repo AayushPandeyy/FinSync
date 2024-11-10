@@ -15,6 +15,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final dialogBox = DialogBox();
 
   bool obscure = true;
@@ -31,8 +32,11 @@ class _RegisterPageState extends State<RegisterPage> {
     final AuthFirebaseService authService = AuthFirebaseService();
     try {
       dialogBox.showLoadingDialog(context); // Debug print
-      UserCredential user = await authService.signUp(emailController.text,
-          passwordController.text, usernameController.text);
+      UserCredential user = await authService.signUp(
+          emailController.text,
+          passwordController.text,
+          usernameController.text,
+          phoneController.text);
 
       showDialog(
         context: context,
@@ -120,11 +124,16 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  _buildTextField(Icons.person, "Username", false,usernameController),
+                  _buildTextField(
+                      Icons.person, "Username", false, usernameController),
                   const SizedBox(height: 20),
-                  _buildTextField(Icons.email, "Email", false,emailController),
+                  _buildTextField(Icons.email, "Email", false, emailController),
                   const SizedBox(height: 20),
-                  _buildTextField(Icons.lock, "Password", true,passwordController),
+                  _buildTextField(
+                      Icons.phone, "Phone Number", false, phoneController),
+                  const SizedBox(height: 20),
+                  _buildTextField(
+                      Icons.lock, "Password", true, passwordController),
                   const SizedBox(height: 30),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(

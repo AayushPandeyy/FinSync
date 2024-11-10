@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:intl/intl.dart';
 
@@ -19,11 +20,12 @@ class FirestoreService {
     });
   }
 
-  Future<void> addUserToDatabase(String uid, email, username) async {
+  Future<void> addUserToDatabase(String uid, email, username,phoneNumber) async {
     await firestore.collection("Users").doc(uid).set({
       'uid': uid,
       "email": email,
       "username": username,
+      "phoneNumber":phoneNumber,
       "income": 0,
       "expense": 0,
       "totalBalance": 0
@@ -45,6 +47,19 @@ class FirestoreService {
       }).toList();
     });
   }
+  Stream<List<Map<String, dynamic>>> getGoalsOfUser(String uid) {
+    return FirebaseFirestore.instance
+        .collection("Goals")
+        .doc(uid)
+        .collection("goal")
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final goalsData = doc.data();
+        return goalsData;
+      }).toList();
+    });
+  }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
     await updateUserData(uid, transaction.amount, transaction.type);
@@ -61,6 +76,16 @@ class FirestoreService {
       "amount": transaction.amount,
       "category": transaction.category,
       "type": transaction.type
+    });
+  }
+
+  Future<void> addGoals(String uid,FinancialGoal goal) async{
+    await firestore.collection("Goals").doc(uid).collection("goal").doc(goal.id).set({
+      "id":goal.id,
+      "title":goal.title,
+      "deadline":goal.deadline,
+      "description":goal.description,
+      "amount":goal.targetAmount
     });
   }
 
