@@ -1,7 +1,5 @@
-import 'package:finance_tracker/pages/auth/LoginPage.dart';
 import 'package:finance_tracker/service/AuthFirebaseService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class RegisterPage extends StatefulWidget {

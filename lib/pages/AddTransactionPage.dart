@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';

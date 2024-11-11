@@ -4,7 +4,6 @@ import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 
 class EditGoalPage extends StatefulWidget {
   final FinancialGoal goal;
