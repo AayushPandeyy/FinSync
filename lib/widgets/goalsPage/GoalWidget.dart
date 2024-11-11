@@ -57,7 +57,9 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.goal.currentAmount / widget.goal.targetAmount;
+    final progress = (widget.goal.currentAmount / widget.goal.targetAmount) > 1
+        ? 1.0
+        : widget.goal.currentAmount / widget.goal.targetAmount;
     final daysLeft = widget.goal.deadline.difference(DateTime.now()).inDays;
     final progressColor = _getProgressColor(progress);
 

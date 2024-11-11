@@ -55,8 +55,8 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
           height: 10,
         ),
         StreamBuilder(
-            stream: FirestoreService()
-                .getTransactionsOfUser(FirebaseAuth.instance.currentUser!.uid),
+            stream: FirestoreService().getRecentTransactionsOfUser(
+                FirebaseAuth.instance.currentUser!.uid),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(

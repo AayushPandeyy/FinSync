@@ -34,13 +34,27 @@ class FirestoreService {
     });
   }
 
-  Stream<List<Map<String, dynamic>>> getTransactionsOfUser(String uid) {
+  Stream<List<Map<String, dynamic>>> getRecentTransactionsOfUser(String uid) {
     return FirebaseFirestore.instance
         .collection("Transactions")
         .doc(uid)
         .collection("transaction")
         .orderBy("date", descending: true)
         .limit(7)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final transactionData = doc.data();
+        return transactionData;
+      }).toList();
+    });
+  }
+  Stream<List<Map<String, dynamic>>> getTransactionsOfUser(String uid) {
+    return FirebaseFirestore.instance
+        .collection("Transactions")
+        .doc(uid)
+        .collection("transaction")
+        .orderBy("date", descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
