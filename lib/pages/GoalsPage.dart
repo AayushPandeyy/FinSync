@@ -27,15 +27,14 @@ class _GoalsPageState extends State<GoalsPage> {
         ),
       ),
       body: StreamBuilder(
-          stream: FirestoreService()
-              .getUserDataByEmail(FirebaseAuth.instance.currentUser!.email!),
+          stream: FirestoreService().getTotalAmountInACategory("Savings"),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(),
               );
             }
-            final userData = snapshot.data!;
+            final savingsAmount = snapshot.data!;
             return SizedBox(
               height: double.infinity,
               width: double.infinity,
@@ -85,8 +84,7 @@ class _GoalsPageState extends State<GoalsPage> {
                                               title: data["title"],
                                               description: data["description"],
                                               targetAmount: data["amount"],
-                                              currentAmount: userData[0]
-                                                  ["totalBalance"],
+                                              currentAmount: savingsAmount,
                                               deadline:
                                                   data["deadline"].toDate())),
                                     ))

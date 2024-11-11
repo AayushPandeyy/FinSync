@@ -150,7 +150,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
-                      'Current Amount',
+                      'Savings Amount',
                       NumberFormat.currency(symbol: 'Rs ')
                           .format(widget.goal.currentAmount),
                       Icons.account_balance_wallet,
