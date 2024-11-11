@@ -5,6 +5,7 @@ import 'package:finance_tracker/widgets/goalsPage/GoalWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
@@ -57,15 +58,38 @@ class _GoalsPageState extends State<GoalsPage> {
                         Expanded(
                           child: ListView(
                             children: data
-                                .map((data) => FinancialGoalWidget(
-                                    goal: FinancialGoal(
-                                        id: data["id"],
-                                        title: data["title"],
-                                        description: data["description"],
-                                        targetAmount: data["amount"],
-                                        currentAmount: userData[0]
-                                            ["totalBalance"],
-                                        deadline: data["deadline"].toDate())))
+                                .map((data) => Slidable(
+                                      endActionPane: ActionPane(
+                                          extentRatio: 0.6,
+                                          motion: const ScrollMotion(),
+                                          children: [
+                                            SlidableAction(
+                                              onPressed: (context) async {},
+                                              backgroundColor:
+                                                  const Color(0xFFFE4A49),
+                                              foregroundColor: Colors.white,
+                                              icon: Icons.delete,
+                                              label: 'Delete',
+                                            ),
+                                            SlidableAction(
+                                              onPressed: (context) {},
+                                              backgroundColor: Colors.blue,
+                                              foregroundColor: Colors.white,
+                                              icon: Icons.edit,
+                                              label: 'Edit',
+                                            ),
+                                          ]),
+                                      child: FinancialGoalWidget(
+                                          goal: FinancialGoal(
+                                              id: data["id"],
+                                              title: data["title"],
+                                              description: data["description"],
+                                              targetAmount: data["amount"],
+                                              currentAmount: userData[0]
+                                                  ["totalBalance"],
+                                              deadline:
+                                                  data["deadline"].toDate())),
+                                    ))
                                 .toList(),
                           ),
                         ),

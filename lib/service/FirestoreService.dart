@@ -49,6 +49,7 @@ class FirestoreService {
       }).toList();
     });
   }
+
   Stream<List<Map<String, dynamic>>> getTransactionsOfUser(String uid) {
     return FirebaseFirestore.instance
         .collection("Transactions")
@@ -96,19 +97,20 @@ class FirestoreService {
     });
   }
 
-  Future<int> getTotalAmountInACategory(String category) async {
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
+  Stream<int> getTotalAmountInACategory(String category) {
+    return FirebaseFirestore.instance
         .collection("Transactions")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .collection("transaction")
         .where("category", isEqualTo: category)
-        .get();
-    int totalAmount = 0;
-    for (var doc in snapshot.docs) {
-      totalAmount += int.parse(doc["amount"].toString());
-    }
-
-    return totalAmount;
+        .snapshots()
+        .map((snapshot) {
+      int total = 0;
+      for (var doc in snapshot.docs) {
+        total += int.parse(doc['amount'].toString());
+      }
+      return total;
+    });
   }
 
   Future<void> addGoals(String uid, FinancialGoal goal) async {

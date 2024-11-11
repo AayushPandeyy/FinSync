@@ -15,22 +15,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int savingAmount = 0;
   FirestoreService service = FirestoreService();
   FirebaseAuth auth = FirebaseAuth.instance;
   User currUser = FirebaseAuth.instance.currentUser!;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    getAmount();
-  }
-
-  void getAmount() async {
-    int totalAmount =
-        await FirestoreService().getTotalAmountInACategory("Income");
-    print('Total amount for food category: \$$totalAmount');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +53,44 @@ class _HomePageState extends State<HomePage> {
                   width: double.infinity,
                   child: Column(
                     children: [
-                      TotalBalanceWidget(
-                        balance: data["totalBalance"],
+                      SizedBox(
+                        height: 150,
+                        child: StreamBuilder(
+                          stream: FirestoreService()
+                              .getTotalAmountInACategory("Savings"),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            int amount = snapshot.data!;
+                            int usableAmount = data["totalBalance"] - amount;
+                            return ListView(
+                                scrollDirection: Axis.horizontal,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: TotalBalanceWidget(
+                                      title: "Total Balance",
+                                      balance: data["totalBalance"],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: TotalBalanceWidget(
+                                        balance: amount, title: "Total Saving"),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: TotalBalanceWidget(
+                                        balance: usableAmount,
+                                        title: "Usable Amount"),
+                                  ),
+                                ]);
+                          },
+                        ),
                       ),
                       const SizedBox(
                         height: 20,

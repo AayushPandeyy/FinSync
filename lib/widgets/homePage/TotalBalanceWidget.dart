@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 class TotalBalanceWidget extends StatelessWidget {
+  final String title;
   final int balance;
-  const TotalBalanceWidget({super.key, required this.balance});
+  const TotalBalanceWidget(
+      {super.key, required this.balance, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +19,9 @@ class TotalBalanceWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              "Total Balance",
-              style: TextStyle(fontSize: 15, color: Colors.white),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, color: Colors.white),
             ),
             Text(
               "Rs $balance",
