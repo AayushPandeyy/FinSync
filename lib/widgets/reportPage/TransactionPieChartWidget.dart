@@ -153,7 +153,8 @@ class TransactionPieChartsWidget extends StatelessWidget {
       );
     }
 
-    final total = data.values.reduce((a, b) => a + b);
+    final total =
+        data.values.isNotEmpty ? data.values.reduce((a, b) => a + b) : 0.0;
     final List<PieChartSectionData> sections = [];
 
     int colorIndex = 0;
@@ -186,7 +187,17 @@ class TransactionPieChartsWidget extends StatelessWidget {
   }
 
   Widget _buildLegend(Map<String, double> data, MaterialColor baseColor) {
-    final total = data.values.reduce((a, b) => a + b);
+    if (data.isEmpty) {
+      return const Center(
+        child: Text(
+          'No data available',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    final total =
+        data.values.isNotEmpty ? data.values.reduce((a, b) => a + b) : 0.0;
     int colorIndex = 0;
 
     return Wrap(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/models/Transaction.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class FirestoreService {
@@ -20,12 +21,13 @@ class FirestoreService {
     });
   }
 
-  Future<void> addUserToDatabase(String uid, email, username,phoneNumber) async {
+  Future<void> addUserToDatabase(
+      String uid, email, username, phoneNumber) async {
     await firestore.collection("Users").doc(uid).set({
       'uid': uid,
       "email": email,
       "username": username,
-      "phoneNumber":phoneNumber,
+      "phoneNumber": phoneNumber,
       "income": 0,
       "expense": 0,
       "totalBalance": 0
@@ -47,6 +49,7 @@ class FirestoreService {
       }).toList();
     });
   }
+
   Stream<List<Map<String, dynamic>>> getGoalsOfUser(String uid) {
     return FirebaseFirestore.instance
         .collection("Goals")
@@ -79,13 +82,33 @@ class FirestoreService {
     });
   }
 
-  Future<void> addGoals(String uid,FinancialGoal goal) async{
-    await firestore.collection("Goals").doc(uid).collection("goal").doc(goal.id).set({
-      "id":goal.id,
-      "title":goal.title,
-      "deadline":goal.deadline,
-      "description":goal.description,
-      "amount":goal.targetAmount
+  Future<int> getTotalAmountInACategory(String category) async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection("Transactions")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("transaction")
+        .where("category", isEqualTo: category)
+        .get();
+    int totalAmount = 0;
+    for (var doc in snapshot.docs) {
+      totalAmount += int.parse(doc["amount"].toString());
+    }
+
+    return totalAmount;
+  }
+
+  Future<void> addGoals(String uid, FinancialGoal goal) async {
+    await firestore
+        .collection("Goals")
+        .doc(uid)
+        .collection("goal")
+        .doc(goal.id)
+        .set({
+      "id": goal.id,
+      "title": goal.title,
+      "deadline": goal.deadline,
+      "description": goal.description,
+      "amount": goal.targetAmount
     });
   }
 

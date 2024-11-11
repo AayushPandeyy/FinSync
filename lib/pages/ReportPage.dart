@@ -27,6 +27,9 @@ class _ReportPageState extends State<ReportPage> {
             children: [
               TransactionChartWidget(
                   uid: FirebaseAuth.instance.currentUser!.uid),
+              const SizedBox(
+                height: 30,
+              ),
               const TransactionPieChartsWidget()
             ],
           ),

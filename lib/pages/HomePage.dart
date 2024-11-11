@@ -20,6 +20,19 @@ class _HomePageState extends State<HomePage> {
   User currUser = FirebaseAuth.instance.currentUser!;
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getAmount();
+  }
+
+  void getAmount() async {
+    int totalAmount =
+        await FirestoreService().getTotalAmountInACategory("Income");
+    print('Total amount for food category: \$$totalAmount');
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
         child: StreamBuilder(
