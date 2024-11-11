@@ -22,10 +22,8 @@ class DialogBox {
 
   void showAlertDialog(BuildContext context, String title, String message) {
     showDialog(
-      barrierDismissible: false,
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent,
         title: Text(title),
         content: Text(message),
         actions: [

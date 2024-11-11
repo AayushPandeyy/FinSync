@@ -45,9 +45,10 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         Navigator.pop(context);
         _resetFields();
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const NavigatorPage()),
+          (Route<dynamic> route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -86,6 +87,7 @@ class _LoginPageState extends State<LoginPage> {
     _emailController.clear();
     _passwordController.clear();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,9 +127,10 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                _buildTextField(Icons.email, "Email", false,_emailController),
+                _buildTextField(Icons.email, "Email", false, _emailController),
                 const SizedBox(height: 20),
-                _buildTextField(Icons.lock, "Password", true,_passwordController),
+                _buildTextField(
+                    Icons.lock, "Password", true, _passwordController),
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -203,7 +206,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField(IconData icon, String hintText, bool isPassword,TextEditingController controller) {
+  Widget _buildTextField(IconData icon, String hintText, bool isPassword,
+      TextEditingController controller) {
     return TextField(
       controller: controller,
       obscureText: isPassword,

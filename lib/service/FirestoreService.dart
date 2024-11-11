@@ -145,6 +145,22 @@ class FirestoreService {
     });
   }
 
+  Future<void> updateGoal(String uid, FinancialGoal goal) async {
+    print("id is ${goal.id}");
+    await FirebaseFirestore.instance
+        .collection("Goals")
+        .doc(uid)
+        .collection("goal")
+        .doc(goal.id)
+        .update({
+      "id": goal.id,
+      "title": goal.title,
+      "deadline": goal.deadline,
+      "description": goal.description,
+      "amount": goal.targetAmount
+    });
+  }
+
   Future<void> updateTransaction(
       {required String uid, required TransactionModel transaction}) async {
     try {
@@ -218,6 +234,7 @@ class FirestoreService {
   }
 
   Future<void> deleteGoal(String uid, FinancialGoal goal) async {
+    
     await FirebaseFirestore.instance
         .collection("Goals")
         .doc(uid)

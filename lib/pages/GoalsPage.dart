@@ -1,5 +1,8 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/pages/AddGoalsPage.dart';
+import 'package:finance_tracker/pages/EditGoalPage.dart';
+import 'package:finance_tracker/pages/HomePage.dart';
+import 'package:finance_tracker/pages/NavigatorPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/widgets/goalsPage/GoalWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -43,14 +46,14 @@ class _GoalsPageState extends State<GoalsPage> {
                       .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
+                      
                       return const Center(
                         child: CircularProgressIndicator(),
                       );
                     }
                     final data = snapshot.data;
                     if (data!.isEmpty) {
-                      return Expanded(
-                          child: Center(child: AddGoalButton(context)));
+                      return Center(child: AddGoalButton(context));
                     }
                     return Column(
                       children: [
@@ -87,7 +90,26 @@ class _GoalsPageState extends State<GoalsPage> {
                                               label: 'Delete',
                                             ),
                                             SlidableAction(
-                                              onPressed: (context) {},
+                                              onPressed: (context) {
+                                                Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) => EditGoalPage(
+                                                            goal: FinancialGoal(
+                                                                id: data["id"],
+                                                                title: data[
+                                                                    "title"],
+                                                                description: data[
+                                                                    "description"],
+                                                                targetAmount:
+                                                                    data[
+                                                                        "amount"],
+                                                                currentAmount:
+                                                                    savingsAmount,
+                                                                deadline: data[
+                                                                        "deadline"]
+                                                                    .toDate()))));
+                                              },
                                               backgroundColor: Colors.blue,
                                               foregroundColor: Colors.white,
                                               icon: Icons.edit,
