@@ -63,7 +63,23 @@ class _GoalsPageState extends State<GoalsPage> {
                                           motion: const ScrollMotion(),
                                           children: [
                                             SlidableAction(
-                                              onPressed: (context) async {},
+                                              onPressed: (context) async {
+                                                FirestoreService().deleteGoal(
+                                                    FirebaseAuth.instance
+                                                        .currentUser!.uid,
+                                                    FinancialGoal(
+                                                        id: data["id"],
+                                                        title: data["title"],
+                                                        description:
+                                                            data["description"],
+                                                        targetAmount:
+                                                            data["amount"],
+                                                        currentAmount:
+                                                            savingsAmount,
+                                                        deadline:
+                                                            data["deadline"]
+                                                                .toDate()));
+                                              },
                                               backgroundColor:
                                                   const Color(0xFFFE4A49),
                                               foregroundColor: Colors.white,

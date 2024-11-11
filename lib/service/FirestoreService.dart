@@ -217,6 +217,15 @@ class FirestoreService {
     });
   }
 
+  Future<void> deleteGoal(String uid, FinancialGoal goal) async {
+    await FirebaseFirestore.instance
+        .collection("Goals")
+        .doc(uid)
+        .collection("goal")
+        .doc(goal.id)
+        .delete();
+  }
+
   Future<Map<String, Map<String, double>>> getTransactionsGroupedByDay(
       String uid) async {
     final DateTime now = DateTime.now();
