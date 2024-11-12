@@ -223,7 +223,7 @@ class TransactionPieChartsWidget extends StatelessWidget {
             Text(
               '${entry.key}: ${NumberFormat.currency(
                 symbol: 'Rs ',
-                decimalDigits: 0,
+                decimalDigits: 2,
               ).format(entry.value)} (${percentage.toStringAsFixed(1)}%)',
               style: const TextStyle(fontSize: 12),
             ),

@@ -280,7 +280,7 @@ class FirestoreService {
       DateTime transactionDate = (transaction["date"] as Timestamp).toDate();
       String dayKey = DateFormat('yyyy-MM-dd').format(transactionDate);
 
-      double amount = transaction["amount"]?.toDouble() ?? 0.0;
+      double amount = (transaction["amount"])?.toDouble() ?? 0.0;
       String type = transaction["type"];
 
       // Add the amount to the corresponding map (income or expense)
