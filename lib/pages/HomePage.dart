@@ -50,11 +50,34 @@ class _HomePageState extends State<HomePage> {
                         icon: const Icon(Icons.add)),
                     IconButton(
                         onPressed: () {
-                          AuthFirebaseService().logout();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginChecker()));
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text("Confirm Logout"),
+                              content: const Text(
+                                  "You are about to logout. Are you sure you want to continue?"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => {
+                                    Navigator.pop(context),
+                                  },
+                                  child: const Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () => {
+                                    Navigator.pop(context),
+                                    AuthFirebaseService().logout(),
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginChecker()))
+                                  },
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
                         },
                         icon: const Icon(Icons.logout)),
                   ],
