@@ -79,6 +79,19 @@ class FirestoreService {
     });
   }
 
+  Stream<List<Map<String,dynamic>>> getTransactionsBasedOnType(String uid,type){
+    return FirebaseFirestore.instance
+        .collection("Transactions")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection("transaction")
+        .where("type", isEqualTo: type).snapshots().map((snapshot){
+          return snapshot.docs.map((doc){
+            final transactionData = doc.data();
+            return transactionData;
+          }).toList();
+        });
+  }
+
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
     await updateUserData(uid, transaction.amount, transaction.type);
     await firestore

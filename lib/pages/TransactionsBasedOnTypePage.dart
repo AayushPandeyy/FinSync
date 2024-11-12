@@ -8,14 +8,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
-class SeeAllTransactionsPage extends StatefulWidget {
-  const SeeAllTransactionsPage({super.key});
+class TransactionsBasedOnTypePage extends StatefulWidget {
+  final String type;
+  const TransactionsBasedOnTypePage({super.key, required this.type});
 
   @override
-  State<SeeAllTransactionsPage> createState() => _SeeAllTransactionsPageState();
+  State<TransactionsBasedOnTypePage> createState() =>
+      _TransactionsBasedOnTypePageState();
 }
 
-class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
+class _TransactionsBasedOnTypePageState
+    extends State<TransactionsBasedOnTypePage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -24,14 +27,14 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
         appBar: AppBar(
           centerTitle: true,
           backgroundColor: Colors.white,
-          title: const Text(
-            "Transactions History",
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            widget.type,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         body: StreamBuilder(
-            stream: FirestoreService()
-                .getTransactionsOfUser(FirebaseAuth.instance.currentUser!.uid),
+            stream: FirestoreService().getTransactionsBasedOnType(
+                FirebaseAuth.instance.currentUser!.uid, widget.type),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(

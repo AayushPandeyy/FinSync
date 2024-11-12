@@ -17,7 +17,9 @@ class TransactionPieChartsWidget extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator.adaptive(
+              backgroundColor: Colors.yellow,
+            ),
           );
         }
 

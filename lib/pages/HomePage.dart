@@ -1,4 +1,5 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/pages/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:finance_tracker/service/AuthFirebaseService.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
@@ -40,13 +41,22 @@ class _HomePageState extends State<HomePage> {
                   actions: [
                     IconButton(
                         onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AddTransactionPage()));
+                        },
+                        icon: const Icon(Icons.add)),
+                    IconButton(
+                        onPressed: () {
                           AuthFirebaseService().logout();
                           Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => const LoginChecker()));
                         },
-                        icon: const Icon(Icons.logout))
+                        icon: const Icon(Icons.logout)),
                   ],
                   title: Text(
                     "${data["username"].toString()}'s Wallet",
@@ -68,7 +78,9 @@ class _HomePageState extends State<HomePage> {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
-                                child: CircularProgressIndicator(),
+                                child: CircularProgressIndicator.adaptive(
+                                  backgroundColor: Colors.yellow,
+                                ),
                               );
                             }
                             int amount = snapshot.data!;

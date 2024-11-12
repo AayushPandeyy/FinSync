@@ -60,7 +60,9 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator.adaptive(
+                    backgroundColor: Colors.yellow,
+                  ),
                 );
               }
               final data = snapshot.data;

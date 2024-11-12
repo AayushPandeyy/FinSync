@@ -39,6 +39,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   void _saveTransaction() async {
+    print(FirebaseAuth.instance.currentUser!.uid);
     TransactionModel transaction = TransactionModel(
         id: const UuidV6().generate(),
         category: _selectedValue!,

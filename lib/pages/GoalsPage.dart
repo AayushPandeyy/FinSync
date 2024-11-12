@@ -32,7 +32,9 @@ class _GoalsPageState extends State<GoalsPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator.adaptive(
+                  backgroundColor: Colors.yellow,
+                ),
               );
             }
             final savingsAmount = snapshot.data!;
@@ -44,7 +46,6 @@ class _GoalsPageState extends State<GoalsPage> {
                       .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      
                       return const Center(
                         child: CircularProgressIndicator(),
                       );
