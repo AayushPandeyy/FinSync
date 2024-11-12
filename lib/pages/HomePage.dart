@@ -1,4 +1,6 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/pages/auth/LoginChecker.dart';
+import 'package:finance_tracker/service/AuthFirebaseService.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
@@ -37,10 +39,14 @@ class _HomePageState extends State<HomePage> {
                 appBar: AppBar(
                   actions: [
                     IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications)),
-                    IconButton(
-                        onPressed: () {}, icon: const Icon(Icons.more_horiz))
+                        onPressed: () {
+                          AuthFirebaseService().logout();
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LoginChecker()));
+                        },
+                        icon: const Icon(Icons.logout))
                   ],
                   title: Text(
                     "${data["username"].toString()}'s Wallet",

@@ -35,9 +35,6 @@ Welcome to **FinSync** – Your personal finance tracker app! Keep a close eye o
 
 > **Note**: Ensure that your device allows installations from unknown sources. You can enable this in your settings if prompted.
 
-## 📱 Screenshots
-
-> _Add screenshots here to showcase the app’s features and user interface._
 
 ## 🛠️ Tech Stack
 

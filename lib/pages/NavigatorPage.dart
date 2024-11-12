@@ -1,7 +1,7 @@
 import 'package:finance_tracker/pages/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/GoalsPage.dart';
 import 'package:finance_tracker/pages/HomePage.dart';
-import 'package:finance_tracker/pages/ProfilePage.dart';
+
 import 'package:finance_tracker/pages/ReportPage.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +17,6 @@ class _NavigatorPageState extends State<NavigatorPage> {
     const HomePage(),
     const ReportPage(),
     const GoalsPage(),
-    const ProfilePage()
   ];
   int _currentIndex = 0;
 
@@ -25,24 +24,9 @@ class _NavigatorPageState extends State<NavigatorPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: const Color(0xff5a8eff),
-          shape: const CircleBorder(),
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const AddTransactionPage()));
-          },
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-          ),
-        ),
         bottomNavigationBar: BottomAppBar(
           height: 55,
-          shape: const CircularNotchedRectangle(),
+          // shape: const CircularNotchedRectangle(),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           notchMargin: 5,
           child: Padding(
@@ -55,7 +39,6 @@ class _NavigatorPageState extends State<NavigatorPage> {
                     icon: Icons.pie_chart, label: "Reports", index: 1),
                 _buildNavItem(
                     icon: Icons.track_changes, label: "Goals", index: 2),
-                _buildNavItem(icon: Icons.person, label: "Profile", index: 3),
               ],
             ),
           ),
