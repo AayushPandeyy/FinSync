@@ -39,7 +39,7 @@ class _AddGoalsPageState extends State<AddGoalsPage> {
         id: const Uuid().v6(),
         title: _titleController.text,
         description: _descriptionController.text,
-        targetAmount: int.parse(_amountController.text),
+        targetAmount: double.parse(_amountController.text),
         currentAmount: 25000,
         deadline: _selectedDate);
     DialogBox().showLoadingDialog(context);

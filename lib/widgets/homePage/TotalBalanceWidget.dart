@@ -6,6 +6,8 @@ class TotalBalanceWidget extends StatelessWidget {
   final double balance;
   const TotalBalanceWidget(
       {super.key, required this.balance, required this.title});
+  
+  
 
   @override
   Widget build(BuildContext context) {

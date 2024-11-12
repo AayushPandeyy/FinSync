@@ -51,7 +51,7 @@ class _EditGoalPageState extends State<EditGoalPage> {
         id: widget.goal.id,
         title: _titleController.text,
         description: _descriptionController.text,
-        targetAmount: int.parse(_amountController.text),
+        targetAmount: double.parse(_amountController.text),
         currentAmount: 25000,
         deadline: _selectedDate);
     DialogBox().showLoadingDialog(context);

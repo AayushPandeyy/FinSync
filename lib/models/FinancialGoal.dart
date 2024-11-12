@@ -2,7 +2,7 @@ class FinancialGoal {
   final String id;
   final String title;
   final String description;
-  final int targetAmount;
+  final double targetAmount;
   final double currentAmount;
   final DateTime deadline;
 

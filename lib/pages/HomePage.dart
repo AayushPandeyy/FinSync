@@ -116,10 +116,8 @@ class _HomePageState extends State<HomePage> {
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: TotalBalanceWidget(
-                                      title: "Total Balance",
-                                      balance: (data["totalBalance"] as num)
-                                          .toDouble(),
-                                    ),
+                                        balance: usableAmount,
+                                        title: "Usable Amount"),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
@@ -129,8 +127,10 @@ class _HomePageState extends State<HomePage> {
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: TotalBalanceWidget(
-                                        balance: usableAmount,
-                                        title: "Usable Amount"),
+                                      title: "Total Balance",
+                                      balance: (data["totalBalance"] as num)
+                                          .toDouble(),
+                                    ),
                                   ),
                                 ]);
                           },
