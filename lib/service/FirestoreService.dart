@@ -123,7 +123,7 @@ class FirestoreService {
         .map((snapshot) {
       double total = 0;
       for (var doc in snapshot.docs) {
-        total += int.parse(doc['amount'].toString());
+        total += double.parse(doc['amount'].toString());
       }
       return total;
     });
