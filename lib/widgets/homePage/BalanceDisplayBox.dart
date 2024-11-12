@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class BalaceDisplayBox extends StatefulWidget {
-  final int balance;
+  final double balance;
   final TransactionType type;
   const BalaceDisplayBox(
       {super.key, required this.type, required this.balance});

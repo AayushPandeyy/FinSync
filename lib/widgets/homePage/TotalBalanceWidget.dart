@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 class TotalBalanceWidget extends StatelessWidget {
   final String title;
-  final int balance;
+  final double balance;
   const TotalBalanceWidget(
       {super.key, required this.balance, required this.title});
 

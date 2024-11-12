@@ -106,8 +106,10 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               );
                             }
-                            int amount = snapshot.data!;
-                            int usableAmount = data["totalBalance"] - amount;
+                            double amount = snapshot.data!;
+                            double usableAmount =
+                                (data["totalBalance"] as num).toDouble() -
+                                    amount;
                             return ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
@@ -115,7 +117,8 @@ class _HomePageState extends State<HomePage> {
                                     padding: const EdgeInsets.all(8.0),
                                     child: TotalBalanceWidget(
                                       title: "Total Balance",
-                                      balance: data["totalBalance"],
+                                      balance: (data["totalBalance"] as num)
+                                          .toDouble(),
                                     ),
                                   ),
                                   Padding(
@@ -141,11 +144,11 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           BalaceDisplayBox(
                             type: TransactionType.INCOME,
-                            balance: data["income"],
+                            balance: (data["income"] as num).toDouble(),
                           ),
                           BalaceDisplayBox(
                             type: TransactionType.EXPENSE,
-                            balance: data["expense"],
+                            balance: (data["expense"] as num).toDouble(),
                           )
                         ],
                       ),

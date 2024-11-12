@@ -97,7 +97,8 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                       TransactionModel(
                                         id: data["id"],
                                         title: data["title"],
-                                        amount: data["amount"],
+                                        amount:
+                                            (data["amount"] as num).toDouble(),
                                         date: data["date"].toDate(),
                                         transactionDescription:
                                             data["description"],
@@ -117,7 +118,8 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                                 FirebaseAuth
                                                     .instance.currentUser!.uid,
                                                 data["id"],
-                                                data["amount"],
+                                                (data["amount"] as num)
+                                                    .toDouble(),
                                                 data["type"]);
                                           },
                                           backgroundColor:
@@ -140,7 +142,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                                             description: data[
                                                                 "description"],
                                                             amount:
-                                                                data["amount"],
+                                                                (data["amount"] as num).toDouble(),
                                                             category: data[
                                                                 "category"],
                                                             date: data["date"]
@@ -155,7 +157,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                   child: TransactionTile(
                                       data["title"],
                                       data["date"].toDate(),
-                                      data["amount"],
+                                      (data["amount"] as num).toDouble(),
                                       data["type"],
                                       data["category"]),
                                 ),
@@ -168,7 +170,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
 }
 
 Widget TransactionTile(
-    String title, DateTime date, int amount, String type, String category) {
+    String title, DateTime date, double amount, String type, String category) {
   bool isExpense = TransactionType.EXPENSE.name == type;
 
   // Fetch icon for category

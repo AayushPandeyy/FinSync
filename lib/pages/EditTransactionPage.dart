@@ -12,7 +12,7 @@ class EditTransactionPage extends StatefulWidget {
   final String type;
   final String title;
   final String description;
-  final int amount;
+  final double amount;
   final String category;
   final DateTime date;
   const EditTransactionPage(
@@ -57,7 +57,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         id: widget.id,
         category: _selectedValue!,
         title: _titleController.text,
-        amount: int.parse(_amountController.text),
+        amount: double.parse(_amountController.text),
         date: _selectedDate!,
         transactionDescription: _descriptionController.text,
         type: _transactionType!);

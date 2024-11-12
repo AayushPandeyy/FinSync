@@ -3,7 +3,7 @@ class FinancialGoal {
   final String title;
   final String description;
   final int targetAmount;
-  final int currentAmount;
+  final double currentAmount;
   final DateTime deadline;
 
   const FinancialGoal({

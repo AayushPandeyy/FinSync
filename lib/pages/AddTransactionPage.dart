@@ -44,7 +44,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         id: const UuidV6().generate(),
         category: _selectedValue!,
         title: _titleController.text,
-        amount: int.parse(_amountController.text),
+        amount: double.parse(_amountController.text),
         date: _selectedDate,
         transactionDescription: _descriptionController.text,
         type: _transactionType);

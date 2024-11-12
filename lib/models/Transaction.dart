@@ -8,7 +8,7 @@ class TransactionModel {
   final String title;
   
   // The amount involved in the transaction (positive for income, negative for expenses)
-  final int amount;
+  final double amount;
   
   // The date and time when the transaction occurred
   final DateTime date;

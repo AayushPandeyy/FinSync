@@ -79,17 +79,20 @@ class FirestoreService {
     });
   }
 
-  Stream<List<Map<String,dynamic>>> getTransactionsBasedOnType(String uid,type){
+  Stream<List<Map<String, dynamic>>> getTransactionsBasedOnType(
+      String uid, type) {
     return FirebaseFirestore.instance
         .collection("Transactions")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .collection("transaction")
-        .where("type", isEqualTo: type).snapshots().map((snapshot){
-          return snapshot.docs.map((doc){
-            final transactionData = doc.data();
-            return transactionData;
-          }).toList();
-        });
+        .where("type", isEqualTo: type)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final transactionData = doc.data();
+        return transactionData;
+      }).toList();
+    });
   }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
@@ -110,7 +113,7 @@ class FirestoreService {
     });
   }
 
-  Stream<int> getTotalAmountInACategory(String category) {
+  Stream<double> getTotalAmountInACategory(String category) {
     return FirebaseFirestore.instance
         .collection("Transactions")
         .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -118,7 +121,7 @@ class FirestoreService {
         .where("category", isEqualTo: category)
         .snapshots()
         .map((snapshot) {
-      int total = 0;
+      double total = 0;
       for (var doc in snapshot.docs) {
         total += int.parse(doc['amount'].toString());
       }
@@ -143,7 +146,7 @@ class FirestoreService {
 
   Future<void> updateUserData(
     String uid,
-    int amount,
+    double amount,
     String type,
   ) async {
     bool isExpense = TransactionType.EXPENSE.name == type;
@@ -223,7 +226,7 @@ class FirestoreService {
   }
 
   Future<void> deleteTransaction(
-      String uid, String transactionId, int amount, String type) async {
+      String uid, String transactionId, double amount, String type) async {
     bool isExpense = TransactionType.EXPENSE.name == type;
 
     // Delete the transaction document from Firestore
@@ -247,7 +250,6 @@ class FirestoreService {
   }
 
   Future<void> deleteGoal(String uid, FinancialGoal goal) async {
-    
     await FirebaseFirestore.instance
         .collection("Goals")
         .doc(uid)
