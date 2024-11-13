@@ -30,11 +30,8 @@ class _RegisterPageState extends State<RegisterPage> {
     final AuthFirebaseService authService = AuthFirebaseService();
     try {
       dialogBox.showLoadingDialog(context); // Debug print
-      await authService.signUp(
-          emailController.text,
-          passwordController.text,
-          usernameController.text,
-          phoneController.text);
+      await authService.signUp(emailController.text, passwordController.text,
+          usernameController.text, phoneController.text);
 
       showDialog(
         context: context,
@@ -44,7 +41,11 @@ class _RegisterPageState extends State<RegisterPage> {
               "A verification email has been sent. Please verify your email and login to your account."),
           actions: [
             TextButton(
-              onPressed: () => {Navigator.pop(context), Navigator.pop(context)},
+              onPressed: () => {
+                Navigator.pop(context),
+                Navigator.pop(context),
+                Navigator.pop(context)
+              },
               child: const Text("OK"),
             ),
           ],
@@ -62,6 +63,7 @@ class _RegisterPageState extends State<RegisterPage> {
             TextButton(
               child: const Text("OK"),
               onPressed: () {
+                Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },
             ),

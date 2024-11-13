@@ -44,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
         DialogBox().showAlertDialog(context, "Email Verification Required",
             "Your email has not yet been verified. Please verify your email and try again.");
       } else {
+        
         Navigator.pop(context);
         _resetFields();
         Navigator.pushAndRemoveUntil(
