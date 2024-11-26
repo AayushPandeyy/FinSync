@@ -66,7 +66,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                   TransactionModel(
                                     id: data["id"],
                                     title: data["title"],
-                                    amount: data["amount"],
+                                    amount: (data["amount"] as num).toDouble(),
                                     date: data["date"].toDate(),
                                     transactionDescription: data["description"],
                                     category: data["category"],
@@ -86,7 +86,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                                 FirebaseAuth
                                                     .instance.currentUser!.uid,
                                                 data["id"],
-                                                data["amount"],
+                                                (data["amount"] as num).toDouble(),
                                                 data["type"]);
                                       },
                                       backgroundColor: const Color(0xFFFE4A49),
@@ -106,7 +106,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                                         title: data["title"],
                                                         description:
                                                             data["description"],
-                                                        amount: data["amount"],
+                                                        amount: (data["amount"] as num).toDouble(),
                                                         category:
                                                             data["category"],
                                                         date: data["date"]
@@ -121,7 +121,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                               child: TransactionTile(
                                   data["title"],
                                   data["date"].toDate(),
-                                  data["amount"],
+                                  (data["amount"] as num).toDouble(),
                                   data["type"],
                                   data["category"]),
                             ),

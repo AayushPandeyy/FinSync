@@ -69,7 +69,7 @@ class _TransactionsBasedOnTypePageState
                                   TransactionModel(
                                     id: data["id"],
                                     title: data["title"],
-                                    amount: data["amount"],
+                                    amount: (data["amount"] as num).toDouble(),
                                     date: data["date"].toDate(),
                                     transactionDescription: data["description"],
                                     category: data["category"],
@@ -89,7 +89,8 @@ class _TransactionsBasedOnTypePageState
                                                 FirebaseAuth
                                                     .instance.currentUser!.uid,
                                                 data["id"],
-                                                data["amount"],
+                                                (data["amount"] as num)
+                                                    .toDouble(),
                                                 data["type"]);
                                       },
                                       backgroundColor: const Color(0xFFFE4A49),
@@ -109,7 +110,9 @@ class _TransactionsBasedOnTypePageState
                                                         title: data["title"],
                                                         description:
                                                             data["description"],
-                                                        amount: data["amount"],
+                                                        amount: (data["amount"]
+                                                                as num)
+                                                            .toDouble(),
                                                         category:
                                                             data["category"],
                                                         date: data["date"]
@@ -124,7 +127,7 @@ class _TransactionsBasedOnTypePageState
                               child: TransactionTile(
                                   data["title"],
                                   data["date"].toDate(),
-                                  data["amount"],
+                                  (data["amount"] as num).toDouble(),
                                   data["type"],
                                   data["category"]),
                             ),
