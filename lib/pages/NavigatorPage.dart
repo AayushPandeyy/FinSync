@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/GoalsPage.dart';
 import 'package:finance_tracker/pages/HomePage.dart';
 
 import 'package:finance_tracker/pages/ReportPage.dart';
+import 'package:finance_tracker/pages/SubscriptionsPage.dart';
 import 'package:flutter/material.dart';
 
 class NavigatorPage extends StatefulWidget {
@@ -15,7 +16,7 @@ class NavigatorPage extends StatefulWidget {
 class _NavigatorPageState extends State<NavigatorPage> {
   List<Widget> pages = [
     const HomePage(),
-    const ReportPage(),
+    const SubscriptionsPage(),
     const GoalsPage(),
   ];
   int _currentIndex = 0;
@@ -38,7 +39,7 @@ class _NavigatorPageState extends State<NavigatorPage> {
               children: <Widget>[
                 _buildNavItem(icon: Icons.home, label: "Home", index: 0),
                 _buildNavItem(
-                    icon: Icons.pie_chart, label: "Reports", index: 1),
+                    icon: Icons.subscriptions, label: "Subscriptions", index: 1),
                 _buildNavItem(
                     icon: Icons.track_changes, label: "Goals", index: 2),
               ],

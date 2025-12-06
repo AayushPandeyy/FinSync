@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/EditTransactionPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -119,11 +120,16 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                     ),
                                   ]),
                               child: TransactionTile(
-                                  data["title"],
-                                  data["date"].toDate(),
-                                  (data["amount"] as num).toDouble(),
-                                  data["type"],
-                                  data["category"]),
+                                    title: 
+                                      data["title"],
+                                      date: 
+                                      data["date"].toDate(),
+                                      amount: 
+                                      (data["amount"] as num).toDouble(),
+                                      type: 
+                                      data["type"],
+                                      category: 
+                                      data["category"]),
                             ),
                           ))
                       .toList());

@@ -1,16 +1,15 @@
 // ignore_for_file: non_constant_identifier_names
 
-import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/EditTransactionPage.dart';
 import 'package:finance_tracker/pages/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:intl/intl.dart';
 
 class RecentTransactionsWidget extends StatefulWidget {
   const RecentTransactionsWidget({super.key});
@@ -58,7 +57,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
             stream: FirestoreService().getRecentTransactionsOfUser(
                 FirebaseAuth.instance.currentUser!.uid),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (!snapshot.hasData) {
                 return const Center(
                   child: CircularProgressIndicator.adaptive(
                     backgroundColor: Colors.yellow,
@@ -155,10 +154,15 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                         ),
                                       ]),
                                   child: TransactionTile(
+                                    title: 
                                       data["title"],
+                                      date: 
                                       data["date"].toDate(),
+                                      amount: 
                                       (data["amount"] as num).toDouble(),
+                                      type: 
                                       data["type"],
+                                      category: 
                                       data["category"]),
                                 ),
                               ))
@@ -169,73 +173,3 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
   }
 }
 
-Widget TransactionTile(
-    String title, DateTime date, double amount, String type, String category) {
-  bool isExpense = TransactionType.EXPENSE.name == type;
-
-  // Fetch icon for category
-  IconData categoryIcon = Categories().categories.firstWhere(
-      (cat) => cat['name'] == category,
-      orElse: () => {'icon': Icons.help_outline})['icon'];
-
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      shadowColor: Colors.grey.withOpacity(0.2),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 24,
-              child: CircleAvatar(
-                  backgroundColor: !isExpense
-                      ? const Color.fromARGB(255, 184, 230, 186)
-                      : const Color.fromARGB(255, 236, 193, 190),
-                  radius: 24,
-                  child: Icon(
-                    categoryIcon,
-                    color: isExpense ? Colors.red : Colors.green,
-                  )),
-            ),
-            const SizedBox(width: 16), // Spacing between avatar and details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat("EEE, d MMM, yyyy").format(date),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              isExpense ? "Rs - $amount" : "+ $amount",
-              style: TextStyle(
-                color: isExpense ? Colors.red.shade400 : Colors.green,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-          ],
-        ),
-      ),
-    ),
-  );
-}

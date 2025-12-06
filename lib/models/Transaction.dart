@@ -1,5 +1,3 @@
-import 'package:finance_tracker/enums/TransactionType.dart';
-
 class TransactionModel {
   // The unique ID of the transaction
   final String id;
