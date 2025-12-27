@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/models/FinancialGoal.dart';
+import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -112,6 +113,8 @@ class FirestoreService {
       "type": transaction.type
     });
   }
+
+  
 
   Stream<double> getTotalAmountInACategory(String category) {
     return FirebaseFirestore.instance

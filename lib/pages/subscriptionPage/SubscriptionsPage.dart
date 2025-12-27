@@ -1,5 +1,10 @@
+import 'package:finance_tracker/models/Subscription.dart';
+import 'package:finance_tracker/pages/subscriptionPage/AddSubscriptionPage.dart';
+import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
+import 'package:finance_tracker/widgets/subscriptionPage/SubscriptionTile.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class SubscriptionsPage extends StatefulWidget {
   const SubscriptionsPage({super.key});
@@ -9,52 +14,17 @@ class SubscriptionsPage extends StatefulWidget {
 }
 
 class _SubscriptionsPageState extends State<SubscriptionsPage> {
-  // Sample subscription data
-  final List<Subscription> subscriptions = [
-    Subscription(
-      name: 'Netflix',
-      amount: 1499,
-      icon: Icons.movie_outlined,
-      color: const Color(0xFFFF6B6B),
-      billingCycle: 'Monthly',
-      nextBillingDate: DateTime.now().add(const Duration(days: 5)),
-      category: 'Entertainment',
-    ),
-    Subscription(
-      name: 'Spotify',
-      amount: 119,
-      icon: Icons.music_note,
-      color: const Color(0xFFFF6B6B),
-      billingCycle: 'Monthly',
-      nextBillingDate: DateTime.now().add(const Duration(days: 12)),
-      category: 'Entertainment',
-    ),
-    Subscription(
-      name: 'Amazon Prime',
-      amount: 1499,
-      icon: Icons.shopping_bag_outlined,
-      color: const Color(0xFFFF6B6B),
-      billingCycle: 'Yearly',
-      nextBillingDate: DateTime.now().add(const Duration(days: 180)),
-      category: 'Shopping',
-    ),
-    Subscription(
-      name: 'Gym Membership',
-      amount: 2500,
-      icon: Icons.fitness_center,
-      color: const Color(0xFFFF6B6B),
-      billingCycle: 'Monthly',
-      nextBillingDate: DateTime.now().add(const Duration(days: 8)),
-      category: 'Health',
-    ),
-  ];
+  final SubscriptionFirestoreService _firestoreService = SubscriptionFirestoreService();
+  final String uid = FirebaseAuth.instance.currentUser!.uid;
 
-  double get totalMonthlyExpense {
+  double getTotalMonthlyExpense(List<Subscription> subscriptions) {
     return subscriptions.fold(0.0, (sum, sub) {
       if (sub.billingCycle == 'Monthly') {
         return sum + sub.amount;
       } else if (sub.billingCycle == 'Yearly') {
         return sum + (sub.amount / 12);
+      } else if (sub.billingCycle == 'Weekly') {
+        return sum + (sub.amount * 4);
       }
       return sum;
     });
@@ -64,368 +34,240 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
-    final height = size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8F8FA),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: EdgeInsets.all(width * 0.05),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B1842),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0B1842).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Subscriptions',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.add, color: Colors.white, size: 28),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: height * 0.02),
-                  // Total monthly expense card
-                  Container(
-                    padding: EdgeInsets.all(width * 0.05),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Monthly Expense',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: width * 0.038,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: height * 0.01),
-                        Text(
-                          'Rs ${totalMonthlyExpense.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: width * 0.1,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        SizedBox(height: height * 0.005),
-                        Text(
-                          '${subscriptions.length} active subscriptions',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.75),
-                            fontSize: width * 0.032,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Subscriptions List
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(
-                  vertical: width * 0.04,
+        child: StreamBuilder<List<Subscription>>(
+          stream: _firestoreService.getSubscriptions(uid),
+          builder: (context, snapshot) {
+            // Loading state
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF4A90E2),
                 ),
-                itemCount: subscriptions.length,
-                itemBuilder: (context, index) {
-                  return SubscriptionTile(
-                    subscription: subscriptions[index],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+              );
+            }
 
-    );
-  }
-}
-
-class SubscriptionTile extends StatelessWidget {
-  final Subscription subscription;
-
-  const SubscriptionTile({super.key, required this.subscription});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final width = size.width;
-
-    final daysUntilBilling = subscription.nextBillingDate.difference(DateTime.now()).inDays;
-    final isUpcoming = daysUntilBilling <= 7;
-
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: width * 0.04,
-        vertical: width * 0.015,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0B1842).withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Gradient accent bar
-            
-
-            // Main content
-            Padding(
-              padding: EdgeInsets.all(width * 0.04),
-              child: Column(
-                children: [
-                  // Upcoming badge row
-                  if (isUpcoming)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: width * 0.025,
-                            vertical: width * 0.01,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade400,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.orange.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.notifications_active,
-                                size: width * 0.035,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: width * 0.015),
-                              Text(
-                                'Due Soon',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: width * 0.03,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+            // Error state
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 80,
+                      color: Colors.grey[300],
                     ),
-                  if (isUpcoming) SizedBox(height: width * 0.025),
-                  
-                  // Main row
-                  Row(
-                    children: [
-                      // Icon container
-                      Container(
-                        width: width * 0.15,
-                        height: width * 0.15,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0B1842),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF0B1842).withOpacity(0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          subscription.icon,
-                          color: Colors.white,
-                          size: width * 0.075,
-                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Error loading subscriptions",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
                       ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-                      SizedBox(width: width * 0.04),
+            final subscriptions = snapshot.data ?? [];
+            final totalMonthlyExpense = getTotalMonthlyExpense(subscriptions);
 
-                      // Subscription details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              subscription.name,
-                              style: TextStyle(
-                                fontSize: width * 0.048,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0B1842),
-                                letterSpacing: -0.5,
+            return Column(
+              children: [
+                // Custom Navigation Bar
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          // Back button (optional, remove if not needed)
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8F8FA),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new,
+                                color: Color(0xFF1A1A1A),
+                                size: 18,
                               ),
                             ),
-                            SizedBox(height: width * 0.015),
-                            Row(
+                          ),
+                          
+                          const SizedBox(width: 16),
+                          
+                          // Title section
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: width * 0.025,
-                                    vertical: width * 0.008,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0B1842).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(0xFF0B1842).withOpacity(0.15),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    subscription.category,
-                                    style: TextStyle(
-                                      fontSize: width * 0.03,
-                                      color: const Color(0xFF0B1842),
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                Text(
+                                  "Subscriptions",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 24,
+                                    color: Color(0xFF1A1A1A),
+                                    letterSpacing: -0.8,
+                                    height: 1.2,
                                   ),
                                 ),
-                                SizedBox(width: width * 0.025),
-                                Icon(
-                                  Icons.calendar_today_rounded,
-                                  size: width * 0.035,
-                                  color: Colors.grey.shade600,
-                                ),
-                                SizedBox(width: width * 0.015),
-                                Flexible(
-                                  child: Text(
-                                    DateFormat("d MMM").format(subscription.nextBillingDate),
-                                    style: TextStyle(
-                                      fontSize: width * 0.035,
-                                      color: isUpcoming ? Colors.orange.shade600 : Colors.grey.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                                SizedBox(height: 4),
+                                Text(
+                                  "Manage recurring payments",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF999999),
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 0.1,
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(width: width * 0.02),
-
-                      // Amount and billing cycle
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Rs ${subscription.amount}',
-                            style: TextStyle(
-                              color: subscription.color,
-                              fontSize: width * 0.048,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
                           ),
-                          SizedBox(height: width * 0.012),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: width * 0.03,
-                              vertical: width * 0.01,
-                            ),
-                            decoration: BoxDecoration(
-                              color: subscription.color.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: subscription.color.withOpacity(0.3),
-                                width: 1,
+                          
+                          // Add button
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddSubscriptionPage(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 10, 94, 189),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                            child: Text(
-                              subscription.billingCycle,
-                              style: TextStyle(
-                                fontSize: width * 0.03,
-                                color: subscription.color,
-                                fontWeight: FontWeight.w700,
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 24,
                               ),
                             ),
                           ),
                         ],
                       ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Total monthly expense card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 76, 76, 234),
+                          border: Border.all(
+                            color: const Color(0xFFE5E5E5),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Monthly Expense',
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 255, 255, 255),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Rs ${totalMonthlyExpense.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 255, 255, 255),
+                                fontSize: width * 0.08,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${subscriptions.length} active ${subscriptions.length == 1 ? 'subscription' : 'subscriptions'}',
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 255, 255, 255),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ],
+                ),
+                
+                // Divider
+                Container(
+                  height: 1,
+                  color: const Color(0xFFF0F0F0),
+                ),
+
+                // Subscriptions List
+                Expanded(
+                  child: subscriptions.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.subscriptions_outlined,
+                                size: 80,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                "No Subscriptions Yet",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Add your first subscription",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(
+                            vertical: width * 0.02,
+                          ),
+                          itemCount: subscriptions.length,
+                          itemBuilder: (context, index) {
+                            return SubscriptionTile(
+                              subscription: subscriptions[index],
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
-}
-
-// Subscription model
-class Subscription {
-  final String name;
-  final double amount;
-  final IconData icon;
-  final Color color;
-  final String billingCycle;
-  final DateTime nextBillingDate;
-  final String category;
-
-  Subscription({
-    required this.name,
-    required this.amount,
-    required this.icon,
-    required this.color,
-    required this.billingCycle,
-    required this.nextBillingDate,
-    required this.category,
-  });
 }

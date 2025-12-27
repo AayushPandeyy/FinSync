@@ -1,6 +1,7 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
+import 'package:finance_tracker/pages/subscriptionPage/SubscriptionsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
@@ -256,11 +257,19 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           FeatureBox(
-                            title: "Subscriptions Coming Soon",
+                            title: "Subscriptions",
                             subtitle: "Manage subscriptions",
                             icon: Icons.sync_alt,
                             accentColor: const Color(0xFF9B59B6),
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SubscriptionsPage(),
+                                ),
+                              );
+                            },
                           ),
                           FeatureBox(
                             title: "Budget - Coming Soon",

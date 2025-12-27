@@ -1,5 +1,10 @@
+import 'package:finance_tracker/models/Subscription.dart';
+import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 class AddSubscriptionPage extends StatefulWidget {
   const AddSubscriptionPage({super.key});
@@ -17,6 +22,8 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   String _selectedBillingCycle = 'Monthly';
   String _selectedCategory = 'Entertainment';
   IconData _selectedIcon = Icons.movie_outlined;
+
+  final SubscriptionFirestoreService service = SubscriptionFirestoreService();
 
   final List<String> _billingCycles = ['Monthly', 'Yearly', 'Weekly'];
   
@@ -38,24 +45,12 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  void _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF667eea),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF2D3436),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -64,17 +59,20 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     }
   }
 
-  void _saveSubscription() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Save subscription to database
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Subscription added successfully!'),
-          backgroundColor: Color(0xFF51CF66),
-        ),
-      );
-    }
+  void _saveSubscription() async{
+    print(FirebaseAuth.instance.currentUser!.uid);
+    Subscription subscription = Subscription(
+      name: _nameController.text,
+      amount: double.parse(_amountController.text),
+      billingCycle: _selectedBillingCycle,
+      nextBillingDate: _selectedDate,
+      category: _selectedCategory, id: Uuid().v6(),
+    );
+    DialogBox().showLoadingDialog(context);
+    await service.addSubscription(
+        FirebaseAuth.instance.currentUser!.uid, subscription);
+    Navigator.pop(context);
+    Navigator.pop(context);
   }
 
   @override
@@ -84,41 +82,63 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     final height = size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8F8FA),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Custom Navigation Bar
             Container(
-              padding: EdgeInsets.all(width * 0.05),
-              decoration: BoxDecoration(
-                color: const Color(0xFF667eea),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF667eea).withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Add Subscription',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  // Back button
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F8FA),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Color(0xFF1A1A1A),
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Title section
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Add Subscription",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 24,
+                            color: Color(0xFF1A1A1A),
+                            letterSpacing: -0.8,
+                            height: 1.2,
+                          ),
+                        ),
+                        
+                      ],
                     ),
                   ),
                 ],
               ),
+            ),
+            
+            // Divider
+            Container(
+              height: 1,
+              color: const Color(0xFFF0F0F0),
             ),
 
             // Form
@@ -136,7 +156,6 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                       _buildTextField(
                         controller: _nameController,
                         hint: 'e.g., Netflix, Spotify',
-                        icon: Icons.label_outline,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter subscription name';
@@ -154,7 +173,6 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                       _buildTextField(
                         controller: _amountController,
                         hint: '0.00',
-                        icon: Icons.currency_rupee,
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -176,14 +194,11 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          border: Border.all(
+                            color: const Color(0xFFE5E5E5),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: _billingCycles.map((cycle) {
@@ -201,9 +216,9 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? const Color(0xFF667eea)
+                                        ? const Color(0xFF4A90E2)
                                         : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     cycle,
@@ -211,8 +226,10 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                                     style: TextStyle(
                                       color: isSelected
                                           ? Colors.white
-                                          : const Color(0xFF2D3436),
-                                      fontWeight: FontWeight.w700,
+                                          : const Color(0xFF666666),
+                                      fontWeight: isSelected 
+                                          ? FontWeight.w600 
+                                          : FontWeight.w500,
                                       fontSize: width * 0.038,
                                     ),
                                   ),
@@ -231,39 +248,29 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                       GestureDetector(
                         onTap: () => _selectDate(context),
                         child: Container(
-                          padding: EdgeInsets.all(width * 0.045),
+                          padding: EdgeInsets.all(width * 0.04),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            border: Border.all(
+                              color: const Color(0xFFE5E5E5),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(width * 0.025),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF667eea),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.white,
-                                  size: width * 0.055,
-                                ),
+                              const Icon(
+                                Icons.calendar_today,
+                                color: Color(0xFF4A90E2),
+                                size: 20,
                               ),
-                              SizedBox(width: width * 0.035),
+                              SizedBox(width: width * 0.03),
                               Text(
-                                DateFormat('EEEE, d MMM yyyy').format(_selectedDate),
+                                DateFormat('d MMM yyyy').format(_selectedDate),
                                 style: TextStyle(
                                   fontSize: width * 0.04,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF2D3436),
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF1A1A1A),
                                 ),
                               ),
                             ],
@@ -294,22 +301,16 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                                 vertical: height * 0.012,
                               ),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF667eea) : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                color: isSelected 
+                                    ? const Color(0xFF4A90E2) 
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: isSelected
-                                      ? Colors.transparent
-                                      : Colors.grey.shade300,
-                                  width: 1.5,
+                                      ? const Color(0xFF4A90E2)
+                                      : const Color(0xFFE5E5E5),
+                                  width: 1,
                                 ),
-                                boxShadow: [
-                                  if (isSelected)
-                                    BoxShadow(
-                                      color: const Color(0xFF667eea).withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                ],
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -319,17 +320,17 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                                     size: width * 0.045,
                                     color: isSelected
                                         ? Colors.white
-                                        : const Color(0xFF2D3436),
+                                        : const Color(0xFF666666),
                                   ),
                                   SizedBox(width: width * 0.02),
                                   Text(
                                     category['name'],
                                     style: TextStyle(
                                       fontSize: width * 0.035,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w500,
                                       color: isSelected
                                           ? Colors.white
-                                          : const Color(0xFF2D3436),
+                                          : const Color(0xFF666666),
                                     ),
                                   ),
                                 ],
@@ -351,40 +352,17 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                               vertical: height * 0.02,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 0,
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
+                            backgroundColor: const Color(0xFF4A90E2),
                           ),
-                          child: Ink(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF667eea),
-                                  Color(0xFF764ba2),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.purple.withOpacity(0.3),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Add Subscription',
-                                style: TextStyle(
-                                  fontSize: width * 0.045,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
+                          child: Text(
+                            'Add Subscription',
+                            style: TextStyle(
+                              fontSize: width * 0.042,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -404,9 +382,9 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: width * 0.04,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF2D3436),
+        fontSize: width * 0.038,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF1A1A1A),
       ),
     );
   }
@@ -414,7 +392,6 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required IconData icon,
     required double width,
     String? Function(String?)? validator,
     TextInputType keyboardType = TextInputType.text,
@@ -425,67 +402,55 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
       validator: validator,
       style: TextStyle(
         fontSize: width * 0.04,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF2D3436),
+        fontWeight: FontWeight.w500,
+        color: const Color(0xFF1A1A1A),
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
-          color: Colors.grey.shade400,
-          fontWeight: FontWeight.w500,
-        ),
-        prefixIcon: Container(
-          margin: EdgeInsets.all(width * 0.03),
-          padding: EdgeInsets.all(width * 0.02),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF667eea),
-                Color(0xFF764ba2),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: width * 0.055,
-          ),
+        hintStyle: const TextStyle(
+          color: Color(0xFFCCCCCC),
+          fontWeight: FontWeight.w400,
         ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFFE5E5E5),
+            width: 1,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(0xFFE5E5E5),
+            width: 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: Color(0xFF667eea),
+            color: Color(0xFF4A90E2),
             width: 2,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: Color(0xFFFF6B6B),
-            width: 2,
+            color: Color(0xFFE63946),
+            width: 1,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: Color(0xFFFF6B6B),
+            color: Color(0xFFE63946),
             width: 2,
           ),
         ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: width * 0.04,
-          vertical: width * 0.045,
+          vertical: width * 0.04,
         ),
       ),
     );
