@@ -1,5 +1,5 @@
 import 'package:finance_tracker/models/Transaction.dart';
-import 'package:finance_tracker/pages/EditTransactionPage.dart';
+import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';

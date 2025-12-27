@@ -1,4 +1,4 @@
-import 'package:finance_tracker/pages/NavigatorPage.dart';
+import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/LoginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

@@ -75,7 +75,7 @@ class _TotalBalanceWidgetState extends State<TotalBalanceWidget>
               // Gradient Background
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(16),
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,

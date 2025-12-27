@@ -1,4 +1,4 @@
-import 'package:finance_tracker/pages/NavigatorPage.dart';
+import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/ForgotPasswordPage.dart';
 import 'package:finance_tracker/pages/auth/RegisterPage.dart';
 import 'package:finance_tracker/service/AuthFirebaseService.dart';

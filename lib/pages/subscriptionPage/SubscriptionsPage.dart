@@ -75,17 +75,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             Container(
               padding: EdgeInsets.all(width * 0.05),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF667eea),
-                    Color(0xFF764ba2),
-                  ],
-                ),
+                color: const Color(0xFF0B1842),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.purple.withOpacity(0.2),
+                    color: const Color(0xFF0B1842).withOpacity(0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -95,10 +88,6 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                      ),
                       const Expanded(
                         child: Text(
                           'Subscriptions',
@@ -109,9 +98,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.add, color: Colors.white, size: 28),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () {},
+                          icon: const Icon(Icons.add, color: Colors.white, size: 28),
+                        ),
                       ),
                     ],
                   ),
@@ -120,10 +115,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   Container(
                     padding: EdgeInsets.all(width * 0.05),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withOpacity(0.2),
                         width: 1.5,
                       ),
                     ),
@@ -132,7 +127,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         Text(
                           'Monthly Expense',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withOpacity(0.85),
                             fontSize: width * 0.038,
                             fontWeight: FontWeight.w600,
                           ),
@@ -151,7 +146,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         Text(
                           '${subscriptions.length} active subscriptions',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withOpacity(0.75),
                             fontSize: width * 0.032,
                             fontWeight: FontWeight.w500,
                           ),
@@ -180,15 +175,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF667eea),
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'Add Subscription',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
+
     );
   }
 }
@@ -213,20 +200,13 @@ class SubscriptionTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            Colors.white,
-            subscription.color.withOpacity(0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
+            color: const Color(0xFF0B1842).withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -235,15 +215,7 @@ class SubscriptionTile extends StatelessWidget {
         child: Stack(
           children: [
             // Gradient accent bar
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 4,
-                color: subscription.color,
-              ),
-            ),
+            
 
             // Main content
             Padding(
@@ -257,27 +229,34 @@ class SubscriptionTile extends StatelessWidget {
                       children: [
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: width * 0.02,
-                            vertical: width * 0.008,
+                            horizontal: width * 0.025,
+                            vertical: width * 0.01,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange,
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.orange.shade400,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.notifications_active,
-                                size: width * 0.03,
+                                size: width * 0.035,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: width * 0.01),
+                              SizedBox(width: width * 0.015),
                               Text(
-                                'Soon',
+                                'Due Soon',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: width * 0.025,
+                                  fontSize: width * 0.03,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -286,22 +265,22 @@ class SubscriptionTile extends StatelessWidget {
                         ),
                       ],
                     ),
-                  if (isUpcoming) SizedBox(height: width * 0.02),
+                  if (isUpcoming) SizedBox(height: width * 0.025),
                   
                   // Main row
                   Row(
                     children: [
                       // Icon container
                       Container(
-                        width: width * 0.14,
-                        height: width * 0.14,
+                        width: width * 0.15,
+                        height: width * 0.15,
                         decoration: BoxDecoration(
-                          color: subscription.color,
+                          color: const Color(0xFF0B1842),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: subscription.color.withOpacity(0.3),
-                              blurRadius: 8,
+                              color: const Color(0xFF0B1842).withOpacity(0.3),
+                              blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
                           ],
@@ -309,7 +288,7 @@ class SubscriptionTile extends StatelessWidget {
                         child: Icon(
                           subscription.icon,
                           color: Colors.white,
-                          size: width * 0.07,
+                          size: width * 0.075,
                         ),
                       ),
 
@@ -323,47 +302,51 @@ class SubscriptionTile extends StatelessWidget {
                             Text(
                               subscription.name,
                               style: TextStyle(
-                                fontSize: width * 0.045,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF2D3436),
+                                fontSize: width * 0.048,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0B1842),
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            SizedBox(height: width * 0.01),
+                            SizedBox(height: width * 0.015),
                             Row(
                               children: [
                                 Container(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: width * 0.02,
-                                    vertical: width * 0.005,
+                                    horizontal: width * 0.025,
+                                    vertical: width * 0.008,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: subscription.color.withOpacity(0.1),
+                                    color: const Color(0xFF0B1842).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: const Color(0xFF0B1842).withOpacity(0.15),
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Text(
                                     subscription.category,
                                     style: TextStyle(
-                                      fontSize: width * 0.028,
-                                      color: subscription.color,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: width * 0.03,
+                                      color: const Color(0xFF0B1842),
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: width * 0.02),
+                                SizedBox(width: width * 0.025),
                                 Icon(
                                   Icons.calendar_today_rounded,
-                                  size: width * 0.03,
-                                  color: Colors.grey.shade500,
+                                  size: width * 0.035,
+                                  color: Colors.grey.shade600,
                                 ),
-                                SizedBox(width: width * 0.01),
+                                SizedBox(width: width * 0.015),
                                 Flexible(
                                   child: Text(
-                                    'Next: ${DateFormat("d MMM").format(subscription.nextBillingDate)}',
+                                    DateFormat("d MMM").format(subscription.nextBillingDate),
                                     style: TextStyle(
-                                      fontSize: width * 0.032,
-                                      color: isUpcoming ? Colors.orange : Colors.grey.shade600,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: width * 0.035,
+                                      color: isUpcoming ? Colors.orange.shade600 : Colors.grey.shade700,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -384,27 +367,31 @@ class SubscriptionTile extends StatelessWidget {
                             'Rs ${subscription.amount}',
                             style: TextStyle(
                               color: subscription.color,
-                              fontSize: width * 0.045,
-                              fontWeight: FontWeight.w800,
+                              fontSize: width * 0.048,
+                              fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
                             ),
                           ),
-                          SizedBox(height: width * 0.01),
+                          SizedBox(height: width * 0.012),
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: width * 0.025,
-                              vertical: width * 0.008,
+                              horizontal: width * 0.03,
+                              vertical: width * 0.01,
                             ),
                             decoration: BoxDecoration(
-                              color: subscription.color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                              color: subscription.color.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: subscription.color.withOpacity(0.3),
+                                width: 1,
+                              ),
                             ),
                             child: Text(
                               subscription.billingCycle,
                               style: TextStyle(
-                                fontSize: width * 0.028,
+                                fontSize: width * 0.03,
                                 color: subscription.color,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),

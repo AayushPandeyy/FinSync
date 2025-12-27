@@ -1,8 +1,8 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:finance_tracker/models/Transaction.dart';
-import 'package:finance_tracker/pages/EditTransactionPage.dart';
-import 'package:finance_tracker/pages/SeeAllTransactionsPage.dart';
+import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
+import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/service/FirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
