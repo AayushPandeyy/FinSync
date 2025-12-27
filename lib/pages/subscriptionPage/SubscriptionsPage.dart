@@ -32,11 +32,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final width = size.width;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: StreamBuilder<List<Subscription>>(
           stream: _firestoreService.getSubscriptions(uid),
@@ -45,7 +43,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF4A90E2),
+                  color: Color(0xFF000000),
+                  strokeWidth: 2,
                 ),
               );
             }
@@ -58,15 +57,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   children: [
                     Icon(
                       Icons.error_outline,
-                      size: 80,
-                      color: Colors.grey[300],
+                      size: 48,
+                      color: Colors.grey[400],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       "Error loading subscriptions",
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                         color: Colors.grey[700],
                       ),
                     ),
@@ -80,64 +79,32 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
 
             return Column(
               children: [
-                // Custom Navigation Bar
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                // Header Section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Back button and Add button row
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Back button (optional, remove if not needed)
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
-                              width: 44,
-                              height: 44,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8F8FA),
-                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Icon(
                                 Icons.arrow_back_ios_new,
-                                color: Color(0xFF1A1A1A),
-                                size: 18,
+                                color: Color(0xFF000000),
+                                size: 16,
                               ),
                             ),
                           ),
-                          
-                          const SizedBox(width: 16),
-                          
-                          // Title section
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Subscriptions",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 24,
-                                    color: Color(0xFF1A1A1A),
-                                    letterSpacing: -0.8,
-                                    height: 1.2,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  "Manage recurring payments",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF999999),
-                                    fontWeight: FontWeight.w400,
-                                    letterSpacing: 0.1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Add button
                           GestureDetector(
                             onTap: () {
                               Navigator.push(
@@ -148,60 +115,77 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                               );
                             },
                             child: Container(
-                              width: 44,
-                              height: 44,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 10, 94, 189),
-                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFF000000),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Icon(
                                 Icons.add,
                                 color: Colors.white,
-                                size: 24,
+                                size: 20,
                               ),
                             ),
                           ),
                         ],
                       ),
                       
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       
-                      // Total monthly expense card
+                      // Title
+                      const Text(
+                        "Subscriptions",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 32,
+                          color: Color(0xFF000000),
+                          letterSpacing: -1.2,
+                          height: 1.1,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 32),
+                      
+                      // Total monthly expense card - minimalist version
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 28,
+                          horizontal: 24,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 76, 76, 234),
-                          border: Border.all(
-                            color: const Color(0xFFE5E5E5),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFF000000),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Monthly Expense',
+                            Text(
+                              'Monthly',
                               style: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.6),
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
+                                letterSpacing: 0.5,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Rs ${totalMonthlyExpense.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                color: const Color.fromARGB(255, 255, 255, 255),
-                                fontSize: width * 0.08,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 40,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -1,
+                                letterSpacing: -1.5,
+                                height: 1.1,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 12),
                             Text(
-                              '${subscriptions.length} active ${subscriptions.length == 1 ? 'subscription' : 'subscriptions'}',
-                              style: const TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255),
+                              '${subscriptions.length} ${subscriptions.length == 1 ? 'subscription' : 'subscriptions'}',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -209,16 +193,23 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           ],
                         ),
                       ),
+                      
+                      if (subscriptions.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        Text(
+                          'Active',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[500],
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 
-                // Divider
-                Container(
-                  height: 1,
-                  color: const Color(0xFFF0F0F0),
-                ),
-
                 // Subscriptions List
                 Expanded(
                   child: subscriptions.isEmpty
@@ -226,39 +217,49 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.subscriptions_outlined,
-                                size: 80,
-                                color: Colors.grey[300],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                "No Subscriptions Yet",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5F5F5),
+                                  borderRadius: BorderRadius.circular(40),
+                                ),
+                                child: Icon(
+                                  Icons.subscriptions_outlined,
+                                  size: 36,
+                                  color: Colors.grey[400],
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 20),
                               Text(
-                                "Add your first subscription",
+                                "No subscriptions",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "Tap + to add your first one",
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[500],
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ],
                           ),
                         )
                       : ListView.builder(
-                          padding: EdgeInsets.symmetric(
-                            vertical: width * 0.02,
-                          ),
+                          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                           itemCount: subscriptions.length,
                           itemBuilder: (context, index) {
-                            return SubscriptionTile(
-                              subscription: subscriptions[index],
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: SubscriptionTile(
+                                subscription: subscriptions[index],
+                              ),
                             );
                           },
                         ),

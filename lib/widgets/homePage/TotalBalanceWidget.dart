@@ -57,7 +57,7 @@ class _TotalBalanceWidgetState extends State<TotalBalanceWidget>
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.purple.withOpacity(0.3),
+                color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
                 spreadRadius: 2,
@@ -77,12 +77,11 @@ class _TotalBalanceWidgetState extends State<TotalBalanceWidget>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    end: Alignment.topLeft,
+                    begin: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF667eea),
-                      Color(0xFF764ba2),
-                      Color(0xFFf093fb),
+                      Color.fromARGB(255, 127, 127, 127),
+                      Color.fromARGB(255, 0, 0, 0),
                     ],
                   ),
                 ),

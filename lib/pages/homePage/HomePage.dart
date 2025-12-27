@@ -123,29 +123,11 @@ class _HomePageState extends State<HomePage> {
                         double usableAmount =
                             (data["totalBalance"] as num).toDouble() - amount;
 
-                        return ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: TotalBalanceWidget(
-                                  balance: usableAmount,
-                                  title: "Usable Amount"),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: TotalBalanceWidget(
-                                  balance: amount, title: "Total Saving"),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: TotalBalanceWidget(
-                                title: "Total Balance",
-                                balance: (data["totalBalance"] as num).toDouble(),
-                              ),
-                            ),
-                          ],
+                        return Center(
+                          child: TotalBalanceWidget(
+                            title: "Total Balance",
+                            balance: (data["totalBalance"] as num).toDouble(),
+                          ),
                         );
                       },
                     ),
@@ -272,7 +254,7 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           FeatureBox(
-                            title: "Budget - Coming Soon",
+                            title: "Budget ",
                             subtitle: "Set your budget",
                             icon: Icons.pie_chart,
                             accentColor: const Color(0xFF16A085),
@@ -280,7 +262,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           
                           FeatureBox(
-                            title: "Categories - Coming Soon",
+                            title: "Categories",
                             subtitle: "Manage categories",
                             icon: Icons.category,
                             accentColor: const Color(0xFF3498DB),

@@ -19,160 +19,239 @@ class _GoalsPageState extends State<GoalsPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text(
-          "Your Goals",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: StreamBuilder(
-          stream: FirestoreService().getTotalAmountInACategory("Savings"),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator.adaptive(
-                  backgroundColor: Colors.yellow,
-                ),
-              );
-            }
-            final savingsAmount = snapshot.data!;
-            return SizedBox(
-              height: double.infinity,
-              width: double.infinity,
-              child: StreamBuilder(
-                  stream: FirestoreService()
-                      .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-                    final data = snapshot.data;
-                    if (data!.isEmpty) {
-                      return Center(child: AddGoalButton(context));
-                    }
-                    return Column(
-                      children: [
-                        Expanded(
-                          child: ListView(
-                            children: data
-                                .map((data) => Slidable(
-                                      endActionPane: ActionPane(
-                                          extentRatio: 0.6,
-                                          motion: const ScrollMotion(),
-                                          children: [
-                                            SlidableAction(
-                                              onPressed: (context) async {
-                                                FirestoreService().deleteGoal(
-                                                    FirebaseAuth.instance
-                                                        .currentUser!.uid,
-                                                    FinancialGoal(
-                                                        id: data["id"],
-                                                        title: data["title"],
-                                                        description:
-                                                            data["description"],
-                                                        targetAmount:
-                                                            data["amount"],
-                                                        currentAmount:
-                                                            savingsAmount,
-                                                        deadline:
-                                                            data["deadline"]
-                                                                .toDate()));
-                                              },
-                                              backgroundColor:
-                                                  const Color(0xFFFE4A49),
-                                              foregroundColor: Colors.white,
-                                              icon: Icons.delete,
-                                              label: 'Delete',
-                                            ),
-                                            SlidableAction(
-                                              onPressed: (context) {
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) => EditGoalPage(
-                                                            goal: FinancialGoal(
-                                                                id: data["id"],
-                                                                title: data[
-                                                                    "title"],
-                                                                description: data[
-                                                                    "description"],
-                                                                targetAmount:
-                                                                    data[
-                                                                        "amount"],
-                                                                currentAmount:
-                                                                    savingsAmount,
-                                                                deadline: data[
-                                                                        "deadline"]
-                                                                    .toDate()))));
-                                              },
-                                              backgroundColor: Colors.blue,
-                                              foregroundColor: Colors.white,
-                                              icon: Icons.edit,
-                                              label: 'Edit',
-                                            ),
-                                          ]),
-                                      child: FinancialGoalWidget(
-                                          goal: FinancialGoal(
-                                              id: data["id"],
-                                              title: data["title"],
-                                              description: data["description"],
-                                              targetAmount: data["amount"],
-                                              currentAmount: savingsAmount,
-                                              deadline:
-                                                  data["deadline"].toDate())),
-                                    ))
-                                .toList(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            // Header Section
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back button and Add button row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Color(0xFF000000),
+                            size: 16,
                           ),
                         ),
-                        const SizedBox(
-                          height: 10,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddGoalsPage(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF000000),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
-                        AddGoalButton(context),
-                        const SizedBox(
-                          height: 30,
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Title
+                  const Text(
+                    "Financial Goals",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 32,
+                      color: Color(0xFF000000),
+                      letterSpacing: -1.2,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Divider
+            Container(
+              height: 1,
+              color: const Color(0xFFF0F0F0),
+            ),
+            
+            // Goals List
+            Expanded(
+              child: StreamBuilder(
+                stream: FirestoreService().getTotalAmountInACategory("Savings"),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF000000),
+                        strokeWidth: 2,
+                      ),
                     );
-                  }),
-            );
-          }),
-    ));
-  }
-}
-
-Widget AddGoalButton(BuildContext context) {
-  return InkWell(
-    onTap: () {
-      Navigator.push(context,
-          CupertinoPageRoute(builder: (context) => const AddGoalsPage()));
-    },
-    child: Container(
-      height: 50,
-      width: MediaQuery.sizeOf(context).width * 0.7,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10), color: Colors.black),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.add,
-            size: 30,
-            color: Colors.white,
-          ),
-          SizedBox(
-            width: 8,
-          ),
-          Text(
-            "Add a New Goal",
-            style: TextStyle(
-                fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
-          )
-        ],
+                  }
+                  
+                  final savingsAmount = snapshot.data ?? 0;
+                  
+                  return StreamBuilder(
+                    stream: FirestoreService()
+                        .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF000000),
+                            strokeWidth: 2,
+                          ),
+                        );
+                      }
+                      
+                      final data = snapshot.data ?? [];
+                      
+                      if (data.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5F5F5),
+                                  borderRadius: BorderRadius.circular(40),
+                                ),
+                                child: Icon(
+                                  Icons.flag_outlined,
+                                  size: 36,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                "No goals yet",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "Tap + to add your first goal",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                        itemCount: data.length,
+                        itemBuilder: (context, index) {
+                          final goalData = data[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Slidable(
+                              endActionPane: ActionPane(
+                                extentRatio: 0.5,
+                                motion: const ScrollMotion(),
+                                children: [
+                                  SlidableAction(
+                                    onPressed: (context) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => EditGoalPage(
+                                            goal: FinancialGoal(
+                                              id: goalData["id"],
+                                              title: goalData["title"],
+                                              description: goalData["description"],
+                                              targetAmount: goalData["amount"],
+                                              currentAmount: savingsAmount,
+                                              deadline: goalData["deadline"].toDate(),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    backgroundColor: const Color(0xFF000000),
+                                    foregroundColor: Colors.white,
+                                    icon: Icons.edit,
+                                    label: 'Edit',
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(0),
+                                      bottomLeft: Radius.circular(0),
+                                    ),
+                                  ),
+                                  SlidableAction(
+                                    onPressed: (context) async {
+                                      await FirestoreService().deleteGoal(
+                                        FirebaseAuth.instance.currentUser!.uid,
+                                        FinancialGoal(
+                                          id: goalData["id"],
+                                          title: goalData["title"],
+                                          description: goalData["description"],
+                                          targetAmount: goalData["amount"],
+                                          currentAmount: savingsAmount,
+                                          deadline: goalData["deadline"].toDate(),
+                                        ),
+                                      );
+                                    },
+                                    backgroundColor: const Color(0xFFE63946),
+                                    foregroundColor: Colors.white,
+                                    icon: Icons.delete,
+                                    label: 'Delete',
+                                  ),
+                                ],
+                              ),
+                              child: FinancialGoalWidget(
+                                goal: FinancialGoal(
+                                  id: goalData["id"],
+                                  title: goalData["title"],
+                                  description: goalData["description"],
+                                  targetAmount: goalData["amount"],
+                                  currentAmount: savingsAmount,
+                                  deadline: goalData["deadline"].toDate(),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
