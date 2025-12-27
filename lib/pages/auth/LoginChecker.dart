@@ -1,3 +1,4 @@
+import 'package:finance_tracker/pages/homePage/HomePage.dart';
 import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/LoginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,7 +26,7 @@ class LoginChecker extends StatelessWidget {
           // Check if user data is available
           if (snapshot.hasData) {
             // If user is authenticated, navigate to MainPage
-            return const NavigatorPage();
+            return const HomePage();
           } else {
             // If user is not authenticated, navigate to SignInScreen
             return const LoginPage();

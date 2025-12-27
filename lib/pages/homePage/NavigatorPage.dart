@@ -2,7 +2,7 @@ import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/homePage/HomePage.dart';
 
-import 'package:finance_tracker/pages/ReportPage.dart';
+import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/subscriptionPage/SubscriptionsPage.dart';
 import 'package:flutter/material.dart';
 

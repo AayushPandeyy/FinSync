@@ -1,4 +1,6 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
+import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
@@ -222,36 +224,54 @@ class _HomePageState extends State<HomePage> {
                               );
                             },
                           ),
+                          
                           FeatureBox(
-                            title: "Subscriptions",
-                            subtitle: "Manage subscriptions",
-                            icon: Icons.sync_alt,
-                            accentColor: const Color(0xFF9B59B6),
-                            onTap: () {},
-                          ),
-                          FeatureBox(
-                            title: "Recurring",
-                            subtitle: "Track recurring payments",
-                            icon: Icons.autorenew,
+                            title: "Goals",
+                            subtitle: "Your financial goals",
+                            icon: Icons.savings,
                             accentColor: const Color(0xFFE67E22),
-                            onTap: () {},
-                          ),
-                          FeatureBox(
-                            title: "Budget",
-                            subtitle: "Set your budget",
-                            icon: Icons.pie_chart,
-                            accentColor: const Color(0xFF16A085),
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const GoalsPage(),
+                                ),
+                              );
+                            },
                           ),
                           FeatureBox(
                             title: "Analytics",
                             subtitle: "View insights",
                             icon: Icons.analytics,
                             accentColor: const Color(0xFFE74C3C),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ReportPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          FeatureBox(
+                            title: "Subscriptions Coming Soon",
+                            subtitle: "Manage subscriptions",
+                            icon: Icons.sync_alt,
+                            accentColor: const Color(0xFF9B59B6),
                             onTap: () {},
                           ),
                           FeatureBox(
-                            title: "Categories",
+                            title: "Budget - Coming Soon",
+                            subtitle: "Set your budget",
+                            icon: Icons.pie_chart,
+                            accentColor: const Color(0xFF16A085),
+                            onTap: () {},
+                          ),
+                          
+                          FeatureBox(
+                            title: "Categories - Coming Soon",
                             subtitle: "Manage categories",
                             icon: Icons.category,
                             accentColor: const Color(0xFF3498DB),
