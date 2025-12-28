@@ -19,23 +19,18 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
   bool _isExpanded = false;
   late AnimationController _controller;
   late Animation<double> _expandAnimation;
-  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
     _expandAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
     );
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 0.5,
-    ).animate(_expandAnimation);
   }
 
   @override
@@ -55,167 +50,258 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
     });
   }
 
+  Color _getProgressColor(double progress) {
+    if (progress >= 1.0) return const Color(0xFF06D6A0); // Green - Complete
+    if (progress >= 0.75) return const Color(0xFF4A90E2); // Blue - Almost there
+    if (progress >= 0.5) return const Color(0xFFFFA500); // Orange - Halfway
+    return const Color(0xFFE63946); // Red - Just started
+  }
+
   @override
   Widget build(BuildContext context) {
-    final progress = (widget.goal.currentAmount / widget.goal.targetAmount) > 1
-        ? 1.0
-        : widget.goal.currentAmount / widget.goal.targetAmount;
+    final progress = (widget.goal.currentAmount / widget.goal.targetAmount).clamp(0.0, 1.0);
     final daysLeft = widget.goal.deadline.difference(DateTime.now()).inDays;
+    final remaining = widget.goal.targetAmount - widget.goal.currentAmount;
     final progressColor = _getProgressColor(progress);
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: _toggleExpanded,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: progressColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getGoalIcon(progress),
-                      color: progressColor,
-                      size: 24,
+    return GestureDetector(
+      onTap: _toggleExpanded,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            left: BorderSide(
+              color: progressColor.withOpacity(0.3),
+              width: 4,
+            ),
+            bottom: BorderSide(
+              color: progressColor.withOpacity(0.3),
+              width: 2,
+            ),
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.goal.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF000000),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${(progress * 100).toStringAsFixed(0)}% • ${daysLeft > 0 ? '$daysLeft days left' : 'Overdue'}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Progress indicator circle
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: progressColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: progressColor.withOpacity(0.3),
+                      width: 2,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.goal.title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${(progress * 100).toStringAsFixed(1)}% Complete',
-                          style: TextStyle(
-                            color: progressColor,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  child: Center(
+                    child: Text(
+                      '${(progress * 100).toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: progressColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Progress Bar
+            Stack(
+              children: [
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: progressColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          progressColor,
+                          progressColor.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: progressColor.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                   ),
-                  RotationTransition(
-                    turns: _rotationAnimation,
-                    child: const Icon(Icons.expand_more),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.black,
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  minHeight: 8,
                 ),
-              ),
-              SizeTransition(
-                sizeFactor: _expandAnimation,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Amount Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.goal.description,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: progressColor,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildInfoRow(
-                      'Target Amount',
-                      NumberFormat.currency(symbol: 'Rs ')
-                          .format(widget.goal.targetAmount),
-                      Icons.flag,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      'Savings Amount',
-                      NumberFormat.currency(symbol: 'Rs ')
-                          .format(widget.goal.currentAmount),
-                      Icons.account_balance_wallet,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      'Time Remaining',
-                      '$daysLeft days left',
-                      Icons.timer,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      'Deadline',
-                      DateFormat('MMM dd, yyyy').format(widget.goal.deadline),
-                      Icons.event,
+                    const SizedBox(width: 6),
+                    Text(
+                      'Rs ${widget.goal.currentAmount.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: progressColor,
+                      ),
                     ),
                   ],
                 ),
+                Text(
+                  'Rs ${widget.goal.targetAmount.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+            
+            // Expanded Details
+            SizeTransition(
+              sizeFactor: _expandAnimation,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  
+                  // Divider
+                  Container(
+                    height: 1,
+                    color: const Color(0xFFF0F0F0),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Description
+                  if (widget.goal.description.isNotEmpty) ...[
+                    Text(
+                      widget.goal.description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  
+                  // Stats Grid
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F8F8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildStatRow(
+                          'Remaining',
+                          'Rs ${remaining > 0 ? remaining.toStringAsFixed(0) : '0'}',
+                        ),
+                        const SizedBox(height: 12),
+                        _buildStatRow(
+                          'Deadline',
+                          DateFormat('MMM dd, yyyy').format(widget.goal.deadline),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildStatRow(
+                          'Daily Target',
+                          daysLeft > 0 
+                              ? 'Rs ${(remaining / daysLeft).toStringAsFixed(0)}/day'
+                              : 'Goal ended',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon) {
+  Widget _buildStatRow(String label, String value) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Colors.grey.shade600,
-        ),
-        const SizedBox(width: 8),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 14,
+            fontSize: 13,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w400,
           ),
         ),
-        const Spacer(),
         Text(
           value,
           style: const TextStyle(
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            color: Color(0xFF000000),
           ),
         ),
       ],
     );
-  }
-
-  Color _getProgressColor(double progress) {
-    if (progress < 0.3) return Colors.red;
-    if (progress < 0.7) return Colors.orange;
-    if (progress < 1) return Colors.blue;
-    return Colors.green;
-  }
-
-  IconData _getGoalIcon(double progress) {
-    if (progress < 0.3) return Icons.sentiment_dissatisfied;
-    if (progress < 0.7) return Icons.sentiment_neutral;
-    if (progress < 1) return Icons.sentiment_satisfied;
-    return Icons.celebration;
   }
 }
