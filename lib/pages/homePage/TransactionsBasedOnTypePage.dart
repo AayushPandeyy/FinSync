@@ -62,9 +62,9 @@ class _TransactionsBasedOnTypePageState
                               IconData categoryIcon = Categories()
                                   .categories
                                   .firstWhere(
-                                      (cat) => cat['name'] == data["category"],
+                                      (cat) => cat.name == data["category"],
                                       orElse: () =>
-                                          {'icon': Icons.help_outline})['icon'];
+                                          Categories().categories.first).icon;
                               DialogBox().showTransactionDetailPopUp(
                                   context,
                                   TransactionModel(

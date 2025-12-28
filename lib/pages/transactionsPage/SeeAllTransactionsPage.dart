@@ -293,9 +293,9 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
       final categoryData = Categories()
           .categories
           .firstWhere(
-              (cat) => cat['name'] == category,
-              orElse: () => {'icon': Icons.category});
-      categoryIcon = categoryData['icon'];
+              (cat) => cat.name == category,
+              orElse: () => Categories().categories.first);
+      categoryIcon = categoryData.icon;
     }
     
     return GestureDetector(
@@ -612,8 +612,8 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                 IconData categoryIcon = Categories()
                                     .categories
                                     .firstWhere(
-                                        (cat) => cat['name'] == transaction["category"],
-                                        orElse: () => {'icon': Icons.help_outline})['icon'];
+                                        (cat) => cat.name == transaction["category"],
+                                        orElse: () => Categories().categories.first).icon;
                                 DialogBox().showTransactionDetailPopUp(
                                     context,
                                     TransactionModel(

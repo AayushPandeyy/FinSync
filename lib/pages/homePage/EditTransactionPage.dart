@@ -247,14 +247,14 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                       },
                       items: Categories().categories.map((category) {
                         return DropdownMenuItem<String>(
-                          value: category['name'],
+                          value: category.name,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Row(
                               children: [
-                                Icon(category['icon'], color: Colors.blueGrey),
+                                Icon(category.icon, color: Colors.blueGrey),
                                 const SizedBox(width: 10),
-                                Text(category['name'],
+                                Text(category.name,
                                     style: const TextStyle(fontSize: 16)),
                               ],
                             ),

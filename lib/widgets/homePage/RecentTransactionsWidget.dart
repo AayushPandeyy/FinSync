@@ -1,5 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
@@ -87,10 +88,11 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                       .categories
                                       .firstWhere(
                                           (cat) =>
-                                              cat['name'] == data["category"],
-                                          orElse: () => {
-                                                'icon': Icons.help_outline
-                                              })['icon'];
+                                              cat.name == data["category"],
+                                          orElse: () => Category(
+                                                name: 'Unknown',
+                                                icon: Icons.help_outline
+                                              )).icon;
                                   DialogBox().showTransactionDetailPopUp(
                                       context,
                                       TransactionModel(

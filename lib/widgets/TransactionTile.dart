@@ -28,10 +28,11 @@ class TransactionTile extends StatelessWidget {
     // Fetch icon for category
     IconData categoryIcon = Icons.shopping_bag;
     try {
-      categoryIcon = Categories().categories.firstWhere(
-        (cat) => cat['name'] == category,
-        orElse: () => {'icon': Icons.help_outline}
-      )['icon'];
+      final categoryItem = Categories().categories.firstWhere(
+        (cat) => cat.name == category,
+        orElse: () => Categories().categories.first,
+      );
+      categoryIcon = categoryItem.icon;
     } catch (e) {
       categoryIcon = Icons.help_outline;
     }

@@ -260,7 +260,7 @@ class _HomePageState extends State<HomePage> {
                             icon: Icons.pie_chart,
                             accentColor: const Color(0xFF16A085),
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context)=> const BudgetPage()));
+                              Navigator.push(context, MaterialPageRoute(builder: (context)=>  BudgetPage()));
                             },
                           ),
                           
