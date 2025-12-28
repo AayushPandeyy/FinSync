@@ -17,7 +17,8 @@ class SeeAllTransactionsPage extends StatefulWidget {
 }
 
 class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
-  String _selectedFilter = 'All Time'; // Default filter
+  String _selectedFilter = 'All Time';
+  String _selectedCategory = 'All Categories';
 
   String _getMonthName(int month) {
     const months = [
@@ -39,58 +40,198 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
 
   List<dynamic> _filterTransactions(List<dynamic> transactions) {
     DateTime now = DateTime.now();
+    List<dynamic> filtered = transactions;
     
+    // Filter by time period
     if (_selectedFilter == 'This Month') {
-      return transactions.where((transaction) {
+      filtered = filtered.where((transaction) {
         DateTime date = transaction["date"].toDate();
         return date.year == now.year && date.month == now.month;
       }).toList();
     } else if (_selectedFilter == 'Last Month') {
       DateTime lastMonth = DateTime(now.year, now.month - 1);
-      return transactions.where((transaction) {
+      filtered = filtered.where((transaction) {
         DateTime date = transaction["date"].toDate();
         return date.year == lastMonth.year && date.month == lastMonth.month;
       }).toList();
     }
     
-    return transactions; // All Time
+    // Filter by category
+    if (_selectedCategory != 'All Categories') {
+      filtered = filtered.where((transaction) {
+        return transaction["category"] == _selectedCategory;
+      }).toList();
+    }
+    
+    return filtered;
   }
 
   void _showFilterDialog() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Filter Transactions",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
-                ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  
+                  const Text(
+                    "Filter Transactions",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF000000),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Time Period Section
+                  Text(
+                    "TIME PERIOD",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[500],
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFilterOption('This Month', setModalState),
+                  _buildFilterOption('Last Month', setModalState),
+                  _buildFilterOption('All Time', setModalState),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Category Section
+                  Text(
+                    "CATEGORY",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[500],
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Get all unique categories
+                  StreamBuilder(
+                    stream: FirestoreService()
+                        .getTransactionsOfUser(FirebaseAuth.instance.currentUser!.uid),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final allCategories = <String>{'All Categories'};
+                        for (var transaction in snapshot.data!) {
+                          allCategories.add(transaction["category"] as String);
+                        }
+                        
+                        return Column(
+                          children: [
+                            _buildCategoryOption('All Categories', setModalState),
+                            ...allCategories
+                                .where((cat) => cat != 'All Categories')
+                                .map((category) => _buildCategoryOption(category, setModalState))
+                                .toList(),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Reset and Apply buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedFilter = 'All Time';
+                              _selectedCategory = 'All Categories';
+                            });
+                            setModalState(() {});
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF000000),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {});
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF000000),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Apply',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+                ],
               ),
-              const SizedBox(height: 20),
-              _buildFilterOption('This Month'),
-              _buildFilterOption('Last Month'),
-              _buildFilterOption('All Time'),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildFilterOption(String filter) {
+  Widget _buildFilterOption(String filter, StateSetter setModalState) {
     bool isSelected = _selectedFilter == filter;
     
     return GestureDetector(
@@ -98,15 +239,15 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
         setState(() {
           _selectedFilter = filter;
         });
-        Navigator.pop(context);
+        setModalState(() {});
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF0F7FF) : const Color(0xFFF8F8FA),
+          color: isSelected ? const Color(0xFFF5F5F5) : Colors.white,
           border: Border.all(
-            color: isSelected ? const Color(0xFF4A90E2) : const Color(0xFFE5E5E5),
+            color: isSelected ? const Color(0xFF000000) : const Color(0xFFE0E0E0),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -119,10 +260,10 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF4A90E2) : const Color(0xFFCCCCCC),
+                  color: isSelected ? const Color(0xFF000000) : const Color(0xFFCCCCCC),
                   width: 2,
                 ),
-                color: isSelected ? const Color(0xFF4A90E2) : Colors.transparent,
+                color: isSelected ? const Color(0xFF000000) : Colors.transparent,
               ),
               child: isSelected
                   ? const Icon(Icons.check, size: 12, color: Colors.white)
@@ -132,9 +273,79 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
             Text(
               filter,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? const Color(0xFF1A1A1A) : const Color(0xFF666666),
+                color: const Color(0xFF000000),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryOption(String category, StateSetter setModalState) {
+    bool isSelected = _selectedCategory == category;
+    
+    // Get category icon
+    IconData categoryIcon = Icons.category;
+    if (category != 'All Categories') {
+      final categoryData = Categories()
+          .categories
+          .firstWhere(
+              (cat) => cat['name'] == category,
+              orElse: () => {'icon': Icons.category});
+      categoryIcon = categoryData['icon'];
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCategory = category;
+        });
+        setModalState(() {});
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF5F5F5) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF000000) : const Color(0xFFE0E0E0),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF000000) : const Color(0xFFCCCCCC),
+                  width: 2,
+                ),
+                color: isSelected ? const Color(0xFF000000) : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              categoryIcon,
+              size: 18,
+              color: isSelected ? const Color(0xFF000000) : Colors.grey[600],
+            ),
+            const SizedBox(width: 8),
+            Text(
+              category,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: const Color(0xFF000000),
               ),
             ),
           ],
@@ -184,14 +395,16 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: _selectedFilter != 'All Time'
+                                color: (_selectedFilter != 'All Time' || 
+                                        _selectedCategory != 'All Categories')
                                     ? const Color(0xFF000000)
                                     : const Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Icon(
                                 Icons.filter_list,
-                                color: _selectedFilter != 'All Time'
+                                color: (_selectedFilter != 'All Time' || 
+                                        _selectedCategory != 'All Categories')
                                     ? Colors.white
                                     : const Color(0xFF000000),
                                 size: 20,
@@ -240,6 +453,21 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                       height: 1.1,
                     ),
                   ),
+                  
+                  // Active filters indicator
+                  if (_selectedFilter != 'All Time' || _selectedCategory != 'All Categories') ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (_selectedFilter != 'All Time')
+                          _buildActiveFilterChip(_selectedFilter),
+                        if (_selectedCategory != 'All Categories')
+                          _buildActiveFilterChip(_selectedCategory),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -267,7 +495,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                   
                   final data = snapshot.data;
                   
-                  // Apply filter
+                  // Apply filters
                   final filteredData = _filterTransactions(data!);
                   
                   if (filteredData.isEmpty) {
@@ -290,7 +518,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            "No transactions",
+                            "No transactions found",
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
@@ -299,7 +527,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            "Tap + to add your first one",
+                            "Try adjusting your filters",
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[500],
@@ -583,6 +811,46 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF000000),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                if (label == _selectedFilter) {
+                  _selectedFilter = 'All Time';
+                } else {
+                  _selectedCategory = 'All Categories';
+                }
+              });
+            },
+            child: const Icon(
+              Icons.close,
+              size: 14,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
