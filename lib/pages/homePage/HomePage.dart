@@ -1,5 +1,6 @@
 import 'package:finance_tracker/enums/TransactionType.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
+import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/subscriptionPage/SubscriptionsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
@@ -258,7 +259,9 @@ class _HomePageState extends State<HomePage> {
                             subtitle: "Set your budget",
                             icon: Icons.pie_chart,
                             accentColor: const Color(0xFF16A085),
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context)=> const BudgetPage()));
+                            },
                           ),
                           
                           FeatureBox(
