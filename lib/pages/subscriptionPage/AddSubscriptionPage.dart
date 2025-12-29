@@ -59,14 +59,15 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     }
   }
 
-  void _saveSubscription() async{
+  void _saveSubscription() async {
     print(FirebaseAuth.instance.currentUser!.uid);
     Subscription subscription = Subscription(
       name: _nameController.text,
       amount: double.parse(_amountController.text),
       billingCycle: _selectedBillingCycle,
       nextBillingDate: _selectedDate,
-      category: _selectedCategory, id: Uuid().v6(),
+      category: _selectedCategory,
+      id: Uuid().v6(),
     );
     DialogBox().showLoadingDialog(context);
     await service.addSubscription(
@@ -77,380 +78,187 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final width = size.width;
-    final height = size.height;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom Navigation Bar
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Row(
-                children: [
-                  // Back button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F8FA),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Color(0xFF1A1A1A),
-                        size: 18,
-                      ),
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF4A90E2),
+        elevation: 0,
+        title: const Text('Add Subscription', style: TextStyle(fontSize: 24)),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Subscription Name
+                const Text(
+                  "Subscription Name",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    hintText: "e.g., Netflix, Spotify",
+                    prefixIcon: const Icon(Icons.subscriptions),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  
-                  const SizedBox(width: 16),
-                  
-                  // Title section
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                const SizedBox(height: 20),
+
+                // Amount
+                const Text(
+                  "Amount",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                TextField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "0.00",
+                    prefixIcon: const Icon(Icons.money),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Billing Cycle
+                const Center(
+                  child: Text(
+                    "Billing Cycle",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _billingCycles.map((cycle) {
+                    return ChoiceChip(
+                      label: Text(cycle),
+                      selected: _selectedBillingCycle == cycle,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedBillingCycle = cycle;
+                        });
+                      },
+                      selectedColor: const Color(0xFF4A90E2),
+                      labelStyle: TextStyle(
+                        color: _selectedBillingCycle == cycle
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // Next Billing Date
+                const Text(
+                  "Next Billing Date",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+                InkWell(
+                  onTap: () => _selectDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Add Subscription",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            color: Color(0xFF1A1A1A),
-                            letterSpacing: -0.8,
-                            height: 1.2,
-                          ),
+                          DateFormat.yMMMMd().format(_selectedDate),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Color(0xFF4A90E2),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            
-            // Divider
-            Container(
-              height: 1,
-              color: const Color(0xFFF0F0F0),
-            ),
+                ),
+                const SizedBox(height: 20),
 
-            // Form
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(width * 0.05),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Subscription Name
-                      _buildSectionTitle('Subscription Name', width),
-                      SizedBox(height: height * 0.01),
-                      _buildTextField(
-                        controller: _nameController,
-                        hint: 'e.g., Netflix, Spotify',
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter subscription name';
-                          }
-                          return null;
-                        },
-                        width: width,
-                      ),
-                      
-                      SizedBox(height: height * 0.025),
-
-                      // Amount
-                      _buildSectionTitle('Amount (Rs)', width),
-                      SizedBox(height: height * 0.01),
-                      _buildTextField(
-                        controller: _amountController,
-                        hint: '0.00',
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter amount';
-                          }
-                          if (double.tryParse(value) == null) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                        width: width,
-                      ),
-
-                      SizedBox(height: height * 0.025),
-
-                      // Billing Cycle
-                      _buildSectionTitle('Billing Cycle', width),
-                      SizedBox(height: height * 0.01),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: const Color(0xFFE5E5E5),
-                            width: 1,
+                // Category
+                const Text(
+                  "Category",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _categories.map((category) {
+                    final isSelected = _selectedCategory == category['name'];
+                    return ChoiceChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            category['icon'],
+                            size: 18,
+                            color: isSelected ? Colors.white : Colors.black54,
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: _billingCycles.map((cycle) {
-                            final isSelected = _selectedBillingCycle == cycle;
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedBillingCycle = cycle;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: height * 0.018,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFF4A90E2)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    cycle,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : const Color(0xFF666666),
-                                      fontWeight: isSelected 
-                                          ? FontWeight.w600 
-                                          : FontWeight.w500,
-                                      fontSize: width * 0.038,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                          const SizedBox(width: 6),
+                          Text(category['name']),
+                        ],
                       ),
-
-                      SizedBox(height: height * 0.025),
-
-                      // Next Billing Date
-                      _buildSectionTitle('Next Billing Date', width),
-                      SizedBox(height: height * 0.01),
-                      GestureDetector(
-                        onTap: () => _selectDate(context),
-                        child: Container(
-                          padding: EdgeInsets.all(width * 0.04),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFFE5E5E5),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                color: Color(0xFF4A90E2),
-                                size: 20,
-                              ),
-                              SizedBox(width: width * 0.03),
-                              Text(
-                                DateFormat('d MMM yyyy').format(_selectedDate),
-                                style: TextStyle(
-                                  fontSize: width * 0.04,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory = category['name'];
+                          _selectedIcon = category['icon'];
+                        });
+                      },
+                      selectedColor: const Color(0xFF4A90E2),
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black,
                       ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 40),
 
-                      SizedBox(height: height * 0.025),
-
-                      // Category
-                      _buildSectionTitle('Category', width),
-                      SizedBox(height: height * 0.015),
-                      Wrap(
-                        spacing: width * 0.025,
-                        runSpacing: height * 0.015,
-                        children: _categories.map((category) {
-                          final isSelected = _selectedCategory == category['name'];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = category['name'];
-                                _selectedIcon = category['icon'];
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: width * 0.04,
-                                vertical: height * 0.012,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? const Color(0xFF4A90E2) 
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF4A90E2)
-                                      : const Color(0xFFE5E5E5),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    category['icon'],
-                                    size: width * 0.045,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF666666),
-                                  ),
-                                  SizedBox(width: width * 0.02),
-                                  Text(
-                                    category['name'],
-                                    style: TextStyle(
-                                      fontSize: width * 0.035,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : const Color(0xFF666666),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                // Save Button
+                Center(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90E2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-
-                      SizedBox(height: height * 0.04),
-
-                      // Save Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _saveSubscription,
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                              vertical: height * 0.02,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                            backgroundColor: const Color(0xFF4A90E2),
-                          ),
-                          child: Text(
-                            'Add Subscription',
-                            style: TextStyle(
-                              fontSize: width * 0.042,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                    onPressed: _saveSubscription,
+                    child: const Text(
+                      "Add Subscription",
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, double width) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: width * 0.038,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF1A1A1A),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required double width,
-    String? Function(String?)? validator,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: TextStyle(
-        fontSize: width * 0.04,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF1A1A1A),
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xFFCCCCCC),
-          fontWeight: FontWeight.w400,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE5E5E5),
-            width: 1,
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE5E5E5),
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4A90E2),
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 1,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: width * 0.04,
-          vertical: width * 0.04,
         ),
       ),
     );
