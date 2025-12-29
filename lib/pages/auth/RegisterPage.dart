@@ -128,8 +128,39 @@ class _RegisterPageState extends State<RegisterPage> {
                   _buildTextField(
                       Icons.phone, "Phone Number", false, phoneController),
                   const SizedBox(height: 20),
-                  _buildTextField(
-                      Icons.lock, "Password", true, passwordController),
+                  TextField(
+      controller: passwordController,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        prefixIcon: Icon(Icons.lock, color: Colors.white),
+        hintText: "Password",
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            setState(() {
+              obscure = !obscure;
+            });
+          },
+        ),
+        hintStyle: const TextStyle(color: Colors.white70),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.2),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(color: Colors.white),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+      style: const TextStyle(color: Colors.white),
+      cursorColor: Colors.white,
+    ),
                   const SizedBox(height: 30),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
