@@ -1,3 +1,4 @@
+import 'package:finance_tracker/pages/homePage/HomePage.dart';
 import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/ForgotPasswordPage.dart';
 import 'package:finance_tracker/pages/auth/RegisterPage.dart';
@@ -15,6 +16,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool isObscured = true;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthFirebaseService authService = AuthFirebaseService();
@@ -49,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pop(context);
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const NavigatorPage()),
+          MaterialPageRoute(builder: (context) => HomePage()),
           (Route<dynamic> route) => false,
         );
       }
@@ -131,8 +133,39 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 40),
                 _buildTextField(Icons.email, "Email", false, _emailController),
                 const SizedBox(height: 20),
-                _buildTextField(
-                    Icons.lock, "Password", true, _passwordController),
+                TextField(
+      controller: _passwordController,
+      obscureText: isObscured,
+      decoration: InputDecoration(
+        prefixIcon: Icon(Icons.lock, color: Colors.white),
+        suffixIcon: IconButton(
+          icon: Icon(
+            isObscured ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            setState(() {
+              isObscured = !isObscured;
+            });
+          },
+        ),
+        hintText: "Password",
+        hintStyle: const TextStyle(color: Colors.white70),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.2),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(color: Colors.white),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+      style: const TextStyle(color: Colors.white),
+      cursorColor: Colors.white,
+    ),
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
