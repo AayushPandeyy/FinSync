@@ -14,6 +14,7 @@ import 'package:finance_tracker/widgets/homePage/TotalBalanceWidget.dart';
 import 'package:finance_tracker/widgets/homePage/featureBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:lottie/lottie.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,6 +28,39 @@ class _HomePageState extends State<HomePage> {
   FirestoreService service = FirestoreService();
   FirebaseAuth auth = FirebaseAuth.instance;
   User currUser = FirebaseAuth.instance.currentUser!;
+    late BannerAd _bannerAd;
+  bool _isBannerAdLoaded = false;
+    @override
+  void initState() {
+    super.initState();
+
+    // Initialize banner ad
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3804780729029008/8582553165', // test ID, replace with your own
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          print('BannerAd failed to load: $error');
+          ad.dispose();
+        },
+      ),
+    );
+
+    _bannerAd.load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd.dispose();
+    super.dispose();
+  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +84,7 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: const Color(0xfff8f8fa),
               elevation: 0,
               title: Text(
-                "${data["username"]}'s Wallet",
+                "Hello ${data["username"]} :)",
                 style: const TextStyle(
                     fontSize: 20, 
                     fontWeight: FontWeight.bold,
@@ -277,6 +311,15 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   const SizedBox(height: 24),
+                  if (_isBannerAdLoaded)
+  Center(
+    child: Container(
+      width: _bannerAd.size.width.toDouble(),
+      height: _bannerAd.size.height.toDouble(),
+      child: AdWidget(ad: _bannerAd),
+    ),
+  ),
+const SizedBox(height: 24),
 
                   // Recent Transactions Widget (if you have it)
                   // const RecentTransactionsWidget(),
