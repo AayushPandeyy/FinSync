@@ -7,6 +7,7 @@ class Subscription {
   final String billingCycle;
   final DateTime nextBillingDate;
   final String category;
+  final bool isActive;
 
   Subscription({
     required this.id,
@@ -15,5 +16,6 @@ class Subscription {
     required this.billingCycle,
     required this.nextBillingDate,
     required this.category,
+    required this.isActive,
   });
 }

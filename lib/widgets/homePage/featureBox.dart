@@ -67,6 +67,7 @@ class FeatureBox extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
+                      
                       title,
                       style: const TextStyle(
                         fontSize: 24,

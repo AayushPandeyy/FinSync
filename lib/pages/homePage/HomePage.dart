@@ -239,21 +239,21 @@ class _HomePageState extends State<HomePage> {
                               );
                             },
                           ),
-                          FeatureBox(
-                            title: "Subscriptions",
-                            subtitle: "Manage subscriptions",
-                            icon: Icons.sync_alt,
-                            accentColor: const Color(0xFF9B59B6),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SubscriptionsPage(),
-                                ),
-                              );
-                            },
-                          ),
+                          // FeatureBox(
+                          //   title: "Subscriptions",
+                          //   subtitle: "Manage subscriptions",
+                          //   icon: Icons.sync_alt,
+                          //   accentColor: const Color(0xFF9B59B6),
+                          //   onTap: () {
+                          //     Navigator.push(
+                          //       context,
+                          //       MaterialPageRoute(
+                          //         builder: (context) =>
+                          //             const SubscriptionsPage(),
+                          //       ),
+                          //     );
+                          //   },
+                          // ),
                           FeatureBox(
                             title: "Budget ",
                             subtitle: "Set your budget",
@@ -264,13 +264,13 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           
-                          FeatureBox(
-                            title: "Categories",
-                            subtitle: "Manage categories",
-                            icon: Icons.category,
-                            accentColor: const Color(0xFF3498DB),
-                            onTap: () {},
-                          ),
+                          // FeatureBox(
+                          //   title: "Coming Soon",
+                          //   subtitle: "Manage categories",
+                          //   icon: Icons.category,
+                          //   accentColor: const Color(0xFF3498DB),
+                          //   onTap: () {},
+                          // ),
                         ],
                       ),
                     ),

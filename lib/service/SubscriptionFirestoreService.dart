@@ -15,7 +15,8 @@ class SubscriptionFirestoreService{
       "amount": subscription.amount,
       "billingCycle": subscription.billingCycle,
       "nextBillingDate": subscription.nextBillingDate,
-      "category": subscription.category
+      "category": subscription.category,
+      "isActive": subscription.isActive,
     });
   }
 
@@ -35,7 +36,31 @@ class SubscriptionFirestoreService{
                 billingCycle: data['billingCycle'],
                 nextBillingDate: (data['nextBillingDate'] as Timestamp).toDate(),
                 category: data['category'],
+                isActive: data['isActive'] ?? true,
               );
             }).toList());
+  }
+
+  void updateSubscription(String uid, Subscription subscription) async {
+    await firestore
+        .collection('Subscriptions')
+        .doc(uid)
+        .collection("subscription").doc(subscription.id)
+        .update({
+      "name": subscription.name,
+      "amount": subscription.amount,
+      "billingCycle": subscription.billingCycle,
+      "nextBillingDate": subscription.nextBillingDate,
+      "category": subscription.category,
+      "isActive": subscription.isActive,
+    });
+  }
+
+  void deleteSubscription(String uid, String subscriptionId) async {
+    await firestore
+        .collection('Subscriptions')
+        .doc(uid)
+        .collection("subscription").doc(subscriptionId)
+        .delete();
   }
 }

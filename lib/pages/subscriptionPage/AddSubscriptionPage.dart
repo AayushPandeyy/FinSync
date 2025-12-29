@@ -1,5 +1,7 @@
+import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
+import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,16 +29,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
 
   final List<String> _billingCycles = ['Monthly', 'Yearly', 'Weekly'];
   
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'Entertainment', 'icon': Icons.movie_outlined},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag_outlined},
-    {'name': 'Health', 'icon': Icons.fitness_center},
-    {'name': 'Education', 'icon': Icons.school_outlined},
-    {'name': 'Music', 'icon': Icons.music_note},
-    {'name': 'Cloud Storage', 'icon': Icons.cloud_outlined},
-    {'name': 'Gaming', 'icon': Icons.sports_esports},
-    {'name': 'Other', 'icon': Icons.apps},
-  ];
+  final List<Category> categories = Categories().categories;
 
   @override
   void dispose() {
@@ -68,6 +61,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
       nextBillingDate: _selectedDate,
       category: _selectedCategory,
       id: Uuid().v6(),
+      isActive: true
     );
     DialogBox().showLoadingDialog(context);
     await service.addSubscription(
@@ -205,28 +199,28 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                 ),
                 const SizedBox(height: 10),
                 Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: _categories.map((category) {
-                    final isSelected = _selectedCategory == category['name'];
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: categories.map((category) {
+                    final isSelected = _selectedCategory == category.name;
                     return ChoiceChip(
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            category['icon'],
-                            size: 18,
+                            category.icon,
+                            size: 14,
                             color: isSelected ? Colors.white : Colors.black54,
                           ),
-                          const SizedBox(width: 6),
-                          Text(category['name']),
+                          const SizedBox(width: 4),
+                          Text(category.name),
                         ],
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
                         setState(() {
-                          _selectedCategory = category['name'];
-                          _selectedIcon = category['icon'];
+                          _selectedCategory = category.name;
+                          _selectedIcon = category.icon;
                         });
                       },
                       selectedColor: const Color(0xFF4A90E2),
