@@ -28,15 +28,16 @@ class _HomePageState extends State<HomePage> {
   FirestoreService service = FirestoreService();
   FirebaseAuth auth = FirebaseAuth.instance;
   User currUser = FirebaseAuth.instance.currentUser!;
-    late BannerAd _bannerAd;
+  late BannerAd _bannerAd;
   bool _isBannerAdLoaded = false;
-    @override
+  @override
   void initState() {
     super.initState();
 
     // Initialize banner ad
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3804780729029008/8582553165', // test ID, replace with your own
+      adUnitId:
+          'ca-app-pub-3804780729029008/8582553165', // test ID, replace with your own
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -60,7 +61,6 @@ class _HomePageState extends State<HomePage> {
     _bannerAd.dispose();
     super.dispose();
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +68,6 @@ class _HomePageState extends State<HomePage> {
       child: StreamBuilder(
         stream: service.getUserDataByEmail(currUser.email!),
         builder: (context, snapshot) {
-          
-          /// ----------- FIXED MAIN LOADER ----------
           if (!snapshot.hasData) {
             return Center(
               child: LottieBuilder.asset("assets/lottiejson/loading.json"),
@@ -86,7 +84,7 @@ class _HomePageState extends State<HomePage> {
               title: Text(
                 "Hello ${data["username"]} :)",
                 style: const TextStyle(
-                    fontSize: 20, 
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1A1A1A)),
               ),
@@ -121,8 +119,7 @@ class _HomePageState extends State<HomePage> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) =>
-                                        const LoginChecker()),
+                                    builder: (context) => const LoginChecker()),
                               );
                             },
                             child: const Text("OK"),
@@ -146,7 +143,6 @@ class _HomePageState extends State<HomePage> {
                       stream: FirestoreService()
                           .getTotalAmountInACategory("Savings"),
                       builder: (context, snapshot) {
-                        
                         /// ----------- FIXED SAVINGS LOADER ----------
                         if (!snapshot.hasData) {
                           return const Center(
@@ -221,10 +217,10 @@ class _HomePageState extends State<HomePage> {
 
                   // Feature boxes section
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Center(
                       child: Wrap(
-                        spacing: 12,
+                        spacing: 8,
                         runSpacing: 12,
                         children: [
                           FeatureBox(
@@ -242,7 +238,7 @@ class _HomePageState extends State<HomePage> {
                               );
                             },
                           ),
-                          
+
                           FeatureBox(
                             title: "Goals",
                             subtitle: "Your financial goals",
@@ -252,8 +248,7 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      const GoalsPage(),
+                                  builder: (context) => const GoalsPage(),
                                 ),
                               );
                             },
@@ -267,8 +262,7 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ReportPage(),
+                                  builder: (context) => const ReportPage(),
                                 ),
                               );
                             },
@@ -294,10 +288,13 @@ class _HomePageState extends State<HomePage> {
                             icon: Icons.pie_chart,
                             accentColor: const Color(0xFF16A085),
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context)=>  BudgetPage()));
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => BudgetPage()));
                             },
                           ),
-                          
+
                           // FeatureBox(
                           //   title: "Coming Soon",
                           //   subtitle: "Manage categories",
@@ -312,14 +309,14 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 24),
                   if (_isBannerAdLoaded)
-  Center(
-    child: Container(
-      width: _bannerAd.size.width.toDouble(),
-      height: _bannerAd.size.height.toDouble(),
-      child: AdWidget(ad: _bannerAd),
-    ),
-  ),
-const SizedBox(height: 24),
+                    Center(
+                      child: Container(
+                        width: _bannerAd.size.width.toDouble(),
+                        height: _bannerAd.size.height.toDouble(),
+                        child: AdWidget(ad: _bannerAd),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
 
                   // Recent Transactions Widget (if you have it)
                   // const RecentTransactionsWidget(),
