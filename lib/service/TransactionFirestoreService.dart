@@ -1,39 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/models/Transaction.dart';
+import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
-class FirestoreService {
+class TransactionFirestoreService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final UserFirestoreService userFirestoreService = UserFirestoreService();
 
-  Stream<List<Map<String, dynamic>>> getUserDataByEmail(String email) {
-    return FirebaseFirestore.instance
-        .collection('Users') // The name of your collection
-        .where('email', isEqualTo: email)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final user = doc.data();
-        return user;
-      }).toList();
-    });
-  }
 
-  Future<void> addUserToDatabase(
-      String uid, email, username, phoneNumber) async {
-    await firestore.collection("Users").doc(uid).set({
-      'uid': uid,
-      "email": email,
-      "username": username,
-      "phoneNumber": phoneNumber,
-      "income": 0,
-      "expense": 0,
-      "totalBalance": 0
-    });
-  }
 
   Stream<List<Map<String, dynamic>>> getRecentTransactionsOfUser(String uid) {
     return FirebaseFirestore.instance
@@ -66,19 +44,7 @@ class FirestoreService {
     });
   }
 
-  Stream<List<Map<String, dynamic>>> getGoalsOfUser(String uid) {
-    return FirebaseFirestore.instance
-        .collection("Goals")
-        .doc(uid)
-        .collection("goal")
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final goalsData = doc.data();
-        return goalsData;
-      }).toList();
-    });
-  }
+  
 
   Stream<List<Map<String, dynamic>>> getTransactionsBasedOnType(
       String uid, type) {
@@ -97,7 +63,7 @@ class FirestoreService {
   }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
-    await updateUserData(uid, transaction.amount, transaction.type);
+    await userFirestoreService.updateUserData(uid, transaction.amount, transaction.type);
     await firestore
         .collection('Transactions')
         .doc(uid)
@@ -132,53 +98,11 @@ class FirestoreService {
     });
   }
 
-  Future<void> addGoals(String uid, FinancialGoal goal) async {
-    await firestore
-        .collection("Goals")
-        .doc(uid)
-        .collection("goal")
-        .doc(goal.id)
-        .set({
-      "id": goal.id,
-      "title": goal.title,
-      "deadline": goal.deadline,
-      "description": goal.description,
-      "amount": goal.targetAmount
-    });
-  }
+  
 
-  Future<void> updateUserData(
-    String uid,
-    double amount,
-    String type,
-  ) async {
-    bool isExpense = TransactionType.EXPENSE.name == type;
-    await FirebaseFirestore.instance.collection("Users").doc(uid).update({
-      "totalBalance": isExpense
-          ? FieldValue.increment(-amount)
-          : FieldValue.increment(amount),
-      "income":
-          isExpense ? FieldValue.increment(0) : FieldValue.increment(amount),
-      "expense":
-          !isExpense ? FieldValue.increment(0) : FieldValue.increment(amount),
-    });
-  }
 
-  Future<void> updateGoal(String uid, FinancialGoal goal) async {
-    print("id is ${goal.id}");
-    await FirebaseFirestore.instance
-        .collection("Goals")
-        .doc(uid)
-        .collection("goal")
-        .doc(goal.id)
-        .update({
-      "id": goal.id,
-      "title": goal.title,
-      "deadline": goal.deadline,
-      "description": goal.description,
-      "amount": goal.targetAmount
-    });
-  }
+
+  
 
   Future<void> updateTransaction(
       {required String uid, required TransactionModel transaction}) async {
@@ -252,14 +176,7 @@ class FirestoreService {
     });
   }
 
-  Future<void> deleteGoal(String uid, FinancialGoal goal) async {
-    await FirebaseFirestore.instance
-        .collection("Goals")
-        .doc(uid)
-        .collection("goal")
-        .doc(goal.id)
-        .delete();
-  }
+  
 
   Future<Map<String, Map<String, double>>> getTransactionsGroupedByDay(
       String uid) async {

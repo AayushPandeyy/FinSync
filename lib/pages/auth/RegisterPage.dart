@@ -1,4 +1,4 @@
-import 'package:finance_tracker/service/AuthFirebaseService.dart';
+import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> signUp(BuildContext context) async {
-    final AuthFirebaseService authService = AuthFirebaseService();
+    final AuthFirestoreService authService = AuthFirestoreService();
     try {
       dialogBox.showLoadingDialog(context); // Debug print
       await authService.signUp(emailController.text, passwordController.text,

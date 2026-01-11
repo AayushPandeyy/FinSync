@@ -1,6 +1,6 @@
 import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/pages/subscriptionPage/AddSubscriptionPage.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
 import 'package:finance_tracker/widgets/subscriptionPage/SubscriptionTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';

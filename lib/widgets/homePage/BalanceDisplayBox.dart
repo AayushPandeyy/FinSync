@@ -1,4 +1,4 @@
-import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/pages/homePage/TransactionsBasedOnTypePage.dart';
 import 'package:flutter/material.dart';
 

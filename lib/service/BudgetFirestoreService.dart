@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finance_tracker/enums/BudgetType.dart';
+import 'package:finance_tracker/enums/budget/BudgetType.dart';
 import 'package:finance_tracker/models/Category.dart';
 import 'package:uuid/v6.dart';
 

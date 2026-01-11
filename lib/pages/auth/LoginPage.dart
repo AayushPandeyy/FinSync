@@ -2,7 +2,7 @@ import 'package:finance_tracker/pages/homePage/HomePage.dart';
 import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/ForgotPasswordPage.dart';
 import 'package:finance_tracker/pages/auth/RegisterPage.dart';
-import 'package:finance_tracker/service/AuthFirebaseService.dart';
+import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   bool isObscured = true;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final AuthFirebaseService authService = AuthFirebaseService();
+  final AuthFirestoreService authService = AuthFirestoreService();
   bool obscure = true;
 
   @override
@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login(BuildContext context) async {
-    final AuthFirebaseService authService = AuthFirebaseService();
+    final AuthFirestoreService authService = AuthFirestoreService();
 
     try {
       DialogBox().showLoadingDialog(context);

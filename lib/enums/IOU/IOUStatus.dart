@@ -1,0 +1,4 @@
+enum IOUStatus{
+  PENDING,
+  SETTLED
+}

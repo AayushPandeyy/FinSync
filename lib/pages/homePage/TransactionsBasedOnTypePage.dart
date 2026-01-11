@@ -1,6 +1,6 @@
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
@@ -34,7 +34,7 @@ class _TransactionsBasedOnTypePageState
           ),
         ),
         body: StreamBuilder(
-            stream: FirestoreService().getTransactionsBasedOnType(
+            stream: TransactionFirestoreService().getTransactionsBasedOnType(
                 FirebaseAuth.instance.currentUser!.uid, widget.type),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -85,7 +85,7 @@ class _TransactionsBasedOnTypePageState
                                   children: [
                                     SlidableAction(
                                       onPressed: (context) async {
-                                        await FirestoreService()
+                                        await TransactionFirestoreService()
                                             .deleteTransaction(
                                                 FirebaseAuth
                                                     .instance.currentUser!.uid,

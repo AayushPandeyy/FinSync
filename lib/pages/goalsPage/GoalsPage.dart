@@ -1,7 +1,8 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/pages/goalsPage/AddGoalsPage.dart';
 import 'package:finance_tracker/pages/goalsPage/EditGoalPage.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/GoalsFirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/widgets/goalsPage/GoalWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -101,7 +102,7 @@ class _GoalsPageState extends State<GoalsPage> {
             // Goals List
             Expanded(
               child: StreamBuilder(
-                stream: FirestoreService().getTotalAmountInACategory("Savings"),
+                stream: TransactionFirestoreService().getTotalAmountInACategory("Savings"),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -115,7 +116,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   final savingsAmount = snapshot.data ?? 0;
                   
                   return StreamBuilder(
-                    stream: FirestoreService()
+                    stream: GoalsFirestoreService()
                         .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -211,7 +212,7 @@ class _GoalsPageState extends State<GoalsPage> {
                                   ),
                                   SlidableAction(
                                     onPressed: (context) async {
-                                      await FirestoreService().deleteGoal(
+                                      await GoalsFirestoreService().deleteGoal(
                                         FirebaseAuth.instance.currentUser!.uid,
                                         FinancialGoal(
                                           id: goalData["id"],

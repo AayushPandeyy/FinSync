@@ -1,4 +1,4 @@
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,7 +14,7 @@ class TransactionChartWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, Map<String, double>>>(
-      future: FirestoreService().getTransactionsGroupedByDay(uid),
+      future: TransactionFirestoreService().getTransactionsGroupedByDay(uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(

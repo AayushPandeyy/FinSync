@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finance_tracker/enums/BudgetType.dart';
-import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/enums/budget/BudgetType.dart';
+import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/service/BudgetFirestoreService.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/widgets/budgetPage/BuildBudgetCard.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -242,7 +242,7 @@ class _BudgetPageState extends State<BudgetPage> {
           stream: _budgetService.getBudget(uid),
           builder: (context, budgetSnapshot) {
             return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: FirestoreService().getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name),
+              stream: TransactionFirestoreService().getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name),
               builder: (context, transactionsSnapshot) {
                 // Loading state
                 if (budgetSnapshot.connectionState == ConnectionState.waiting ||

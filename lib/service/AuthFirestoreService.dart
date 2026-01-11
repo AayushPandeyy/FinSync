@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class AuthFirebaseService {
+class AuthFirestoreService {
   // get firebase instance
   final FirebaseAuth auth = FirebaseAuth.instance;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final firestoreService = FirestoreService();
+  final firestoreService = TransactionFirestoreService();
+  final userFirestoreService = UserFirestoreService();
 
   //signIn
   Future<UserCredential> signIn(String email, String password) async {
@@ -37,7 +39,7 @@ class AuthFirebaseService {
     try {
       UserCredential user = await auth.createUserWithEmailAndPassword(
           email: email, password: password);
-      firestoreService.addUserToDatabase(user.user!.uid, email, username,phoneNumber);
+      userFirestoreService.addUserToDatabase(user.user!.uid, email, username,phoneNumber);
       if (!user.user!.emailVerified) {
         await user.user!.sendEmailVerification();
       }

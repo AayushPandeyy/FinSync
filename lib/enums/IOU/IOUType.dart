@@ -1,0 +1,4 @@
+enum IOUType {
+  OWE,
+  OWED
+}

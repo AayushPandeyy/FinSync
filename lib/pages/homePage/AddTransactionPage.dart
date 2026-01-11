@@ -1,5 +1,5 @@
 import 'package:finance_tracker/models/Transaction.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,7 +22,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   final TextEditingController _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _transactionType = 'INCOME';
-  FirestoreService service = FirestoreService();
+  final TransactionFirestoreService service = TransactionFirestoreService();
 
   void _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(

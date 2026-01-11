@@ -1,5 +1,6 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/GoalsFirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,7 @@ class _AddGoalsPageState extends State<AddGoalsPage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  FirestoreService service = FirestoreService();
+  GoalsFirestoreService service = GoalsFirestoreService();
 
   void _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(

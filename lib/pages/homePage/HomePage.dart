@@ -1,13 +1,16 @@
-import 'package:finance_tracker/enums/TransactionType.dart';
+import 'package:finance_tracker/enums/transaction/TransactionType.dart';
+import 'package:finance_tracker/pages/IOUpage/IOUPage.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
+import 'package:finance_tracker/pages/loanPage/LoanPage.dart';
 import 'package:finance_tracker/pages/subscriptionPage/SubscriptionsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
-import 'package:finance_tracker/service/AuthFirebaseService.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/AuthFirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:finance_tracker/widgets/homePage/TotalBalanceWidget.dart';
@@ -25,7 +28,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  FirestoreService service = FirestoreService();
+  TransactionFirestoreService service = TransactionFirestoreService();
+  final UserFirestoreService userService = UserFirestoreService();
   FirebaseAuth auth = FirebaseAuth.instance;
   User currUser = FirebaseAuth.instance.currentUser!;
   late BannerAd _bannerAd;
@@ -66,7 +70,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: StreamBuilder(
-        stream: service.getUserDataByEmail(currUser.email!),
+        stream: userService.getUserDataByEmail(currUser.email!),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return Center(
@@ -115,7 +119,7 @@ class _HomePageState extends State<HomePage> {
                           TextButton(
                             onPressed: () {
                               Navigator.pop(context);
-                              AuthFirebaseService().logout();
+                              AuthFirestoreService().logout();
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
@@ -140,7 +144,7 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(
                     height: 200,
                     child: StreamBuilder(
-                      stream: FirestoreService()
+                      stream: TransactionFirestoreService()
                           .getTotalAmountInACategory("Savings"),
                       builder: (context, snapshot) {
                         /// ----------- FIXED SAVINGS LOADER ----------
@@ -295,13 +299,18 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
 
-                          // FeatureBox(
-                          //   title: "Coming Soon",
-                          //   subtitle: "Manage categories",
-                          //   icon: Icons.category,
-                          //   accentColor: const Color(0xFF3498DB),
-                          //   onTap: () {},
-                          // ),
+                          FeatureBox(
+                            title: "IOU",
+                            subtitle: "Track money you owe or are owed",
+                            icon: Icons.receipt_long,
+                            accentColor: const Color(0xFF3498DB),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => IOUPage()));
+                            },
+                          ),
                         ],
                       ),
                     ),

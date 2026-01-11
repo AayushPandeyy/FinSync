@@ -4,7 +4,7 @@ import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
-import 'package:finance_tracker/service/FirestoreService.dart';
+import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
@@ -23,7 +23,6 @@ class RecentTransactionsWidget extends StatefulWidget {
 class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
   @override
   Widget build(BuildContext context) {
-    FirestoreService service = FirestoreService();
     return Column(
       children: [
         Padding(
@@ -55,7 +54,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
           height: 10,
         ),
         StreamBuilder(
-            stream: FirestoreService().getRecentTransactionsOfUser(
+            stream: TransactionFirestoreService().getRecentTransactionsOfUser(
                 FirebaseAuth.instance.currentUser!.uid),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -115,7 +114,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                       children: [
                                         SlidableAction(
                                           onPressed: (context) async {
-                                            await service.deleteTransaction(
+                                            await TransactionFirestoreService().deleteTransaction(
                                                 FirebaseAuth
                                                     .instance.currentUser!.uid,
                                                 data["id"],
