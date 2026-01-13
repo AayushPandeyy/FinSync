@@ -139,8 +139,6 @@ class BalanceDisplayBox extends StatelessWidget {
                       ),
                     ),
 
-                    SizedBox(height: height * 0.008),
-
                     // Amount - fixed to display properly
                     Expanded(
                       child: Align(
@@ -171,8 +169,6 @@ class BalanceDisplayBox extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    SizedBox(height: height * 0.008),
 
                     // View indicator
                     Row(

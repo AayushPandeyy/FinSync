@@ -1,5 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finance_tracker/enums/IOU/IOUType.dart';
+import 'package:finance_tracker/models/IOU.dart';
+import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 class AddIOUPage extends StatefulWidget {
   const AddIOUPage({super.key});
@@ -13,12 +19,14 @@ class _AddIOUPageState extends State<AddIOUPage> {
   final _personNameController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedDueDate;
-  String _selectedType = 'owe'; // 'owe' or 'owed'
+  IOUType _selectedType = IOUType.OWE; // default "I Owe"
   bool _hasDueDate = false;
   IconData _selectedIcon = Icons.person;
+
+  final Ioufirestoreservice firestoreService = Ioufirestoreservice();
 
   final List<Map<String, dynamic>> _icons = [
     {'name': 'Person', 'icon': Icons.person},
@@ -43,7 +51,7 @@ class _AddIOUPageState extends State<AddIOUPage> {
   Future<void> _selectDate(BuildContext context, bool isDueDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isDueDate 
+      initialDate: isDueDate
           ? (_selectedDueDate ?? DateTime.now().add(const Duration(days: 7)))
           : _selectedDate,
       firstDate: isDueDate ? DateTime.now() : DateTime(2020),
@@ -72,14 +80,40 @@ class _AddIOUPageState extends State<AddIOUPage> {
     }
   }
 
-  void _saveIOU() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Save IOU to database
+  // --- 1️⃣ Save IOU to Firestore ---
+  Future<void> _saveIOU() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      // Create IOU object
+      final iou = IOU(
+        id: Uuid().v1(),
+        personName: _personNameController.text.trim(),
+        amount: double.parse(_amountController.text.trim()),
+        description: _descriptionController.text.trim(),
+        date: _selectedDate,
+        dueDate: _hasDueDate ? _selectedDueDate : null,
+        iouType: _selectedType,
+      );
+
+      // Replace USER_UID_HERE with actual logged-in user UID
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+
+      // Add to Firestore
+      await firestoreService.addIOU(userId, iou);
       Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('IOU added successfully!'),
           backgroundColor: Color(0xFF06D6A0),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add IOU: $e'),
+          backgroundColor: const Color(0xFFE63946),
         ),
       );
     }
@@ -96,13 +130,12 @@ class _AddIOUPageState extends State<AddIOUPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom Navigation Bar
+            // --- Navigation Bar ---
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Row(
                 children: [
-                  // Back button
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -112,17 +145,11 @@ class _AddIOUPageState extends State<AddIOUPage> {
                         color: const Color(0xFFF8F8FA),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Color(0xFF1A1A1A),
-                        size: 18,
-                      ),
+                      child: const Icon(Icons.arrow_back_ios_new,
+                          color: Color(0xFF1A1A1A), size: 18),
                     ),
                   ),
-                  
                   const SizedBox(width: 16),
-                  
-                  // Title section
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,22 +157,15 @@ class _AddIOUPageState extends State<AddIOUPage> {
                         Text(
                           "Add IOU",
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            color: Color(0xFF1A1A1A),
-                            letterSpacing: -0.8,
-                            height: 1.2,
-                          ),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              color: Color(0xFF1A1A1A)),
                         ),
                         SizedBox(height: 4),
                         Text(
                           "Track what you owe or are owed",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF999999),
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: 0.1,
-                          ),
+                          style:
+                              TextStyle(fontSize: 14, color: Color(0xFF999999)),
                         ),
                       ],
                     ),
@@ -153,14 +173,11 @@ class _AddIOUPageState extends State<AddIOUPage> {
                 ],
               ),
             ),
-            
-            // Divider
-            Container(
-              height: 1,
-              color: const Color(0xFFF0F0F0),
-            ),
 
-            // Form
+            // Divider
+            Container(height: 1, color: const Color(0xFFF0F0F0)),
+
+            // --- Form ---
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(width * 0.05),
@@ -169,399 +186,89 @@ class _AddIOUPageState extends State<AddIOUPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Type Selection
                       _buildSectionTitle('Type', width),
-                      SizedBox(height: height * 0.01),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: const Color(0xFFE5E5E5),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedType = 'owe';
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: height * 0.018,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _selectedType == 'owe'
-                                        ? const Color(0xFFE63946)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_downward,
-                                        size: 16,
-                                        color: _selectedType == 'owe'
-                                            ? Colors.white
-                                            : const Color(0xFF666666),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'I Owe',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: _selectedType == 'owe'
-                                              ? Colors.white
-                                              : const Color(0xFF666666),
-                                          fontWeight: _selectedType == 'owe'
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                          fontSize: width * 0.038,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedType = 'owed';
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: height * 0.018,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _selectedType == 'owed'
-                                        ? const Color(0xFF06D6A0)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_upward,
-                                        size: 16,
-                                        color: _selectedType == 'owed'
-                                            ? Colors.white
-                                            : const Color(0xFF666666),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Owes Me',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: _selectedType == 'owed'
-                                              ? Colors.white
-                                              : const Color(0xFF666666),
-                                          fontWeight: _selectedType == 'owed'
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                          fontSize: width * 0.038,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      SizedBox(height: height * 0.025),
+                      const SizedBox(height: 12),
+                      _buildTypeSelector(width, height),
 
-                      // Person Name
+                      SizedBox(height: height * 0.025),
                       _buildSectionTitle('Person Name', width),
-                      SizedBox(height: height * 0.01),
+                      const SizedBox(height: 8),
                       _buildTextField(
                         controller: _personNameController,
                         hint: 'e.g., John Doe',
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter person name';
-                          }
-                          return null;
-                        },
                         width: width,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'Please enter person name'
+                            : null,
                       ),
-                      
-                      SizedBox(height: height * 0.025),
 
-                      // Amount
+                      SizedBox(height: height * 0.025),
                       _buildSectionTitle('Amount (Rs)', width),
-                      SizedBox(height: height * 0.01),
+                      const SizedBox(height: 8),
                       _buildTextField(
                         controller: _amountController,
                         hint: '0.00',
+                        width: width,
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter amount';
                           }
                           if (double.tryParse(value) == null) {
-                            return 'Please enter a valid number';
+                            return 'Enter a valid number';
                           }
                           return null;
                         },
-                        width: width,
                       ),
 
                       SizedBox(height: height * 0.025),
-
-                      // Description
                       _buildSectionTitle('Description', width),
-                      SizedBox(height: height * 0.01),
+                      const SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
-                        hint: 'e.g., Dinner split, Movie tickets',
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter description';
-                          }
-                          return null;
-                        },
+                        hint: 'e.g., Dinner split',
                         width: width,
+                        maxLines: 3,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'Please enter description'
+                            : null,
                       ),
 
                       SizedBox(height: height * 0.025),
-
-                      // Date
                       _buildSectionTitle('Date', width),
-                      SizedBox(height: height * 0.01),
-                      GestureDetector(
-                        onTap: () => _selectDate(context, false),
-                        child: Container(
-                          padding: EdgeInsets.all(width * 0.04),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFFE5E5E5),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                color: Color(0xFF4A90E2),
-                                size: 20,
-                              ),
-                              SizedBox(width: width * 0.03),
-                              Text(
-                                DateFormat('d MMM yyyy').format(_selectedDate),
-                                style: TextStyle(
-                                  fontSize: width * 0.04,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 8),
+                      _buildDatePicker(width, false),
 
                       SizedBox(height: height * 0.025),
-
-                      // Due Date Checkbox
                       _buildSectionTitle('Due Date', width),
-                      SizedBox(height: height * 0.01),
-                      
-                      // Checkbox for "Is there a due date?"
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _hasDueDate = !_hasDueDate;
-                            if (!_hasDueDate) {
-                              _selectedDueDate = null;
-                            }
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFFE5E5E5),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: _hasDueDate 
-                                      ? const Color(0xFF4A90E2) 
-                                      : Colors.transparent,
-                                  border: Border.all(
-                                    color: _hasDueDate 
-                                        ? const Color(0xFF4A90E2) 
-                                        : const Color(0xFFCCCCCC),
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: _hasDueDate
-                                    ? const Icon(
-                                        Icons.check,
-                                        size: 16,
-                                        color: Colors.white,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Set a due date',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF1A1A1A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Due Date Picker (shown only if checkbox is checked)
-                      if (_hasDueDate) ...[
-                        SizedBox(height: height * 0.015),
-                        GestureDetector(
-                          onTap: () => _selectDate(context, true),
-                          child: Container(
-                            padding: EdgeInsets.all(width * 0.04),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F7FF),
-                              border: Border.all(
-                                color: const Color(0xFF4A90E2),
-                                width: 1,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.event,
-                                  color: Color(0xFF4A90E2),
-                                  size: 20,
-                                ),
-                                SizedBox(width: width * 0.03),
-                                Text(
-                                  _selectedDueDate != null
-                                      ? DateFormat('d MMM yyyy').format(_selectedDueDate!)
-                                      : 'Select due date',
-                                  style: TextStyle(
-                                    fontSize: width * 0.04,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF4A90E2),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 8),
+                      _buildDueDateSelector(width),
 
                       SizedBox(height: height * 0.025),
-
-                      // Icon Selection
                       _buildSectionTitle('Icon', width),
-                      SizedBox(height: height * 0.015),
-                      Wrap(
-                        spacing: width * 0.025,
-                        runSpacing: height * 0.015,
-                        children: _icons.map((iconData) {
-                          final isSelected = _selectedIcon == iconData['icon'];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedIcon = iconData['icon'];
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: width * 0.04,
-                                vertical: height * 0.012,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? const Color(0xFF4A90E2) 
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF4A90E2)
-                                      : const Color(0xFFE5E5E5),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    iconData['icon'],
-                                    size: width * 0.045,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF666666),
-                                  ),
-                                  SizedBox(width: width * 0.02),
-                                  Text(
-                                    iconData['name'],
-                                    style: TextStyle(
-                                      fontSize: width * 0.035,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : const Color(0xFF666666),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                      const SizedBox(height: 12),
+                      _buildIconPicker(width, height),
 
                       SizedBox(height: height * 0.04),
-
-                      // Save Button
+                      // --- Save Button ---
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _saveIOU,
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                              vertical: height * 0.02,
-                            ),
+                            padding:
+                                EdgeInsets.symmetric(vertical: height * 0.02),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 0,
                             backgroundColor: const Color(0xFF4A90E2),
                           ),
                           child: Text(
                             'Add IOU',
                             style: TextStyle(
-                              fontSize: width * 0.042,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                                fontSize: width * 0.042,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
                           ),
                         ),
                       ),
@@ -576,15 +283,10 @@ class _AddIOUPageState extends State<AddIOUPage> {
     );
   }
 
+  // --- UI Helpers ---
   Widget _buildSectionTitle(String title, double width) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: width * 0.038,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF1A1A1A),
-      ),
-    );
+    return Text(title,
+        style: TextStyle(fontSize: width * 0.038, fontWeight: FontWeight.w600));
   }
 
   Widget _buildTextField({
@@ -600,59 +302,226 @@ class _AddIOUPageState extends State<AddIOUPage> {
       keyboardType: keyboardType,
       validator: validator,
       maxLines: maxLines,
-      style: TextStyle(
-        fontSize: width * 0.04,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF1A1A1A),
-      ),
+      style: TextStyle(fontSize: width * 0.04, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xFFCCCCCC),
-          fontWeight: FontWeight.w400,
-        ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE5E5E5),
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE5E5E5),
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF4A90E2),
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 1,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFE63946),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
         ),
         contentPadding: EdgeInsets.symmetric(
-          horizontal: width * 0.04,
-          vertical: width * 0.04,
+            horizontal: width * 0.04, vertical: width * 0.04),
+      ),
+    );
+  }
+
+  Widget _buildTypeSelector(double width, double height) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedType = IOUType.OWE),
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: height * 0.018),
+              decoration: BoxDecoration(
+                color: _selectedType == IOUType.OWE
+                    ? const Color(0xFFE63946)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.arrow_downward,
+                      color: _selectedType == IOUType.OWE
+                          ? Colors.white
+                          : const Color(0xFF666666),
+                      size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'I Owe',
+                    style: TextStyle(
+                        color: _selectedType == IOUType.OWE
+                            ? Colors.white
+                            : const Color(0xFF666666),
+                        fontWeight: _selectedType == IOUType.OWE
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: width * 0.038),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedType = IOUType.OWED),
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: height * 0.018),
+              decoration: BoxDecoration(
+                color: _selectedType == IOUType.OWED
+                    ? const Color(0xFF06D6A0)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5E5)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.arrow_upward,
+                      color: _selectedType == IOUType.OWED
+                          ? Colors.white
+                          : const Color(0xFF666666),
+                      size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Owes Me',
+                    style: TextStyle(
+                        color: _selectedType == IOUType.OWED
+                            ? Colors.white
+                            : const Color(0xFF666666),
+                        fontWeight: _selectedType == IOUType.OWED
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: width * 0.038),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatePicker(double width, bool isDueDate) {
+    final date = isDueDate ? _selectedDueDate ?? DateTime.now() : _selectedDate;
+    return GestureDetector(
+      onTap: () => _selectDate(context, isDueDate),
+      child: Container(
+        padding: EdgeInsets.all(width * 0.04),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today, color: Color(0xFF4A90E2)),
+            const SizedBox(width: 12),
+            Text(
+              DateFormat('d MMM yyyy').format(date),
+              style: TextStyle(
+                  fontSize: width * 0.04, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDueDateSelector(double width) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _hasDueDate = !_hasDueDate;
+              if (!_hasDueDate) _selectedDueDate = null;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _hasDueDate
+                        ? const Color(0xFF4A90E2)
+                        : Colors.transparent,
+                    border: Border.all(
+                        color: _hasDueDate
+                            ? const Color(0xFF4A90E2)
+                            : const Color(0xFFCCCCCC),
+                        width: 2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: _hasDueDate
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                const Text('Set a due date', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        ),
+        if (_hasDueDate) ...[
+          const SizedBox(height: 8),
+          _buildDatePicker(width, true),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildIconPicker(double width, double height) {
+    return Wrap(
+      spacing: width * 0.025,
+      runSpacing: height * 0.015,
+      children: _icons.map((iconData) {
+        final isSelected = _selectedIcon == iconData['icon'];
+        return GestureDetector(
+          onTap: () => setState(() => _selectedIcon = iconData['icon']),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: width * 0.04, vertical: height * 0.012),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF4A90E2)
+                      : const Color(0xFFE5E5E5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(iconData['icon'],
+                    size: width * 0.045,
+                    color: isSelected ? Colors.white : const Color(0xFF666666)),
+                SizedBox(width: width * 0.02),
+                Text(iconData['name'],
+                    style: TextStyle(
+                        fontSize: width * 0.035,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF666666))),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
