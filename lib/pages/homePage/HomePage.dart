@@ -11,6 +11,7 @@ import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
+import 'package:finance_tracker/widgets/general/CreditCardWidget.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:finance_tracker/widgets/homePage/TotalBalanceWidget.dart';
@@ -142,31 +143,13 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   // Balance cards section
                   SizedBox(
-                    height: 200,
-                    child: StreamBuilder(
-                      stream: TransactionFirestoreService()
-                          .getTotalAmountInACategory("Savings"),
-                      builder: (context, snapshot) {
-                        /// ----------- FIXED SAVINGS LOADER ----------
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          );
-                        }
-
-                        double amount = snapshot.data!;
-                        double usableAmount =
-                            (data["totalBalance"] as num).toDouble() - amount;
-
-                        return Center(
-                          child: TotalBalanceWidget(
-                            title: "Total Balance",
-                            balance: (data["totalBalance"] as num).toDouble(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                      child: Center(
+                          child: CreditCardWidget(
+                              appLogoPath: "assets/images/logo.webp",
+                              walletTitle: "Cash Wallet",
+                              username: data["username"],
+                              amountTitle: "Total Balance",
+                              amount: data["totalBalance"]))),
 
                   const SizedBox(height: 20),
 
