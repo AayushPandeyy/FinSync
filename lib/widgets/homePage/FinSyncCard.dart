@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class TotalBalanceWidget extends StatefulWidget {
+class FinSyncCard extends StatefulWidget {
   final String title;
   final double balance;
-  const TotalBalanceWidget({
+  const FinSyncCard({
     super.key,
     required this.balance,
     required this.title,
   });
 
   @override
-  State<TotalBalanceWidget> createState() => _TotalBalanceWidgetState();
+  State<FinSyncCard> createState() => _FinSyncCardState();
 }
 
-class _TotalBalanceWidgetState extends State<TotalBalanceWidget>
+class _FinSyncCardState extends State<FinSyncCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;

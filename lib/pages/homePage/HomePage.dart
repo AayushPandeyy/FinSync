@@ -13,7 +13,7 @@ import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
-import 'package:finance_tracker/widgets/homePage/TotalBalanceWidget.dart';
+import 'package:finance_tracker/widgets/homePage/FinSyncCard.dart';
 import 'package:finance_tracker/widgets/homePage/featureBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -142,35 +142,16 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   // Balance cards section
                   SizedBox(
-                    height: 200,
-                    child: StreamBuilder(
-                      stream: TransactionFirestoreService()
-                          .getTotalAmountInACategory("Savings"),
-                      builder: (context, snapshot) {
-                        /// ----------- FIXED SAVINGS LOADER ----------
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          );
-                        }
-
-                        double amount = snapshot.data!;
-                        double usableAmount =
-                            (data["totalBalance"] as num).toDouble() - amount;
-
-                        return Center(
-                          child: TotalBalanceWidget(
-                            title: "Total Balance",
-                            balance: (data["totalBalance"] as num).toDouble(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                      height: 200,
+                      child: Center(
+                        child: FinSyncCard(
+                          title: "Total Balance",
+                          balance: (data["totalBalance"] as num).toDouble(),
+                        ),
+                      )),
 
                   const SizedBox(height: 20),
 
-                  // Income and Expense boxes
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(

@@ -7,9 +7,48 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:49236096528:android:57bf3544bf7ac0780e7c95",
+        "android_client_info": {
+          "package_name": "com.astened.finsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYl2xgNag1VfhuSAfcr7YvrE10FEtBV_E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:49236096528:android:c4f02308e54288c40e7c95",
         "android_client_info": {
           "package_name": "com.example.finance_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYl2xgNag1VfhuSAfcr7YvrE10FEtBV_E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-3804780729029008~9680012417"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:49236096528:android:324a66bd9dee89bc0e7c95",
+        "android_client_info": {
+          "package_name": "com.pandeyaayush.finsync"
         }
       },
       "oauth_client": [],

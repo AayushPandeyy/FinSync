@@ -1,4 +1,4 @@
-package com.astened.finsync
+package com.pandeyaayush.finsync
 
 import io.flutter.embedding.android.FlutterActivity
 
