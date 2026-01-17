@@ -5,6 +5,7 @@ import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
@@ -42,6 +43,34 @@ class _AddIOUPageState extends State<AddIOUPage> {
   ];
 
   String _selectedCategory = 'Personal';
+
+  InterstitialAd? _interstitialAd;
+
+  void _showInterstitialAd() {
+    InterstitialAd.load(
+      // adUnitId: 'ca-app-pub-3940256099942544/1033173712', // test Ad Unit ID
+      adUnitId:'ca-app-pub-3804780729029008/1042521213',
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+          _interstitialAd!.fullScreenContentCallback =
+              FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+            },
+          );
+          _interstitialAd!.show();
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('InterstitialAd failed to load: $error');
+        },
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -110,6 +139,8 @@ class _AddIOUPageState extends State<AddIOUPage> {
 
       // Close loading dialog
       Navigator.of(context).pop();
+
+      _showInterstitialAd();
 
       // Close AddIOUPage
       Navigator.pop(context);
