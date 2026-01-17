@@ -1,7 +1,7 @@
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/widgets/homePage/TransactionDetailPopUp.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class DialogBox {
   void showLoadingDialog(BuildContext context) {
@@ -13,7 +13,11 @@ class DialogBox {
         child: AlertDialog(
           backgroundColor: Colors.transparent,
           content: Center(
-            child: LottieBuilder.asset("assets/lottiejson/loading.json"),
+            child: LoadingAnimationWidget.twistingDots(
+              leftDotColor: const Color(0xFF1A1A3F),
+              rightDotColor: const Color(0xFFEA3799),
+              size: 100,
+            ),
           ),
         ),
       ),
