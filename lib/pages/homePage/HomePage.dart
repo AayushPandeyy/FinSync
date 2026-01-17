@@ -3,8 +3,6 @@ import 'package:finance_tracker/pages/IOUpage/IOUPage.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
-import 'package:finance_tracker/pages/loanPage/LoanPage.dart';
-import 'package:finance_tracker/pages/subscriptionPage/SubscriptionsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
@@ -12,7 +10,6 @@ import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
-import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:finance_tracker/widgets/homePage/FinSyncCard.dart';
 import 'package:finance_tracker/widgets/homePage/featureBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -40,8 +37,10 @@ class _HomePageState extends State<HomePage> {
 
     // Initialize banner ad
     _bannerAd = BannerAd(
+      // adUnitId:
+      //     'ca-app-pub-3804780729029008/8582553165',
       adUnitId:
-          'ca-app-pub-3804780729029008/8582553165', // test ID, replace with your own
+          'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(

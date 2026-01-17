@@ -1,6 +1,10 @@
+import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
+import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EditIOUPage extends StatefulWidget {
   final IOU iou;
@@ -13,26 +17,30 @@ class EditIOUPage extends StatefulWidget {
 
 class _EditIOUPageState extends State<EditIOUPage> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseAuth auth = FirebaseAuth.instance;
+
   late TextEditingController _personNameController;
   late TextEditingController _amountController;
   late TextEditingController _descriptionController;
-
   late DateTime _selectedDate;
   DateTime? _selectedDueDate;
   late String _selectedType;
   late bool _hasDueDate;
-  late IconData _selectedIcon;
+  late String _selectedCategory;
 
-  final List<Map<String, dynamic>> _icons = [
-    {'name': 'Person', 'icon': Icons.person},
-    {'name': 'Dinner', 'icon': Icons.restaurant},
-    {'name': 'Movie', 'icon': Icons.movie},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag},
-    {'name': 'Coffee', 'icon': Icons.coffee},
-    {'name': 'Transport', 'icon': Icons.directions_car},
-    {'name': 'Gift', 'icon': Icons.card_giftcard},
-    {'name': 'Emergency', 'icon': Icons.emergency},
-    {'name': 'Other', 'icon': Icons.more_horiz},
+  final Ioufirestoreservice firestoreService = Ioufirestoreservice();
+
+  final List<String> _categories = [
+    'Personal',
+    'Food',
+    'Entertainment',
+    'Shopping',
+    'Coffee',
+    'Transport',
+    'Gift',
+    'Emergency',
+    'Other',
   ];
 
   @override
@@ -47,6 +55,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
     _selectedDueDate = widget.iou.dueDate;
     _selectedType = widget.iou.iouType.name;
     _hasDueDate = widget.iou.dueDate != null;
+    _selectedCategory = widget.iou.category;
   }
 
   @override
@@ -78,6 +87,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
         );
       },
     );
+
     if (picked != null) {
       setState(() {
         if (isDueDate) {
@@ -89,20 +99,60 @@ class _EditIOUPageState extends State<EditIOUPage> {
     }
   }
 
-  void _updateIOU() {
+  Future<void> _updateIOU() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Update IOU in database
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('IOU updated successfully!'),
-          backgroundColor: Color(0xFF06D6A0),
-        ),
-      );
+      try {
+        // Get current user ID
+        final String? uid = auth.currentUser?.uid;
+
+        if (uid == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User not authenticated'),
+              backgroundColor: Color(0xFFE63946),
+            ),
+          );
+          return;
+        }
+
+        // Create updated IOU object
+        final updatedIOU = IOU(
+          id: widget.iou.id,
+          personName: _personNameController.text.trim(),
+          amount: double.parse(_amountController.text),
+          description: _descriptionController.text.trim(),
+          date: _selectedDate,
+          dueDate: _hasDueDate ? _selectedDueDate : null,
+          iouType: _selectedType == 'OWE' ? IOUType.OWE : IOUType.OWED,
+          status: widget.iou.status, // Keep the existing status
+          category: _selectedCategory,
+        );
+
+        // Update in Firestore
+        await firestoreService.updateIOU(uid, updatedIOU);
+
+        if (!mounted) return;
+        Navigator.pop(context, updatedIOU); // Return updated IOU
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('IOU updated successfully!'),
+            backgroundColor: Color(0xFF06D6A0),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating IOU: $e'),
+            backgroundColor: const Color(0xFFE63946),
+          ),
+        );
+      }
     }
   }
 
-  void _deleteIOU() {
+  Future<void> _deleteIOU() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -134,16 +184,50 @@ class _EditIOUPageState extends State<EditIOUPage> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Delete IOU from database
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close edit page
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('IOU deleted successfully!'),
-                  backgroundColor: Color(0xFFE63946),
-                ),
-              );
+            onPressed: () async {
+              try {
+                final String? uid = auth.currentUser?.uid;
+
+                if (uid == null) {
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('User not authenticated'),
+                      backgroundColor: Color(0xFFE63946),
+                    ),
+                  );
+                  return;
+                }
+
+                // Delete from Firestore
+                await firestore
+                    .collection("IOUs")
+                    .doc(uid)
+                    .collection("iou")
+                    .doc(widget.iou.id)
+                    .delete();
+
+                if (!mounted) return;
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(
+                    context, true); // Close edit page and signal deletion
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('IOU deleted successfully!'),
+                    backgroundColor: Color(0xFFE63946),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting IOU: $e'),
+                    backgroundColor: const Color(0xFFE63946),
+                  ),
+                );
+              }
             },
             child: const Text(
               'Delete',
@@ -192,9 +276,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 16),
-
                   // Title section
                   const Expanded(
                     child: Column(
@@ -223,7 +305,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                       ],
                     ),
                   ),
-
                   // Delete button
                   GestureDetector(
                     onTap: _deleteIOU,
@@ -244,13 +325,11 @@ class _EditIOUPageState extends State<EditIOUPage> {
                 ],
               ),
             ),
-
             // Divider
             Container(
               height: 1,
               color: const Color(0xFFF0F0F0),
             ),
-
             // Form
             Expanded(
               child: SingleChildScrollView(
@@ -278,7 +357,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedType = 'owe';
+                                    _selectedType = 'OWE';
                                   });
                                 },
                                 child: Container(
@@ -286,7 +365,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                     vertical: height * 0.018,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _selectedType == 'owe'
+                                    color: _selectedType == 'OWE'
                                         ? const Color(0xFFE63946)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(12),
@@ -297,7 +376,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                       Icon(
                                         Icons.arrow_downward,
                                         size: 16,
-                                        color: _selectedType == 'owe'
+                                        color: _selectedType == 'OWE'
                                             ? Colors.white
                                             : const Color(0xFF666666),
                                       ),
@@ -306,10 +385,10 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                         'I Owe',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: _selectedType == 'owe'
+                                          color: _selectedType == 'OWE'
                                               ? Colors.white
                                               : const Color(0xFF666666),
-                                          fontWeight: _selectedType == 'owe'
+                                          fontWeight: _selectedType == 'OWE'
                                               ? FontWeight.w600
                                               : FontWeight.w500,
                                           fontSize: width * 0.038,
@@ -324,7 +403,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedType = 'owed';
+                                    _selectedType = 'OWED';
                                   });
                                 },
                                 child: Container(
@@ -332,7 +411,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                     vertical: height * 0.018,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _selectedType == 'owed'
+                                    color: _selectedType == 'OWED'
                                         ? const Color(0xFF06D6A0)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(12),
@@ -343,7 +422,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                       Icon(
                                         Icons.arrow_upward,
                                         size: 16,
-                                        color: _selectedType == 'owed'
+                                        color: _selectedType == 'OWED'
                                             ? Colors.white
                                             : const Color(0xFF666666),
                                       ),
@@ -352,10 +431,10 @@ class _EditIOUPageState extends State<EditIOUPage> {
                                         'Owes Me',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: _selectedType == 'owed'
+                                          color: _selectedType == 'OWED'
                                               ? Colors.white
                                               : const Color(0xFF666666),
-                                          fontWeight: _selectedType == 'owed'
+                                          fontWeight: _selectedType == 'OWED'
                                               ? FontWeight.w600
                                               : FontWeight.w500,
                                           fontSize: width * 0.038,
@@ -369,7 +448,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                           ],
                         ),
                       ),
-
                       SizedBox(height: height * 0.025),
 
                       // Person Name
@@ -386,7 +464,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                         },
                         width: width,
                       ),
-
                       SizedBox(height: height * 0.025),
 
                       // Amount
@@ -407,7 +484,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                         },
                         width: width,
                       ),
-
                       SizedBox(height: height * 0.025),
 
                       // Description
@@ -425,7 +501,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                         },
                         width: width,
                       ),
-
                       SizedBox(height: height * 0.025),
 
                       // Date
@@ -463,14 +538,11 @@ class _EditIOUPageState extends State<EditIOUPage> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: height * 0.025),
 
                       // Due Date Checkbox
                       _buildSectionTitle('Due Date', width),
                       SizedBox(height: height * 0.01),
-
-                      // Checkbox for "Is there a due date?"
                       GestureDetector(
                         onTap: () {
                           setState(() {
@@ -568,68 +640,12 @@ class _EditIOUPageState extends State<EditIOUPage> {
                           ),
                         ),
                       ],
-
                       SizedBox(height: height * 0.025),
 
                       // Icon Selection
-                      _buildSectionTitle('Icon', width),
+                      _buildSectionTitle('Category', width),
                       SizedBox(height: height * 0.015),
-                      Wrap(
-                        spacing: width * 0.025,
-                        runSpacing: height * 0.015,
-                        children: _icons.map((iconData) {
-                          final isSelected = _selectedIcon == iconData['icon'];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedIcon = iconData['icon'];
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: width * 0.04,
-                                vertical: height * 0.012,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF4A90E2)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF4A90E2)
-                                      : const Color(0xFFE5E5E5),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    iconData['icon'],
-                                    size: width * 0.045,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF666666),
-                                  ),
-                                  SizedBox(width: width * 0.02),
-                                  Text(
-                                    iconData['name'],
-                                    style: TextStyle(
-                                      fontSize: width * 0.035,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : const Color(0xFF666666),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-
+                      _buildCategoryPicker(width, height),
                       SizedBox(height: height * 0.04),
 
                       // Update Button
@@ -745,6 +761,47 @@ class _EditIOUPageState extends State<EditIOUPage> {
           vertical: width * 0.04,
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryPicker(double width, double height) {
+    return Wrap(
+      spacing: width * 0.025,
+      runSpacing: height * 0.015,
+      children: _categories.map((category) {
+        final isSelected = _selectedCategory == category;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedCategory = category;
+            });
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: width * 0.045,
+              vertical: height * 0.014,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF4A90E2)
+                    : const Color(0xFFE5E5E5),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              category,
+              style: TextStyle(
+                fontSize: width * 0.035,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? Colors.white : const Color(0xFF666666),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
