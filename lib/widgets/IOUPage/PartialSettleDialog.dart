@@ -1,6 +1,7 @@
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -36,6 +37,8 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
     if (_formKey.currentState!.validate()) {
       final amount = double.parse(_amountController.text);
 
+      DialogBox().showLoadingDialog(context);
+
       await firestoreService.updateIOUFields(
           FirebaseAuth.instance.currentUser!.uid, widget.iou.id,
           settledAmount: amount + widget.iou.settledAmount);
@@ -45,6 +48,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
             FirebaseAuth.instance.currentUser!.uid, widget.iou.id,
             status: IOUStatus.SETTLED.name);
       }
+      Navigator.pop(context);
       Navigator.pop(context);
     }
   }

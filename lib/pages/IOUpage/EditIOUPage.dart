@@ -1,6 +1,7 @@
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -105,6 +106,8 @@ class _EditIOUPageState extends State<EditIOUPage> {
         // Get current user ID
         final String? uid = auth.currentUser?.uid;
 
+        DialogBox().showLoadingDialog(context);
+
         if (uid == null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -133,6 +136,7 @@ class _EditIOUPageState extends State<EditIOUPage> {
         await firestoreService.updateIOU(uid, updatedIOU);
 
         if (!mounted) return;
+        Navigator.of(context).pop();
         Navigator.pop(context, updatedIOU); // Return updated IOU
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -150,96 +154,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
         );
       }
     }
-  }
-
-  Future<void> _deleteIOU() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Delete IOU',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A1A),
-          ),
-        ),
-        content: const Text(
-          'Are you sure you want to delete this IOU? This action cannot be undone.',
-          style: TextStyle(
-            color: Color(0xFF666666),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Color(0xFF666666),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                final String? uid = auth.currentUser?.uid;
-
-                if (uid == null) {
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('User not authenticated'),
-                      backgroundColor: Color(0xFFE63946),
-                    ),
-                  );
-                  return;
-                }
-
-                // Delete from Firestore
-                await firestore
-                    .collection("IOUs")
-                    .doc(uid)
-                    .collection("iou")
-                    .doc(widget.iou.id)
-                    .delete();
-
-                if (!mounted) return;
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(
-                    context, true); // Close edit page and signal deletion
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('IOU deleted successfully!'),
-                    backgroundColor: Color(0xFFE63946),
-                  ),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error deleting IOU: $e'),
-                    backgroundColor: const Color(0xFFE63946),
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                color: Color(0xFFE63946),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -306,22 +220,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
                     ),
                   ),
                   // Delete button
-                  GestureDetector(
-                    onTap: _deleteIOU,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE5E5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        color: Color(0xFFE63946),
-                        size: 20,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

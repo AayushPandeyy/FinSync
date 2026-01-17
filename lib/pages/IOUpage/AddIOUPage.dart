@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -82,27 +83,35 @@ class _AddIOUPageState extends State<AddIOUPage> {
     }
   }
 
-  // --- 1️⃣ Save IOU to Firestore ---
   Future<void> _saveIOU() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Show loading
+    DialogBox().showLoadingDialog(context);
 
     try {
       // Create IOU object
       final iou = IOU(
-          id: Uuid().v1(),
-          personName: _personNameController.text.trim(),
-          amount: double.parse(_amountController.text.trim()),
-          description: _descriptionController.text.trim(),
-          date: _selectedDate,
-          dueDate: _hasDueDate ? _selectedDueDate : null,
-          iouType: _selectedType,
-          category: _selectedCategory);
+        id: Uuid().v1(),
+        personName: _personNameController.text.trim(),
+        amount: double.parse(_amountController.text.trim()),
+        description: _descriptionController.text.trim(),
+        date: _selectedDate,
+        dueDate: _hasDueDate ? _selectedDueDate : null,
+        iouType: _selectedType,
+        category: _selectedCategory,
+      );
 
-      // Replace USER_UID_HERE with actual logged-in user UID
+      // Get current user ID
       final userId = FirebaseAuth.instance.currentUser!.uid;
 
       // Add to Firestore
       await firestoreService.addIOU(userId, iou);
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Close AddIOUPage
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,6 +121,9 @@ class _AddIOUPageState extends State<AddIOUPage> {
         ),
       );
     } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to add IOU: $e'),
