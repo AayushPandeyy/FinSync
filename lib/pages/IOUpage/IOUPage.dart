@@ -3,6 +3,7 @@ import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/widgets/IOUPage/IOUTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
@@ -18,6 +19,8 @@ class IOUPage extends StatefulWidget {
 }
 
 class _IOUPageState extends State<IOUPage> {
+  late BannerAd _bannerAd;
+  bool _isBannerAdLoaded = false;
   String _selectedFilter = 'All';
 
   String uid = FirebaseAuth.instance.currentUser!.uid;
@@ -151,6 +154,32 @@ class _IOUPageState extends State<IOUPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3804780729029008/8582553165',
+      // adUnitId:
+          // 'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          print('BannerAd failed to load: $error');
+          ad.dispose();
+        },
+      ),
+    );
+
+    _bannerAd.load();
   }
 
   @override
@@ -355,6 +384,15 @@ class _IOUPageState extends State<IOUPage> {
                 },
               ),
             ),
+            const SizedBox(height: 24),
+            if (_isBannerAdLoaded)
+              Center(
+                child: Container(
+                  width: _bannerAd.size.width.toDouble(),
+                  height: _bannerAd.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd),
+                ),
+              ),
           ],
         ),
       ),

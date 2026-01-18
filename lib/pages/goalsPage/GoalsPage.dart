@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
@@ -17,6 +18,34 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
+  late BannerAd _bannerAd;
+  bool _isBannerAdLoaded = false;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3804780729029008/8582553165',
+      // adUnitId:
+      // 'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          print('BannerAd failed to load: $error');
+          ad.dispose();
+        },
+      ),
+    );
+
+    _bannerAd.load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -75,9 +104,9 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Title
                   const Text(
                     "Financial Goals",
@@ -92,17 +121,18 @@ class _GoalsPageState extends State<GoalsPage> {
                 ],
               ),
             ),
-            
+
             // Divider
             Container(
               height: 1,
               color: const Color(0xFFF0F0F0),
             ),
-            
+
             // Goals List
             Expanded(
               child: StreamBuilder(
-                stream: TransactionFirestoreService().getTotalAmountInACategory("Savings"),
+                stream: TransactionFirestoreService()
+                    .getTotalAmountInACategory("Savings"),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -112,9 +142,9 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                     );
                   }
-                  
+
                   final savingsAmount = snapshot.data ?? 0;
-                  
+
                   return StreamBuilder(
                     stream: GoalsFirestoreService()
                         .getGoalsOfUser(FirebaseAuth.instance.currentUser!.uid),
@@ -127,9 +157,9 @@ class _GoalsPageState extends State<GoalsPage> {
                           ),
                         );
                       }
-                      
+
                       final data = snapshot.data ?? [];
-                      
+
                       if (data.isEmpty) {
                         return Center(
                           child: Column(
@@ -170,7 +200,7 @@ class _GoalsPageState extends State<GoalsPage> {
                           ),
                         );
                       }
-                      
+
                       return ListView.builder(
                         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                         itemCount: data.length,
@@ -192,10 +222,12 @@ class _GoalsPageState extends State<GoalsPage> {
                                             goal: FinancialGoal(
                                               id: goalData["id"],
                                               title: goalData["title"],
-                                              description: goalData["description"],
+                                              description:
+                                                  goalData["description"],
                                               targetAmount: goalData["amount"],
                                               currentAmount: savingsAmount,
-                                              deadline: goalData["deadline"].toDate(),
+                                              deadline:
+                                                  goalData["deadline"].toDate(),
                                             ),
                                           ),
                                         ),
@@ -220,7 +252,8 @@ class _GoalsPageState extends State<GoalsPage> {
                                           description: goalData["description"],
                                           targetAmount: goalData["amount"],
                                           currentAmount: savingsAmount,
-                                          deadline: goalData["deadline"].toDate(),
+                                          deadline:
+                                              goalData["deadline"].toDate(),
                                         ),
                                       );
                                     },
@@ -250,6 +283,15 @@ class _GoalsPageState extends State<GoalsPage> {
                 },
               ),
             ),
+            if (_isBannerAdLoaded)
+              Center(
+                child: Container(
+                  width: _bannerAd.size.width.toDouble(),
+                  height: _bannerAd.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd),
+                ),
+              ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
