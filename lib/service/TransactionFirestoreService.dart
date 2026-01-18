@@ -63,7 +63,7 @@ class TransactionFirestoreService {
   }
 
   Future<void> addTransaction(String uid, TransactionModel transaction) async {
-    await userFirestoreService.updateUserData(uid, transaction.amount, transaction.type);
+    await userFirestoreService.updateUserFinancialData(uid, transaction.amount, transaction.type);
     await firestore
         .collection('Transactions')
         .doc(uid)

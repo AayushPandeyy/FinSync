@@ -1,5 +1,6 @@
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/pages/IOUpage/IOUPage.dart';
+import 'package:finance_tracker/pages/accountsPage/AccountSettingsPage.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
@@ -287,6 +288,19 @@ class _HomePageState extends State<HomePage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => IOUPage()));
+                            },
+                          ),
+                          FeatureBox(
+                            title: "Account",
+                            subtitle: "Your Personal Account Information",
+                            icon: Icons.person,
+                            accentColor: const Color(0xFF9B59B6),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          AccountSettingsPage()));
                             },
                           ),
                         ],

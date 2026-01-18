@@ -62,4 +62,13 @@ class AuthFirestoreService {
       throw Exception('Logout failed: $e');
     }
   }
+
+  Future<void> deleteUser() async{
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      await user!.delete();
+    } catch (e) {
+      throw Exception('User Deletion failed: $e');
+    }
+  }
 }
