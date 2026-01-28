@@ -1,4 +1,5 @@
 import 'package:finance_tracker/utilities/Categories.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -106,13 +107,19 @@ class TransactionTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                "${isExpense ? '−' : '+'} Rs $amount",
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: width * 0.04,
-                  fontWeight: FontWeight.w600,
-                ),
+              FutureBuilder<String>(
+                future: CurrencyService.getCurrencySymbol(),
+                builder: (context, snapshot) {
+                  final symbol = snapshot.data ?? 'Rs';
+                  return Text(
+                    "${isExpense ? '−' : '+'} $symbol ${amount.toStringAsFixed(0)}",
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: width * 0.04,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                },
               ),
               SizedBox(height: width * 0.008),
               Text(

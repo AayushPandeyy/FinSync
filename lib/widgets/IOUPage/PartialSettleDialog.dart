@@ -1,6 +1,7 @@
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,22 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final Ioufirestoreservice firestoreService = Ioufirestoreservice();
+  String _currencySymbol = 'Rs';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -152,7 +169,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
                             ),
                           ),
                           Text(
-                            'Rs ${widget.iou.amount.toStringAsFixed(0)}',
+                            '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -179,7 +196,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
                             ),
                           ),
                           Text(
-                            'Rs ${widget.remainingAmount.toStringAsFixed(0)}',
+                            '$_currencySymbol ${widget.remainingAmount.toStringAsFixed(0)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,

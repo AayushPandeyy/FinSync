@@ -1,4 +1,5 @@
 import 'package:finance_tracker/widgets/IOUPage/IOUPopup.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
@@ -6,7 +7,7 @@ import 'package:finance_tracker/models/IOU.dart';
 import 'package:intl/intl.dart';
 
 // Updated IOUTile with popup
-class IOUTile extends StatelessWidget {
+class IOUTile extends StatefulWidget {
   final IOU iou;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -23,12 +24,34 @@ class IOUTile extends StatelessWidget {
   });
 
   @override
+  State<IOUTile> createState() => _IOUTileState();
+}
+
+class _IOUTileState extends State<IOUTile> {
+  String _currencySymbol = 'Rs';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
-    final isSettled = iou.status == IOUStatus.SETTLED;
+    final isSettled = widget.iou.status == IOUStatus.SETTLED;
     final isOverdue =
-        iou.dueDate != null && iou.dueDate!.isBefore(DateTime.now());
+        widget.iou.dueDate != null && widget.iou.dueDate!.isBefore(DateTime.now());
 
     Color getStatusColor() {
       if (isSettled) return const Color(0xFF4A90E2); // Blue for settled
@@ -48,10 +71,10 @@ class IOUTile extends StatelessWidget {
           context: context,
           builder: (context) => IOUDetailPopup(
             
-            iou: iou,
-            onEdit: onEdit,
-            onDelete: onDelete,
-            onSettle: onSettle,
+            iou: widget.iou,
+            onEdit: widget.onEdit,
+            onDelete: widget.onDelete,
+            onSettle: widget.onSettle,
           ),
         );
       },
@@ -78,14 +101,14 @@ class IOUTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(iou.personName,
+                  Text(widget.iou.personName,
                       style: TextStyle(
                           fontSize: width * 0.042,
                           fontWeight: FontWeight.w600,
                           decoration:
                               isSettled ? TextDecoration.lineThrough : null)),
                   SizedBox(height: width * 0.01),
-                  Text(iou.description,
+                  Text(widget.iou.description,
                       style: TextStyle(
                           fontSize: width * 0.032,
                           color: const Color(0xFF999999)),
@@ -101,9 +124,9 @@ class IOUTile extends StatelessWidget {
               children: [
                 // Amount
                 Text(
-                  'Rs ${iou.amount.toStringAsFixed(0)}',
+                  '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
                   style: TextStyle(
-                    color: iou.iouType == IOUType.OWE
+                    color: widget.iou.iouType == IOUType.OWE
                         ? const Color(0xFFE63946)
                         : const Color(0xFF06D6A0),
                     fontSize: width * 0.042,
@@ -118,17 +141,17 @@ class IOUTile extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: iou.iouType == IOUType.OWE
+                    color: widget.iou.iouType == IOUType.OWE
                         ? const Color(0xFFE63946).withOpacity(0.1)
                         : const Color(0xFF06D6A0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    iou.iouType == IOUType.OWE ? 'I Owe' : 'Owes Me',
+                    widget.iou.iouType == IOUType.OWE ? 'I Owe' : 'Owes Me',
                     style: TextStyle(
                         fontSize: width * 0.028,
                         fontWeight: FontWeight.w600,
-                        color: iou.iouType == IOUType.OWE
+                        color: widget.iou.iouType == IOUType.OWE
                             ? const Color(0xFFE63946)
                             : const Color(0xFF06D6A0)),
                   ),

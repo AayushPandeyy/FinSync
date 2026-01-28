@@ -1,4 +1,5 @@
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -63,80 +64,84 @@ class TransactionChartWidget extends StatelessWidget {
         };
         List<String> sortedDates = allDates.toList()..sort();
 
-        return AspectRatio(
-          aspectRatio: 1,
-          child: Card(
-            elevation: 4,
-            margin: const EdgeInsets.all(8),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Weekly Transaction Summary',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: _getMaxAmount(snapshot.data!),
-                        barTouchData: BarTouchData(
-                          touchTooltipData: BarTouchTooltipData(
-                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                              String amount = NumberFormat.currency(
-                                symbol: 'Rs ',
-                                decimalDigits: 2,
-                              ).format(rod.toY);
-                              String type =
-                                  rodIndex == 0 ? 'Income' : 'Expense';
-                              return BarTooltipItem(
-                                '$type\n$amount',
-                                const TextStyle(color: Colors.white),
-                              );
-                            },
-                          ),
+        return FutureBuilder<String>(
+          future: CurrencyService.getCurrencySymbol(),
+          builder: (context, currencySnapshot) {
+            final symbol = currencySnapshot.data ?? 'Rs';
+            return AspectRatio(
+              aspectRatio: 1,
+              child: Card(
+                elevation: 4,
+                margin: const EdgeInsets.all(8),
+                shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Weekly Transaction Summary',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                if (value < 0 || value >= sortedDates.length) {
-                                  return const SizedBox();
-                                }
-                                final date =
-                                    DateTime.parse(sortedDates[value.toInt()]);
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    DateFormat('MM/dd').format(date),
-                                    style: const TextStyle(fontSize: 10),
-                                  ),
-                                );
-                              },
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            maxY: _getMaxAmount(snapshot.data!),
+                            barTouchData: BarTouchData(
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                  String amount = NumberFormat.currency(
+                                    symbol: '$symbol ',
+                                    decimalDigits: 2,
+                                  ).format(rod.toY);
+                                  String type =
+                                      rodIndex == 0 ? 'Income' : 'Expense';
+                                  return BarTooltipItem(
+                                    '$type\n$amount',
+                                    const TextStyle(color: Colors.white),
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 40,
-                              getTitlesWidget: (value, meta) {
-                                return Text(
-                                  'Rs ${value.toInt()}',
-                                  style: const TextStyle(fontSize: 10),
-                                );
-                              },
-                            ),
-                          ),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (value, meta) {
+                                    if (value < 0 || value >= sortedDates.length) {
+                                      return const SizedBox();
+                                    }
+                                    final date =
+                                        DateTime.parse(sortedDates[value.toInt()]);
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        DateFormat('MM/dd').format(date),
+                                        style: const TextStyle(fontSize: 10),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 40,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      '$symbol ${value.toInt()}',
+                                      style: const TextStyle(fontSize: 10),
+                                    );
+                                  },
+                                ),
+                              ),
                           rightTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
@@ -177,19 +182,22 @@ class TransactionChartWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildLegendItem('Income', Colors.green.shade300),
-                      const SizedBox(width: 16),
-                      _buildLegendItem('Expense', Colors.red.shade300),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildLegendItem('Income', Colors.green.shade300),
+                          const SizedBox(width: 16),
+                          _buildLegendItem('Expense', Colors.red.shade300),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          
+          },
         );
       },
     );

@@ -1,4 +1,5 @@
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -202,34 +203,40 @@ class TransactionPieChartsWidget extends StatelessWidget {
         data.values.isNotEmpty ? data.values.reduce((a, b) => a + b) : 0.0;
     int colorIndex = 0;
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: data.entries.map((entry) {
-        final percentage = (entry.value / total) * 100;
-        final color = baseColor[((colorIndex + 3) * 100)];
-        colorIndex++;
+    return FutureBuilder<String>(
+      future: CurrencyService.getCurrencySymbol(),
+      builder: (context, currencySnapshot) {
+        final symbol = currencySnapshot.data ?? 'Rs';
+        return Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: data.entries.map((entry) {
+            final percentage = (entry.value / total) * 100;
+            final color = baseColor[((colorIndex + 3) * 100)];
+            colorIndex++;
 
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              color: color,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '${entry.key}: ${NumberFormat.currency(
-                symbol: 'Rs ',
-                decimalDigits: 2,
-              ).format(entry.value)} (${percentage.toStringAsFixed(1)}%)',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  color: color,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${entry.key}: ${NumberFormat.currency(
+                    symbol: '$symbol ',
+                    decimalDigits: 2,
+                  ).format(entry.value)} (${percentage.toStringAsFixed(1)}%)',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 }

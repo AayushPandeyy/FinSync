@@ -6,6 +6,7 @@ import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/widgets/budgetPage/BuildBudgetCard.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class BudgetPage extends StatefulWidget {
   const BudgetPage({super.key});
@@ -17,6 +18,23 @@ class BudgetPage extends StatefulWidget {
 class _BudgetPageState extends State<BudgetPage> {
   final BudgetFirestoreService _budgetService = BudgetFirestoreService();
   final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  Map<String, String> getCurrentDateInfo() {
+    final DateTime now = DateTime.now();
+
+    final String monthYear = DateFormat('MMMM yyyy').format(now);
+
+    final String fullDate = DateFormat('EEEE MMM d yyyy').format(now);
+
+    final DateTime firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final int weekNumber = ((now.day + firstDayOfMonth.weekday - 1) / 7).ceil();
+
+    return {
+      'monthYear': monthYear,
+      'fullDate': fullDate,
+      'week': 'Week $weekNumber'
+    };
+  }
 
   double _calculateMonthlySpent(List<Map<String, dynamic>> transactions) {
     final now = DateTime.now();
@@ -31,8 +49,7 @@ class _BudgetPageState extends State<BudgetPage> {
 
       final transactionDate = (transaction['date'] as Timestamp).toDate();
 
-      final isInMonth =
-          !transactionDate.isBefore(startOfMonth) &&
+      final isInMonth = !transactionDate.isBefore(startOfMonth) &&
           !transactionDate.isAfter(endOfMonth);
 
       if (!isInMonth) continue;
@@ -49,15 +66,19 @@ class _BudgetPageState extends State<BudgetPage> {
   double _calculateWeeklySpent(List<Map<String, dynamic>> transactions) {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-    final endOfWeek = startOfWeekDay.add(const Duration(days: 6, hours: 23, minutes: 59));
-    
+    final startOfWeekDay =
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final endOfWeek =
+        startOfWeekDay.add(const Duration(days: 6, hours: 23, minutes: 59));
+
     double total = 0.0;
     for (var transaction in transactions) {
       if (transaction['date'] != null) {
         final transactionDate = (transaction['date'] as Timestamp).toDate();
-        if (transactionDate.isAfter(startOfWeekDay.subtract(const Duration(seconds: 1))) &&
-            transactionDate.isBefore(endOfWeek.add(const Duration(seconds: 1)))) {
+        if (transactionDate
+                .isAfter(startOfWeekDay.subtract(const Duration(seconds: 1))) &&
+            transactionDate
+                .isBefore(endOfWeek.add(const Duration(seconds: 1)))) {
           if (transaction['type'] == 'EXPENSE') {
             final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
             total += amount;
@@ -71,14 +92,17 @@ class _BudgetPageState extends State<BudgetPage> {
   double _calculateDailySpent(List<Map<String, dynamic>> transactions) {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(hours: 23, minutes: 59, seconds: 59));
-    
+    final endOfDay =
+        startOfDay.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+
     double total = 0.0;
     for (var transaction in transactions) {
       if (transaction['date'] != null) {
         final transactionDate = (transaction['date'] as Timestamp).toDate();
-        if (transactionDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
-            transactionDate.isBefore(endOfDay.add(const Duration(seconds: 1)))) {
+        if (transactionDate
+                .isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+            transactionDate
+                .isBefore(endOfDay.add(const Duration(seconds: 1)))) {
           if (transaction['type'] == 'EXPENSE') {
             final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
             total += amount;
@@ -89,11 +113,12 @@ class _BudgetPageState extends State<BudgetPage> {
     return total;
   }
 
-  void _showSetBudgetDialog(String type, String? budgetId, double? currentBudget) {
+  void _showSetBudgetDialog(
+      String type, String? budgetId, double? currentBudget) {
     final TextEditingController controller = TextEditingController(
       text: currentBudget?.toStringAsFixed(0) ?? '',
     );
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -127,7 +152,6 @@ class _BudgetPageState extends State<BudgetPage> {
                   ),
                 ),
               ),
-              
               Text(
                 budgetId == null ? "Set $type Budget" : "Edit $type Budget",
                 style: const TextStyle(
@@ -137,18 +161,18 @@ class _BudgetPageState extends State<BudgetPage> {
                   letterSpacing: -0.5,
                 ),
               ),
-              
               const SizedBox(height: 24),
-              
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFE0E0E0)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.currency_rupee, color: Colors.grey[600], size: 20),
+                    Icon(Icons.currency_rupee,
+                        color: Colors.grey[600], size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
@@ -167,9 +191,7 @@ class _BudgetPageState extends State<BudgetPage> {
                   ],
                 ),
               ),
-              
               const SizedBox(height: 24),
-              
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -184,7 +206,7 @@ class _BudgetPageState extends State<BudgetPage> {
                       } else {
                         budgetType = BudgetType.DAILY;
                       }
-                      
+
                       if (budgetId == null) {
                         // Create new budget
                         await _budgetService.addMonthlyWeeklyOrDailyBudget(
@@ -201,7 +223,7 @@ class _BudgetPageState extends State<BudgetPage> {
                           budgetType,
                         );
                       }
-                      
+
                       if (mounted) {
                         Navigator.pop(context);
                       }
@@ -242,17 +264,21 @@ class _BudgetPageState extends State<BudgetPage> {
           stream: _budgetService.getBudget(uid),
           builder: (context, budgetSnapshot) {
             return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: TransactionFirestoreService().getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name),
+              stream: TransactionFirestoreService().getTransactionsBasedOnType(
+                  uid, TransactionType.EXPENSE.name),
               builder: (context, transactionsSnapshot) {
+                Map<String, String> currentDateInfo = getCurrentDateInfo();
+
                 // Loading state
                 if (budgetSnapshot.connectionState == ConnectionState.waiting ||
-                    transactionsSnapshot.connectionState == ConnectionState.waiting) {
+                    transactionsSnapshot.connectionState ==
+                        ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 // Get all budgets
                 final budgets = budgetSnapshot.data ?? [];
-                
+
                 // Find specific budget types
                 Map<String, dynamic>? monthlyBudgetData;
                 Map<String, dynamic>? weeklyBudgetData;
@@ -273,13 +299,17 @@ class _BudgetPageState extends State<BudgetPage> {
                 }
 
                 // Extract budget amounts and IDs
-                final monthlyBudget = (monthlyBudgetData?['amount'] as num?)?.toDouble();
-                final monthlyBudgetId = monthlyBudgetData?['budgetId'] as String?;
-                
-                final weeklyBudget = (weeklyBudgetData?['amount'] as num?)?.toDouble();
+                final monthlyBudget =
+                    (monthlyBudgetData?['amount'] as num?)?.toDouble();
+                final monthlyBudgetId =
+                    monthlyBudgetData?['budgetId'] as String?;
+
+                final weeklyBudget =
+                    (weeklyBudgetData?['amount'] as num?)?.toDouble();
                 final weeklyBudgetId = weeklyBudgetData?['budgetId'] as String?;
-                
-                final dailyLimit = (dailyBudgetData?['amount'] as num?)?.toDouble();
+
+                final dailyLimit =
+                    (dailyBudgetData?['amount'] as num?)?.toDouble();
                 final dailyBudgetId = dailyBudgetData?['budgetId'] as String?;
 
                 // Get transactions and calculate spent amounts
@@ -316,9 +346,7 @@ class _BudgetPageState extends State<BudgetPage> {
                               ),
                             ],
                           ),
-                          
                           const SizedBox(height: 32),
-                          
                           const Text(
                             "Budgets",
                             style: TextStyle(
@@ -332,12 +360,10 @@ class _BudgetPageState extends State<BudgetPage> {
                         ],
                       ),
                     ),
-                    
                     Container(
                       height: 1,
                       color: const Color(0xFFF0F0F0),
                     ),
-                    
                     Expanded(
                       child: ListView(
                         padding: const EdgeInsets.all(24),
@@ -346,28 +372,27 @@ class _BudgetPageState extends State<BudgetPage> {
                             title: 'Monthly Budget',
                             budget: monthlyBudget,
                             spent: monthlySpent,
-                            subtitle: 'December 2025',
-                            onTap: () => _showSetBudgetDialog('Monthly', monthlyBudgetId, monthlyBudget),
+                            subtitle: currentDateInfo['monthYear'] ?? '',
+                            onTap: () => _showSetBudgetDialog(
+                                'Monthly', monthlyBudgetId, monthlyBudget),
                           ),
-                          
                           const SizedBox(height: 16),
-                          
                           BudgetCard(
                             title: 'Weekly Budget',
                             budget: weeklyBudget,
                             spent: weeklySpent,
-                            subtitle: 'Week 4',
-                            onTap: () => _showSetBudgetDialog('Weekly', weeklyBudgetId, weeklyBudget),
+                            subtitle: currentDateInfo['week'] ?? '',
+                            onTap: () => _showSetBudgetDialog(
+                                'Weekly', weeklyBudgetId, weeklyBudget),
                           ),
-                          
                           const SizedBox(height: 16),
-                          
                           BudgetCard(
                             title: 'Daily Limit',
                             budget: dailyLimit,
                             spent: dailySpent,
-                            subtitle: 'Today',
-                            onTap: () => _showSetBudgetDialog('Daily', dailyBudgetId, dailyLimit),
+                            subtitle: currentDateInfo['fullDate'] ?? '',
+                            onTap: () => _showSetBudgetDialog(
+                                'Daily', dailyBudgetId, dailyLimit),
                           ),
                         ],
                       ),

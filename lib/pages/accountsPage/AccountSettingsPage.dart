@@ -1,6 +1,6 @@
-import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -16,16 +16,18 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers for editable fields
-  late TextEditingController _usernameController;
-  late TextEditingController _phoneController;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   final UserFirestoreService firestoreService = UserFirestoreService();
   final AuthFirestoreService authFirestoreService = AuthFirestoreService();
   // Non-editable email
   late String _email; // TODO: Get from Firebase Auth
 
-  // Currency selection
+  // Currency selection (default; overwritten from DB when loaded)
   String _selectedCurrency = 'NPR';
+
+  bool _hasInitialized = false;
 
   final List<Map<String, String>> _currencies = [
     {'code': 'NPR', 'name': 'Nepali Rupee (Rs)', 'symbol': 'Rs'},
@@ -41,34 +43,46 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController();
-    _phoneController = TextEditingController();
+
     _email = '';
   }
 
   Future<void> _saveChanges() async {
-    DialogBox().showLoadingDialog(context);
     if (!_formKey.currentState!.validate()) return;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    await firestoreService.updateByUserFields(
-      user.uid,
-      {
-        "username": _usernameController.text.trim(),
-        "phoneNumber": _phoneController.text.trim(),
-      },
-    );
-
-    Navigator.pop(context);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Changes saved successfully!"),
-        backgroundColor: Color(0xFF06D6A0),
-      ),
-    );
+    DialogBox().showLoadingDialog(context);
+    try {
+      await firestoreService.updateByUserFields(
+        user.uid,
+        {
+          "username": _usernameController.text.trim(),
+          "phoneNumber": _phoneController.text.trim(),
+          "preferredCurrency": _selectedCurrency,
+        },
+      );
+      // Save currency symbol to SharedPreferences
+      await CurrencyService.setCurrencyFromCode(_selectedCurrency);
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Changes saved successfully!"),
+          backgroundColor: Color(0xFF06D6A0),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save: $e"),
+          backgroundColor: const Color(0xFFE63946),
+        ),
+      );
+    }
   }
 
   @override
@@ -113,15 +127,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             onPressed: () async {
               Navigator.pop(context);
               await AuthFirestoreService().logout();
-              Navigator.pushReplacement(
+              if (!context.mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginChecker()),
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Logged out successfully!'),
-                  backgroundColor: Color(0xFF4A90E2),
-                ),
+                '/auth',
+                (Route<dynamic> route) => false,
               );
             },
             child: const Text(
@@ -174,16 +184,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               DialogBox().showLoadingDialog(context);
               await firestoreService
                   .deleteUser(FirebaseAuth.instance.currentUser!.uid);
+              if (!context.mounted) return;
               Navigator.pop(context);
-              Navigator.pushReplacement(
+              if (!context.mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginChecker()),
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account deleted successfully!'),
-                  backgroundColor: Color(0xFFE63946),
-                ),
+                '/auth',
+                (Route<dynamic> route) => false,
               );
             },
             child: const Text(
@@ -196,6 +203,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Map<String, String> _currencyForCode(String? code) {
+    if (code == null || code.isEmpty) return _currencies.first;
+    return _currencies.firstWhere(
+      (c) => c['code'] == code,
+      orElse: () => _currencies.first,
     );
   }
 
@@ -386,19 +401,50 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             ),
 
             // Content
-            StreamBuilder(
-                stream: UserFirestoreService().getUserDataByEmail(
+            StreamBuilder<List<Map<String, dynamic>>>(
+                stream: firestoreService.getUserDataByEmail(
                     FirebaseAuth.instance.currentUser!.email!),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
+                    return const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
                     );
                   }
-                  final data = snapshot.data;
-                  _usernameController.text = data![0]["username"];
-                  _phoneController.text = data[0]["phoneNumber"];
-                  _email = data[0]["email"];
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Expanded(
+                      child: Center(child: Text("No Data Available.")),
+                    );
+                  }
+
+                  final data = snapshot.data!;
+                  final userData = data[0];
+
+                  if (!_hasInitialized) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      _usernameController.text =
+                          userData["username"]?.toString() ?? '';
+                      _phoneController.text =
+                          userData["phoneNumber"]?.toString() ?? '';
+                      _email = userData["email"]?.toString() ?? '';
+                      final raw = userData["preferredCurrency"];
+                      _selectedCurrency = (raw is String && raw.isNotEmpty)
+                          ? (_currencies.any((c) => c['code'] == raw)
+                              ? raw
+                              : 'NPR')
+                          : 'NPR';
+                      setState(() => _hasInitialized = true);
+                    });
+                  }
+
+                  if (!_hasInitialized) {
+                    return const Expanded(
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
                   return Expanded(
                     child: SingleChildScrollView(
                       padding: EdgeInsets.all(width * 0.05),
@@ -530,8 +576,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          _currencies.firstWhere((c) =>
-                                              c['code'] ==
+                                          _currencyForCode(
                                               _selectedCurrency)['symbol']!,
                                           style: const TextStyle(
                                             fontSize: 20,
@@ -557,8 +602,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            _currencies.firstWhere((c) =>
-                                                c['code'] ==
+                                            _currencyForCode(
                                                 _selectedCurrency)['name']!,
                                             style: const TextStyle(
                                               fontSize: 13,

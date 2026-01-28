@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,22 @@ class SeeAllTransactionsPage extends StatefulWidget {
 class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
   String _selectedFilter = 'All Time';
   String _selectedCategory = 'All Categories';
+  String _currencySymbol = 'Rs';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
 
   String _getMonthName(int month) {
     const months = [
@@ -784,7 +801,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ],
                                       ),
                                       Text(
-                                        "Rs ${totalIncome.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalIncome.toStringAsFixed(0)}",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -820,7 +837,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ],
                                       ),
                                       Text(
-                                        "Rs ${totalExpense.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalExpense.toStringAsFixed(0)}",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -849,7 +866,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ),
                                       ),
                                       Text(
-                                        "Rs ${totalAmount.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalAmount.toStringAsFixed(0)}",
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,

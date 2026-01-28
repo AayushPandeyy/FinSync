@@ -1,4 +1,5 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -19,6 +20,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
   bool _isExpanded = false;
   late AnimationController _controller;
   late Animation<double> _expandAnimation;
+  String _currencySymbol = 'Rs';
 
   @override
   void initState() {
@@ -31,6 +33,16 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
       parent: _controller,
       curve: Curves.easeInOut,
     );
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
   }
 
   @override
@@ -195,7 +207,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Rs ${widget.goal.currentAmount.toStringAsFixed(0)}',
+                      '$_currencySymbol ${widget.goal.currentAmount.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -205,7 +217,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
                   ],
                 ),
                 Text(
-                  'Rs ${widget.goal.targetAmount.toStringAsFixed(0)}',
+                  '$_currencySymbol ${widget.goal.targetAmount.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -255,7 +267,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
                       children: [
                         _buildStatRow(
                           'Remaining',
-                          'Rs ${remaining > 0 ? remaining.toStringAsFixed(0) : '0'}',
+                          '$_currencySymbol ${remaining > 0 ? remaining.toStringAsFixed(0) : '0'}',
                         ),
                         const SizedBox(height: 12),
                         _buildStatRow(
@@ -266,7 +278,7 @@ class _FinancialGoalWidgetState extends State<FinancialGoalWidget>
                         _buildStatRow(
                           'Daily Target',
                           daysLeft > 0 
-                              ? 'Rs ${(remaining / daysLeft).toStringAsFixed(0)}/day'
+                              ? '$_currencySymbol ${(remaining / daysLeft).toStringAsFixed(0)}/day'
                               : 'Goal ended',
                         ),
                       ],

@@ -1,5 +1,6 @@
 import 'package:finance_tracker/pages/IOUpage/EditIOUPage.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/widgets/IOUPage/IOUTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +23,21 @@ class _IOUPageState extends State<IOUPage> {
   late BannerAd _bannerAd;
   bool _isBannerAdLoaded = false;
   String _selectedFilter = 'All';
+  String _currencySymbol = 'Rs';
 
   String uid = FirebaseAuth.instance.currentUser!.uid;
   final Ioufirestoreservice firestoreService = Ioufirestoreservice();
+
+
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
 
   List<IOU> _applyFilter(List<IOU> ious) {
     List<IOU> filtered;
@@ -436,7 +449,7 @@ class _IOUPageState extends State<IOUPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('Rs ${amount.toStringAsFixed(0)}',
+          Text('$_currencySymbol ${amount.toStringAsFixed(0)}',
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,

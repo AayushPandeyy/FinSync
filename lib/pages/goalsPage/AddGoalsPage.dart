@@ -1,6 +1,7 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/service/GoalsFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +47,7 @@ class _AddGoalsPageState extends State<AddGoalsPage> {
     DialogBox().showLoadingDialog(context);
     await service.addGoals(FirebaseAuth.instance.currentUser!.uid, goal);
     Navigator.pop(context);
+    BannerService().showInterstitialAd();
     Navigator.pop(context);
     // Function to save transaction to Firestore or any other backend.
   }

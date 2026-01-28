@@ -1,7 +1,8 @@
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/Utilities.dart';
 import 'package:flutter/material.dart';
 
-class CategoryBudgetCard extends StatelessWidget {
+class CategoryBudgetCard extends StatefulWidget {
   final String name;
   final double budget;
   final double spent;
@@ -18,12 +19,34 @@ class CategoryBudgetCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<CategoryBudgetCard> createState() => _CategoryBudgetCardState();
+}
+
+class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
+  String _currencySymbol = 'Rs';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final progress = (spent / budget).clamp(0.0, 1.0);
-    final progressColor = Utilities().getProgressColor(spent, budget);
+    final progress = (widget.spent / widget.budget).clamp(0.0, 1.0);
+    final progressColor = Utilities().getProgressColor(widget.spent, widget.budget);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -47,7 +70,7 @@ class CategoryBudgetCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    icon,
+                    widget.icon,
                     color: progressColor,
                     size: 20,
                   ),
@@ -58,7 +81,7 @@ class CategoryBudgetCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        name,
+                        widget.name,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -67,7 +90,7 @@ class CategoryBudgetCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Rs ${spent.toStringAsFixed(0)} of Rs ${budget.toStringAsFixed(0)}',
+                        '$_currencySymbol ${widget.spent.toStringAsFixed(0)} of $_currencySymbol ${widget.budget.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],

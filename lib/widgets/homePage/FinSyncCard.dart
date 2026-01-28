@@ -1,3 +1,4 @@
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -162,20 +163,26 @@ class _FinSyncCardState extends State<FinSyncCard>
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Colors.white, Colors.white70],
-                      ).createShader(bounds),
-                      child: Text(
-                        NumberFormat.currency(symbol: 'Rs ').format(widget.balance),
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -1,
-                          height: 1.2,
-                        ),
-                      ),
+                    FutureBuilder<String>(
+                      future: CurrencyService.getCurrencySymbol(),
+                      builder: (context, snapshot) {
+                        final symbol = snapshot.data ?? 'Rs';
+                        return ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [Colors.white, Colors.white70],
+                          ).createShader(bounds),
+                          child: Text(
+                            NumberFormat.currency(symbol: '$symbol ').format(widget.balance),
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -1,
+                              height: 1.2,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 6),
                     Container(

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -7,7 +6,6 @@ class AuthFirestoreService {
   // get firebase instance
   final FirebaseAuth auth = FirebaseAuth.instance;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final firestoreService = TransactionFirestoreService();
   final userFirestoreService = UserFirestoreService();
 
   //signIn
@@ -33,13 +31,14 @@ class AuthFirestoreService {
 
   //signUp
 
-  Future<UserCredential> signUp(
-      String email, String password, String username,String phoneNumber) async {
+  Future<UserCredential> signUp(String email, String password, String username,
+      String phoneNumber) async {
     print("check");
     try {
       UserCredential user = await auth.createUserWithEmailAndPassword(
           email: email, password: password);
-      userFirestoreService.addUserToDatabase(user.user!.uid, email, username,phoneNumber);
+      userFirestoreService.addUserToDatabase(
+          user.user!.uid, email, username, phoneNumber);
       if (!user.user!.emailVerified) {
         await user.user!.sendEmailVerification();
       }
@@ -63,12 +62,21 @@ class AuthFirestoreService {
     }
   }
 
-  Future<void> deleteUser() async{
+  Future<void> deleteUser() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       await user!.delete();
     } catch (e) {
       throw Exception('User Deletion failed: $e');
     }
+  }
+
+  Future<void> deleteAccount() async {
+    final user = auth.currentUser;
+    if (user == null) return;
+
+    await userFirestoreService.deleteUser(user.uid);
+    await user.delete();
+    await auth.signOut();
   }
 }

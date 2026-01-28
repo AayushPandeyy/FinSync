@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/pages/IOUpage/IOUPage.dart';
 import 'package:finance_tracker/pages/accountsPage/AccountSettingsPage.dart';
@@ -6,10 +7,10 @@ import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
-import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/FinSyncCard.dart';
 import 'package:finance_tracker/widgets/homePage/featureBox.dart';
@@ -32,14 +33,18 @@ class _HomePageState extends State<HomePage> {
   User currUser = FirebaseAuth.instance.currentUser!;
   late BannerAd _bannerAd;
   bool _isBannerAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
 
+    initCurrency();
+
     // Initialize banner ad
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3804780729029008/8582553165',
-      // adUnitId: 'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
+      // adUnitId: 'ca-app-pub-3804780729029008/8582553165',
+      adUnitId:
+          'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -56,6 +61,10 @@ class _HomePageState extends State<HomePage> {
     );
 
     _bannerAd.load();
+  }
+
+  void initCurrency() async {
+    await CurrencyService.initializeCurrency();
   }
 
   @override
@@ -77,6 +86,11 @@ class _HomePageState extends State<HomePage> {
           }
 
           final data = snapshot.data![0];
+
+          // Initialize currency symbol in SharedPreferences if not already set
+          final preferredCurrency =
+              data["preferredCurrency"]?.toString() ?? 'NPR';
+          CurrencyService.setCurrencyFromCode(preferredCurrency);
 
           return Scaffold(
             backgroundColor: const Color(0xfff8f8fa),
@@ -118,10 +132,10 @@ class _HomePageState extends State<HomePage> {
                             onPressed: () {
                               Navigator.pop(context);
                               AuthFirestoreService().logout();
-                              Navigator.pushReplacement(
+                              Navigator.pushNamedAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(
-                                    builder: (context) => const LoginChecker()),
+                                '/auth',
+                                (Route<dynamic> route) => false,
                               );
                             },
                             child: const Text("OK"),
@@ -300,7 +314,12 @@ class _HomePageState extends State<HomePage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          AccountSettingsPage()));
+                                          AccountSettingsPage())).then((_) {
+                                // Refresh currency when returning from settings
+                                setState(() {
+                                  initCurrency();
+                                });
+                              });
                             },
                           ),
                         ],

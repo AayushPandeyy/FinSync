@@ -1,10 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
-import 'package:finance_tracker/service/AuthFirestoreService.dart';
 
 class UserFirestoreService{
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final AuthFirestoreService firestoreService = AuthFirestoreService();
     Stream<List<Map<String, dynamic>>> getUserDataByEmail(String email) {
     return firestore
         .collection('Users') // The name of your collection
@@ -27,7 +25,8 @@ class UserFirestoreService{
       "phoneNumber": phoneNumber,
       "income": 0,
       "expense": 0,
-      "totalBalance": 0
+      "totalBalance": 0,
+      "preferredCurrency": "NPR",
     });
   }
 
@@ -89,8 +88,6 @@ Future<void> deleteUser(String uid) async {
     await firestore.collection("IOUs").doc(uid).delete();
     await firestore.collection("Users").doc(uid).delete();
 
-    await firestoreService.logout();
-    await firestoreService.deleteUser();
   }
 
 

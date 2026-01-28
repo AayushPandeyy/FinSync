@@ -1,3 +1,4 @@
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -108,12 +109,18 @@ class TransactionDetailPopUp extends StatelessWidget {
                         children: [
                           const Text("Amount",
                               style: TextStyle(color: Colors.white)),
-                          Text(
-                            "Rs $amount",
-                            style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                          FutureBuilder<String>(
+                            future: CurrencyService.getCurrencySymbol(),
+                            builder: (context, snapshot) {
+                              final symbol = snapshot.data ?? 'Rs';
+                              return Text(
+                                "$symbol $amount",
+                                style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              );
+                            },
                           )
                         ],
                       ),

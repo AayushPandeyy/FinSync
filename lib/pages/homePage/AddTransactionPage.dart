@@ -1,5 +1,6 @@
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -52,6 +53,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     await service.addTransaction(
         FirebaseAuth.instance.currentUser!.uid, transaction);
     Navigator.pop(context);
+    BannerService().showInterstitialAd();
     Navigator.pop(context);
     // Function to save transaction to Firestore or any other backend.
     print("Saving transaction");

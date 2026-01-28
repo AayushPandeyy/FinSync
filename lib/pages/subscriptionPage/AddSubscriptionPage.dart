@@ -1,6 +1,7 @@
 import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
+import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,7 +20,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now();
   String _selectedBillingCycle = 'Monthly';
   String _selectedCategory = 'Entertainment';
@@ -28,7 +29,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   final SubscriptionFirestoreService service = SubscriptionFirestoreService();
 
   final List<String> _billingCycles = ['Monthly', 'Yearly', 'Weekly'];
-  
+
   final List<Category> categories = Categories().categories;
 
   @override
@@ -55,18 +56,18 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   void _saveSubscription() async {
     print(FirebaseAuth.instance.currentUser!.uid);
     Subscription subscription = Subscription(
-      name: _nameController.text,
-      amount: double.parse(_amountController.text),
-      billingCycle: _selectedBillingCycle,
-      nextBillingDate: _selectedDate,
-      category: _selectedCategory,
-      id: Uuid().v6(),
-      isActive: true
-    );
+        name: _nameController.text,
+        amount: double.parse(_amountController.text),
+        billingCycle: _selectedBillingCycle,
+        nextBillingDate: _selectedDate,
+        category: _selectedCategory,
+        id: Uuid().v6(),
+        isActive: true);
     DialogBox().showLoadingDialog(context);
     await service.addSubscription(
         FirebaseAuth.instance.currentUser!.uid, subscription);
     Navigator.pop(context);
+    BannerService().showInterstitialAd();
     Navigator.pop(context);
   }
 

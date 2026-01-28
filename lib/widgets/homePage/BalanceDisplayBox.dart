@@ -1,5 +1,6 @@
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/pages/homePage/TransactionsBasedOnTypePage.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:flutter/material.dart';
 
 class BalanceDisplayBox extends StatelessWidget {
@@ -146,25 +147,31 @@ class BalanceDisplayBox extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: ShaderMask(
-                            shaderCallback: (bounds) => LinearGradient(
-                              colors: [primaryColor, secondaryColor],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ).createShader(bounds),
-                            child: Text(
-                              "Rs ${balance.toStringAsFixed(0)}",
-                              style: TextStyle(
-                                fontSize: width * 0.068,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                              textScaler: TextScaler.linear(
-                                (textScaleFactor.scale(1.0) * 1.0)
-                                    .clamp(0.8, 1.1),
-                              ),
-                            ),
+                          child: FutureBuilder<String>(
+                            future: CurrencyService.getCurrencySymbol(),
+                            builder: (context, snapshot) {
+                              final symbol = snapshot.data ?? 'Rs';
+                              return ShaderMask(
+                                shaderCallback: (bounds) => LinearGradient(
+                                  colors: [primaryColor, secondaryColor],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ).createShader(bounds),
+                                child: Text(
+                                  "$symbol ${balance.toStringAsFixed(0)}",
+                                  style: TextStyle(
+                                    fontSize: width * 0.068,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
+                                  textScaler: TextScaler.linear(
+                                    (textScaleFactor.scale(1.0) * 1.0)
+                                        .clamp(0.8, 1.1),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),

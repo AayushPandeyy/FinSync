@@ -1,6 +1,7 @@
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
+import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/widgets/IOUPage/PartialSettleDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +25,23 @@ class IOUDetailPopup extends StatefulWidget {
 }
 
 class _IOUDetailPopupState extends State<IOUDetailPopup> {
+  String _currencySymbol = 'Rs';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final symbol = await CurrencyService.getCurrencySymbol();
+    if (mounted) {
+      setState(() {
+        _currencySymbol = symbol;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -88,7 +106,7 @@ class _IOUDetailPopupState extends State<IOUDetailPopup> {
                     ),
                   ),
                   Text(
-                    'Rs ${widget.iou.amount.toStringAsFixed(0)}',
+                    '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
                     style: TextStyle(
                       fontSize: width * 0.048,
                       fontWeight: FontWeight.bold,
@@ -160,7 +178,7 @@ class _IOUDetailPopupState extends State<IOUDetailPopup> {
             SizedBox(height: width * 0.03),
             _buildInfoRow(
               'Settled Amount',
-              'Rs. ${widget.iou.settledAmount.toString()}',
+              '$_currencySymbol ${widget.iou.settledAmount.toString()}',
               width,
               valueColor:
                   isSettled ? const Color(0xFF06D6A0) : const Color(0xFFF57C00),

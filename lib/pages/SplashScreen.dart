@@ -1,4 +1,3 @@
-import 'package:finance_tracker/pages/auth/LoginChecker.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -58,10 +57,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     // Navigate to next screen after animation completes
     Future.delayed(const Duration(milliseconds: 3000), () {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginChecker()),
-        );
+        Navigator.pushReplacementNamed(context, '/auth');
       }
     });
   }
