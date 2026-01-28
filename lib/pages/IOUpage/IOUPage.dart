@@ -28,8 +28,6 @@ class _IOUPageState extends State<IOUPage> {
   String uid = FirebaseAuth.instance.currentUser!.uid;
   final Ioufirestoreservice firestoreService = Ioufirestoreservice();
 
-
-
   Future<void> _loadCurrencySymbol() async {
     final symbol = await CurrencyService.getCurrencySymbol();
     if (mounted) {
@@ -173,10 +171,11 @@ class _IOUPageState extends State<IOUPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    _initCurrency();
     _bannerAd = BannerAd(
       adUnitId: 'ca-app-pub-3804780729029008/8582553165',
       // adUnitId:
-          // 'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
+      // 'ca-app-pub-3940256099942544/6300978111', // test ID, replace with your own
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -193,6 +192,16 @@ class _IOUPageState extends State<IOUPage> {
     );
 
     _bannerAd.load();
+  }
+
+  Future<void> _initCurrency() async {
+    await CurrencyService.initializeCurrency();
+
+    if (!mounted) return;
+
+    setState(() {
+      _currencySymbol = CurrencyService.getCurrencySymbolSync();
+    });
   }
 
   @override
