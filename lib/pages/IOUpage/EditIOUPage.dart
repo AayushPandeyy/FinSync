@@ -1,7 +1,6 @@
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -106,8 +105,6 @@ class _EditIOUPageState extends State<EditIOUPage> {
         // Get current user ID
         final String? uid = auth.currentUser?.uid;
 
-        DialogBox().showLoadingDialog(context);
-
         if (uid == null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -118,6 +115,15 @@ class _EditIOUPageState extends State<EditIOUPage> {
           );
           return;
         }
+
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Saving locally… we will sync when you are online.'),
+          ),
+        );
 
         // Create updated IOU object
         final updatedIOU = IOU(
@@ -136,21 +142,20 @@ class _EditIOUPageState extends State<EditIOUPage> {
         await firestoreService.updateIOU(uid, updatedIOU);
 
         if (!mounted) return;
-        Navigator.of(context).pop();
-        Navigator.pop(context, updatedIOU); // Return updated IOU
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
           const SnackBar(
-            content: Text('IOU updated successfully!'),
-            backgroundColor: Color(0xFF06D6A0),
+            content: Text('IOU updated! Sync happens automatically.'),
           ),
         );
+        await Future.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        Navigator.pop(context, updatedIOU); // Return updated IOU
       } catch (e) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating IOU: $e'),
-            backgroundColor: const Color(0xFFE63946),
-          ),
+          SnackBar(content: Text('Error updating IOU: $e')),
         );
       }
     }

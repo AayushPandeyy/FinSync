@@ -1,7 +1,7 @@
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/general/OfflineStatusBanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -53,8 +53,16 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    DialogBox().showLoadingDialog(context);
     try {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Saving locally… we will sync when you are online.'),
+        ),
+      );
+
       await firestoreService.updateByUserFields(
         user.uid,
         {
@@ -66,21 +74,17 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       // Save currency symbol to SharedPreferences
       await CurrencyService.setCurrencyFromCode(_selectedCurrency);
       if (!context.mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         const SnackBar(
-          content: Text("Changes saved successfully!"),
-          backgroundColor: Color(0xFF06D6A0),
+          content: Text('Profile updated! Sync happens automatically.'),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to save: $e"),
-          backgroundColor: const Color(0xFFE63946),
-        ),
+        SnackBar(content: Text('Failed to save: $e')),
       );
     }
   }
@@ -148,9 +152,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   void _deleteAccount() {
+    final rootContext = context;
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: rootContext,
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -180,18 +185,33 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              DialogBox().showLoadingDialog(context);
-              await firestoreService
-                  .deleteUser(FirebaseAuth.instance.currentUser!.uid);
-              if (!context.mounted) return;
-              Navigator.pop(context);
-              if (!context.mounted) return;
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/auth',
-                (Route<dynamic> route) => false,
+              Navigator.pop(dialogContext);
+              if (!mounted) return;
+              final messenger = ScaffoldMessenger.of(rootContext);
+              messenger.hideCurrentSnackBar();
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Deleting account...')),
               );
+              try {
+                await firestoreService
+                    .deleteUser(FirebaseAuth.instance.currentUser!.uid);
+                if (!mounted) return;
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Account deleted.')),
+                );
+                Navigator.pushNamedAndRemoveUntil(
+                  rootContext,
+                  '/auth',
+                  (Route<dynamic> route) => false,
+                );
+              } catch (e) {
+                if (!mounted) return;
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Failed to delete account: $e')),
+                );
+              }
             },
             child: const Text(
               'Delete',
@@ -339,225 +359,167 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8FA),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Custom Navigation Bar
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F8FA),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Color(0xFF1A1A1A),
-                        size: 18,
+        child: OfflineStatusBanner(
+          child: Column(
+            children: [
+              // Custom Navigation Bar
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F8FA),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Color(0xFF1A1A1A),
+                          size: 18,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Account Settings",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            color: Color(0xFF1A1A1A),
-                            letterSpacing: -0.8,
-                            height: 1.2,
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Account Settings",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              color: Color(0xFF1A1A1A),
+                              letterSpacing: -0.8,
+                              height: 1.2,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Manage your profile",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF999999),
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: 0.1,
+                          SizedBox(height: 4),
+                          Text(
+                            "Manage your profile",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF999999),
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.1,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            Container(
-              height: 1,
-              color: const Color(0xFFF0F0F0),
-            ),
+              Container(
+                height: 1,
+                color: const Color(0xFFF0F0F0),
+              ),
 
-            // Content
-            StreamBuilder<List<Map<String, dynamic>>>(
-                stream: firestoreService.getUserDataByEmail(
-                    FirebaseAuth.instance.currentUser!.email!),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Expanded(
-                      child: Center(child: Text("No Data Available.")),
-                    );
-                  }
+              // Content
+              StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: firestoreService.getUserDataByEmail(
+                      FirebaseAuth.instance.currentUser!.email!),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Expanded(
+                        child: Center(child: Text("No Data Available.")),
+                      );
+                    }
 
-                  final data = snapshot.data!;
-                  final userData = data[0];
+                    final data = snapshot.data!;
+                    final userData = data[0];
 
-                  if (!_hasInitialized) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      _usernameController.text =
-                          userData["username"]?.toString() ?? '';
-                      _phoneController.text =
-                          userData["phoneNumber"]?.toString() ?? '';
-                      _email = userData["email"]?.toString() ?? '';
-                      final raw = userData["preferredCurrency"];
-                      _selectedCurrency = (raw is String && raw.isNotEmpty)
-                          ? (_currencies.any((c) => c['code'] == raw)
-                              ? raw
-                              : 'NPR')
-                          : 'NPR';
-                      setState(() => _hasInitialized = true);
-                    });
-                  }
+                    if (!_hasInitialized) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        _usernameController.text =
+                            userData["username"]?.toString() ?? '';
+                        _phoneController.text =
+                            userData["phoneNumber"]?.toString() ?? '';
+                        _email = userData["email"]?.toString() ?? '';
+                        final raw = userData["preferredCurrency"];
+                        _selectedCurrency = (raw is String && raw.isNotEmpty)
+                            ? (_currencies.any((c) => c['code'] == raw)
+                                ? raw
+                                : 'NPR')
+                            : 'NPR';
+                        setState(() => _hasInitialized = true);
+                      });
+                    }
 
-                  if (!_hasInitialized) {
-                    return const Expanded(
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
+                    if (!_hasInitialized) {
+                      return const Expanded(
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
 
-                  return Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(width * 0.05),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Profile Section
-                            _buildSectionHeader('Profile Information', width),
-                            SizedBox(height: height * 0.015),
+                    return Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(width * 0.05),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Profile Section
+                              _buildSectionHeader('Profile Information', width),
+                              SizedBox(height: height * 0.015),
 
-                            // Username
-                            _buildSectionTitle('Username', width),
-                            SizedBox(height: height * 0.01),
-                            _buildTextField(
-                              controller: _usernameController,
-                              hint: 'Enter username',
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter username';
-                                }
-                                return null;
-                              },
-                              width: width,
-                            ),
-
-                            SizedBox(height: height * 0.025),
-
-                            // Phone Number
-                            _buildSectionTitle('Phone Number', width),
-                            SizedBox(height: height * 0.01),
-                            _buildTextField(
-                              controller: _phoneController,
-                              hint: 'Enter phone number',
-                              keyboardType: TextInputType.phone,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter phone number';
-                                }
-                                return null;
-                              },
-                              width: width,
-                            ),
-
-                            SizedBox(height: height * 0.025),
-
-                            // Email (Non-editable)
-                            _buildSectionTitle('Email', width),
-                            SizedBox(height: height * 0.01),
-                            Container(
-                              padding: EdgeInsets.all(width * 0.04),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8F8FA),
-                                border: Border.all(
-                                  color: const Color(0xFFE5E5E5),
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                              // Username
+                              _buildSectionTitle('Username', width),
+                              SizedBox(height: height * 0.01),
+                              _buildTextField(
+                                controller: _usernameController,
+                                hint: 'Enter username',
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter username';
+                                  }
+                                  return null;
+                                },
+                                width: width,
                               ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.email_outlined,
-                                    color: Color(0xFF999999),
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: width * 0.03),
-                                  Expanded(
-                                    child: Text(
-                                      _email,
-                                      style: TextStyle(
-                                        fontSize: width * 0.04,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF999999),
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE5E5E5),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'Not editable',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF666666),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+
+                              SizedBox(height: height * 0.025),
+
+                              // Phone Number
+                              _buildSectionTitle('Phone Number', width),
+                              SizedBox(height: height * 0.01),
+                              _buildTextField(
+                                controller: _phoneController,
+                                hint: 'Enter phone number',
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter phone number';
+                                  }
+                                  return null;
+                                },
+                                width: width,
                               ),
-                            ),
 
-                            SizedBox(height: height * 0.04),
+                              SizedBox(height: height * 0.025),
 
-                            // Preferences Section
-                            _buildSectionHeader('Preferences', width),
-                            SizedBox(height: height * 0.015),
-
-                            // Currency
-                            _buildSectionTitle('Preferred Currency', width),
-                            SizedBox(height: height * 0.01),
-                            GestureDetector(
-                              onTap: _showCurrencyPicker,
-                              child: Container(
+                              // Email (Non-editable)
+                              _buildSectionTitle('Email', width),
+                              SizedBox(height: height * 0.01),
+                              Container(
                                 padding: EdgeInsets.all(width * 0.04),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: const Color(0xFFF8F8FA),
                                   border: Border.all(
                                     color: const Color(0xFFE5E5E5),
                                     width: 1,
@@ -566,208 +528,271 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF4A90E2)
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          _currencyForCode(
-                                              _selectedCurrency)['symbol']!,
-                                          style: const TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF4A90E2),
-                                          ),
-                                        ),
-                                      ),
+                                    const Icon(
+                                      Icons.email_outlined,
+                                      color: Color(0xFF999999),
+                                      size: 20,
                                     ),
                                     SizedBox(width: width * 0.03),
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _selectedCurrency,
-                                            style: TextStyle(
-                                              fontSize: width * 0.04,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF1A1A1A),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            _currencyForCode(
-                                                _selectedCurrency)['name']!,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF999999),
-                                              fontWeight: FontWeight.w400,
-                                            ),
-                                          ),
-                                        ],
+                                      child: Text(
+                                        _email,
+                                        style: TextStyle(
+                                          fontSize: width * 0.04,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF999999),
+                                        ),
                                       ),
                                     ),
-                                    const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Color(0xFF999999),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE5E5E5),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'Not editable',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF666666),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
 
-                            SizedBox(height: height * 0.04),
+                              SizedBox(height: height * 0.04),
 
-                            // Save Changes Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _saveChanges,
-                                style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: height * 0.02,
-                                  ),
-                                  shape: RoundedRectangleBorder(
+                              // Preferences Section
+                              _buildSectionHeader('Preferences', width),
+                              SizedBox(height: height * 0.015),
+
+                              // Currency
+                              _buildSectionTitle('Preferred Currency', width),
+                              SizedBox(height: height * 0.01),
+                              GestureDetector(
+                                onTap: _showCurrencyPicker,
+                                child: Container(
+                                  padding: EdgeInsets.all(width * 0.04),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: const Color(0xFFE5E5E5),
+                                      width: 1,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  elevation: 0,
-                                  backgroundColor: const Color(0xFF4A90E2),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4A90E2)
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            _currencyForCode(
+                                                _selectedCurrency)['symbol']!,
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF4A90E2),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: width * 0.03),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _selectedCurrency,
+                                              style: TextStyle(
+                                                fontSize: width * 0.04,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF1A1A1A),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _currencyForCode(
+                                                  _selectedCurrency)['name']!,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF999999),
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Color(0xFF999999),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Text(
-                                  'Save Changes',
-                                  style: TextStyle(
-                                    fontSize: width * 0.042,
-                                    fontWeight: FontWeight.w600,
+                              ),
+
+                              SizedBox(height: height * 0.04),
+
+                              // Save Changes Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _saveChanges,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: height * 0.02,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                    backgroundColor: const Color(0xFF4A90E2),
+                                  ),
+                                  child: Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      fontSize: width * 0.042,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              SizedBox(height: height * 0.04),
+
+                              // Actions Section
+                              _buildSectionHeader('Actions', width),
+                              SizedBox(height: height * 0.015),
+
+                              // Logout Button
+                              GestureDetector(
+                                onTap: _logout,
+                                child: Container(
+                                  padding: EdgeInsets.all(width * 0.04),
+                                  decoration: BoxDecoration(
                                     color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: height * 0.04),
-
-                            // Actions Section
-                            _buildSectionHeader('Actions', width),
-                            SizedBox(height: height * 0.015),
-
-                            // Logout Button
-                            GestureDetector(
-                              onTap: _logout,
-                              child: Container(
-                                padding: EdgeInsets.all(width * 0.04),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border.all(
-                                    color: const Color(0xFFE5E5E5),
-                                    width: 1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF4A90E2)
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.logout,
-                                        color: Color(0xFF4A90E2),
-                                        size: 20,
-                                      ),
+                                    border: Border.all(
+                                      color: const Color(0xFFE5E5E5),
+                                      width: 1,
                                     ),
-                                    SizedBox(width: width * 0.03),
-                                    const Expanded(
-                                      child: Text(
-                                        'Logout',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF1A1A1A),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4A90E2)
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(
+                                          Icons.logout,
+                                          color: Color(0xFF4A90E2),
+                                          size: 20,
                                         ),
                                       ),
-                                    ),
-                                    const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Color(0xFF999999),
-                                    ),
-                                  ],
+                                      SizedBox(width: width * 0.03),
+                                      const Expanded(
+                                        child: Text(
+                                          'Logout',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1A1A1A),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Color(0xFF999999),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            SizedBox(height: height * 0.015),
+                              SizedBox(height: height * 0.015),
 
-                            // Delete Account Button
-                            GestureDetector(
-                              onTap: _deleteAccount,
-                              child: Container(
-                                padding: EdgeInsets.all(width * 0.04),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF3F3),
-                                  border: Border.all(
-                                    color: const Color(0xFFE63946)
-                                        .withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE63946)
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.delete_forever,
-                                        color: Color(0xFFE63946),
-                                        size: 20,
-                                      ),
+                              // Delete Account Button
+                              GestureDetector(
+                                onTap: _deleteAccount,
+                                child: Container(
+                                  padding: EdgeInsets.all(width * 0.04),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF3F3),
+                                    border: Border.all(
+                                      color: const Color(0xFFE63946)
+                                          .withOpacity(0.3),
+                                      width: 1,
                                     ),
-                                    SizedBox(width: width * 0.03),
-                                    const Expanded(
-                                      child: Text(
-                                        'Delete Account',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE63946)
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(
+                                          Icons.delete_forever,
                                           color: Color(0xFFE63946),
+                                          size: 20,
                                         ),
                                       ),
-                                    ),
-                                    const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Color(0xFFE63946),
-                                    ),
-                                  ],
+                                      SizedBox(width: width * 0.03),
+                                      const Expanded(
+                                        child: Text(
+                                          'Delete Account',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFFE63946),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Color(0xFFE63946),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            SizedBox(height: height * 0.02),
-                          ],
+                              SizedBox(height: height * 0.02),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                }),
-          ],
+                    );
+                  }),
+            ],
+          ),
         ),
       ),
     );

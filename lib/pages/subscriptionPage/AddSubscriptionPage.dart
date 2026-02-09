@@ -3,7 +3,6 @@ import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -54,21 +53,66 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   }
 
   void _saveSubscription() async {
-    print(FirebaseAuth.instance.currentUser!.uid);
-    Subscription subscription = Subscription(
-        name: _nameController.text,
-        amount: double.parse(_amountController.text),
-        billingCycle: _selectedBillingCycle,
-        nextBillingDate: _selectedDate,
-        category: _selectedCategory,
-        id: Uuid().v6(),
-        isActive: true);
-    DialogBox().showLoadingDialog(context);
-    await service.addSubscription(
-        FirebaseAuth.instance.currentUser!.uid, subscription);
-    Navigator.pop(context);
-    BannerService().showInterstitialAd();
-    Navigator.pop(context);
+    final name = _nameController.text.trim();
+    final amountText = _amountController.text.trim();
+
+    if (name.isEmpty || amountText.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields.')),
+      );
+      return;
+    }
+
+    final amount = double.tryParse(amountText);
+    if (amount == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid amount.')),
+      );
+      return;
+    }
+
+    final subscription = Subscription(
+      name: name,
+      amount: amount,
+      billingCycle: _selectedBillingCycle,
+      nextBillingDate: _selectedDate,
+      category: _selectedCategory,
+      id: Uuid().v6(),
+      isActive: true,
+    );
+
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Saving locally… we will sync when you are online.'),
+      ),
+    );
+
+    try {
+      await service.addSubscription(
+          FirebaseAuth.instance.currentUser!.uid, subscription);
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Subscription saved! Sync happens automatically.'),
+        ),
+      );
+      BannerService().showInterstitialAd();
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to save subscription: $e')),
+      );
+    }
   }
 
   @override

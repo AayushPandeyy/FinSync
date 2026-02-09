@@ -1,8 +1,6 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/service/GoalsFirestoreService.dart';
-import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +27,7 @@ class _AddGoalsPageState extends State<AddGoalsPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
+    if (!mounted) return;
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -37,19 +36,65 @@ class _AddGoalsPageState extends State<AddGoalsPage> {
   }
 
   void saveGoal() async {
-    FinancialGoal goal = FinancialGoal(
-        id: const Uuid().v6(),
-        title: _titleController.text,
-        description: _descriptionController.text,
-        targetAmount: double.parse(_amountController.text),
-        currentAmount: 25000,
-        deadline: _selectedDate);
-    DialogBox().showLoadingDialog(context);
-    await service.addGoals(FirebaseAuth.instance.currentUser!.uid, goal);
-    Navigator.pop(context);
-    BannerService().showInterstitialAd();
-    Navigator.pop(context);
-    // Function to save transaction to Firestore or any other backend.
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final targetText = _amountController.text.trim();
+
+    if (title.isEmpty || description.isEmpty || targetText.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all fields.')),
+      );
+      return;
+    }
+
+    final targetAmount = double.tryParse(targetText);
+    if (targetAmount == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid amount.')),
+      );
+      return;
+    }
+
+    final goal = FinancialGoal(
+      id: const Uuid().v6(),
+      title: title,
+      description: description,
+      targetAmount: targetAmount,
+      currentAmount: 25000,
+      deadline: _selectedDate,
+    );
+
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Saving locally… we will sync when you are online.'),
+      ),
+    );
+
+    try {
+      await service.addGoals(FirebaseAuth.instance.currentUser!.uid, goal);
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Goal saved! Sync happens automatically.'),
+        ),
+      );
+      BannerService().showInterstitialAd();
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to save goal: $e')),
+      );
+    }
   }
 
   @override

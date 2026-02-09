@@ -3,7 +3,6 @@ import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -88,9 +87,6 @@ class _AddIOUPageState extends State<AddIOUPage> {
   Future<void> _saveIOU() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Show loading
-    DialogBox().showLoadingDialog(context);
-
     try {
       // Create IOU object
       final iou = IOU(
@@ -107,32 +103,34 @@ class _AddIOUPageState extends State<AddIOUPage> {
       // Get current user ID
       final userId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Add to Firestore
-      await firestoreService.addIOU(userId, iou);
-
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      BannerService().showInterstitialAd();
-
-      // Close AddIOUPage
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         const SnackBar(
-          content: Text('IOU added successfully!'),
-          backgroundColor: Color(0xFF06D6A0),
+          content: Text('Saving locally… we will sync when you are online.'),
         ),
       );
-    } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add IOU: $e'),
-          backgroundColor: const Color(0xFFE63946),
+      // Add to Firestore (will enqueue offline if needed)
+      await firestoreService.addIOU(userId, iou);
+
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('IOU saved! Sync happens automatically.'),
         ),
+      );
+      BannerService().showInterstitialAd();
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add IOU: $e')),
       );
     }
   }

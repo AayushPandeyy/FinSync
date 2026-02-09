@@ -8,9 +8,12 @@ import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
+import 'package:finance_tracker/service/SyncStatusService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/widgets/general/OfflineStatusBanner.dart';
+import 'package:finance_tracker/widgets/general/SyncStatusIcon.dart';
 import 'package:finance_tracker/widgets/homePage/BalanceDisplayBox.dart';
 import 'package:finance_tracker/widgets/homePage/FinSyncCard.dart';
 import 'package:finance_tracker/widgets/homePage/featureBox.dart';
@@ -37,6 +40,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    // Start monitoring sync status for the current user
+    SyncStatusService().startMonitoring(currUser.uid);
 
     initCurrency();
 
@@ -76,275 +82,278 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: StreamBuilder(
-        stream: userService.getUserDataByEmail(currUser.email!),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(
-              child: LottieBuilder.asset("assets/lottiejson/loading.json"),
-            );
-          }
+      child: OfflineStatusBanner(
+        child: StreamBuilder(
+          stream: userService.getUserDataByEmail(currUser.email!),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(
+                child: LottieBuilder.asset("assets/lottiejson/loading.json"),
+              );
+            }
 
-          final data = snapshot.data![0];
+            final data = snapshot.data![0];
 
-          // Initialize currency symbol in SharedPreferences if not already set
-          final preferredCurrency =
-              data["preferredCurrency"]?.toString() ?? 'NPR';
-          CurrencyService.setCurrencyFromCode(preferredCurrency);
+            // Initialize currency symbol in SharedPreferences if not already set
+            final preferredCurrency =
+                data["preferredCurrency"]?.toString() ?? 'NPR';
+            CurrencyService.setCurrencyFromCode(preferredCurrency);
 
-          return Scaffold(
-            backgroundColor: const Color(0xfff8f8fa),
-            appBar: AppBar(
+            return Scaffold(
               backgroundColor: const Color(0xfff8f8fa),
-              elevation: 0,
-              title: Text(
-                "Hello ${data["username"]} :)",
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A)),
-              ),
-              actions: [
-                IconButton(
+              appBar: AppBar(
+                backgroundColor: const Color(0xfff8f8fa),
+                elevation: 0,
+                title: Text(
+                  "Hello ${data["username"]} :)",
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A1A)),
+                ),
+                actions: [
+                  const SyncStatusIcon(),
+                  IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddTransactionPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add, color: Color(0xFF1A1A1A))),
+                  IconButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddTransactionPage(),
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("Confirm Logout"),
+                          content: const Text(
+                              "You are about to logout. Are you sure you want to continue?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                AuthFirestoreService().logout();
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/auth',
+                                  (Route<dynamic> route) => false,
+                                );
+                              },
+                              child: const Text("OK"),
+                            ),
+                          ],
                         ),
                       );
                     },
-                    icon: const Icon(Icons.add, color: Color(0xFF1A1A1A))),
-                IconButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Confirm Logout"),
-                        content: const Text(
-                            "You are about to logout. Are you sure you want to continue?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              AuthFirestoreService().logout();
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                '/auth',
-                                (Route<dynamic> route) => false,
-                              );
-                            },
-                            child: const Text("OK"),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.logout, color: Color(0xFF1A1A1A)),
-                ),
-              ],
-            ),
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Balance cards section
-                  SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: FinSyncCard(
-                          title: "Total Balance",
-                          balance: (data["totalBalance"] as num).toDouble(),
-                        ),
-                      )),
-
-                  const SizedBox(height: 20),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        BalanceDisplayBox(
-                          type: TransactionType.INCOME,
-                          balance: (data["income"] as num).toDouble(),
-                        ),
-                        BalanceDisplayBox(
-                          type: TransactionType.EXPENSE,
-                          balance: (data["expense"] as num).toDouble(),
-                        )
-                      ],
-                    ),
+                    icon: const Icon(Icons.logout, color: Color(0xFF1A1A1A)),
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Services section header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Services",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[900],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 40,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4A90E2),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Feature boxes section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Center(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 12,
-                        children: [
-                          FeatureBox(
-                            title: "Transactions",
-                            subtitle: "View all transactions",
-                            icon: Icons.receipt_long,
-                            accentColor: const Color(0xFF4A90E2),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SeeAllTransactionsPage(),
-                                ),
-                              );
-                            },
-                          ),
-
-                          FeatureBox(
-                            title: "Goals",
-                            subtitle: "Your financial goals",
-                            icon: Icons.savings,
-                            accentColor: const Color(0xFFE67E22),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const GoalsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          FeatureBox(
-                            title: "Analytics",
-                            subtitle: "View insights",
-                            icon: Icons.analytics,
-                            accentColor: const Color(0xFFE74C3C),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ReportPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          // FeatureBox(
-                          //   title: "Subscriptions",
-                          //   subtitle: "Manage subscriptions",
-                          //   icon: Icons.sync_alt,
-                          //   accentColor: const Color(0xFF9B59B6),
-                          //   onTap: () {
-                          //     Navigator.push(
-                          //       context,
-                          //       MaterialPageRoute(
-                          //         builder: (context) =>
-                          //             const SubscriptionsPage(),
-                          //       ),
-                          //     );
-                          //   },
-                          // ),
-                          FeatureBox(
-                            title: "Budget ",
-                            subtitle: "Set your budget",
-                            icon: Icons.pie_chart,
-                            accentColor: const Color(0xFF16A085),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => BudgetPage()));
-                            },
-                          ),
-
-                          FeatureBox(
-                            title: "IOU",
-                            subtitle: "Track money you owe or are owed",
-                            icon: Icons.receipt_long,
-                            accentColor: const Color(0xFF3498DB),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => IOUPage()));
-                            },
-                          ),
-                          FeatureBox(
-                            title: "Account",
-                            subtitle: "Your Personal Account Information",
-                            icon: Icons.person,
-                            accentColor: const Color(0xFF9B59B6),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          AccountSettingsPage())).then((_) {
-                                // Refresh currency when returning from settings
-                                setState(() {
-                                  initCurrency();
-                                });
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  if (_isBannerAdLoaded)
-                    Center(
-                      child: Container(
-                        width: _bannerAd.size.width.toDouble(),
-                        height: _bannerAd.size.height.toDouble(),
-                        child: AdWidget(ad: _bannerAd),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-
-                  // Recent Transactions Widget (if you have it)
-                  // const RecentTransactionsWidget(),
                 ],
               ),
-            ),
-          );
-        },
+              body: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Balance cards section
+                    SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: FinSyncCard(
+                            title: "Total Balance",
+                            balance: (data["totalBalance"] as num).toDouble(),
+                          ),
+                        )),
+
+                    const SizedBox(height: 20),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          BalanceDisplayBox(
+                            type: TransactionType.INCOME,
+                            balance: (data["income"] as num).toDouble(),
+                          ),
+                          BalanceDisplayBox(
+                            type: TransactionType.EXPENSE,
+                            balance: (data["expense"] as num).toDouble(),
+                          )
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Services section header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Services",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 40,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A90E2),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Feature boxes section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Center(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 12,
+                          children: [
+                            FeatureBox(
+                              title: "Transactions",
+                              subtitle: "View all transactions",
+                              icon: Icons.receipt_long,
+                              accentColor: const Color(0xFF4A90E2),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SeeAllTransactionsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            FeatureBox(
+                              title: "Goals",
+                              subtitle: "Your financial goals",
+                              icon: Icons.savings,
+                              accentColor: const Color(0xFFE67E22),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const GoalsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            FeatureBox(
+                              title: "Analytics",
+                              subtitle: "View insights",
+                              icon: Icons.analytics,
+                              accentColor: const Color(0xFFE74C3C),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ReportPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            // FeatureBox(
+                            //   title: "Subscriptions",
+                            //   subtitle: "Manage subscriptions",
+                            //   icon: Icons.sync_alt,
+                            //   accentColor: const Color(0xFF9B59B6),
+                            //   onTap: () {
+                            //     Navigator.push(
+                            //       context,
+                            //       MaterialPageRoute(
+                            //         builder: (context) =>
+                            //             const SubscriptionsPage(),
+                            //       ),
+                            //     );
+                            //   },
+                            // ),
+                            FeatureBox(
+                              title: "Budget ",
+                              subtitle: "Set your budget",
+                              icon: Icons.pie_chart,
+                              accentColor: const Color(0xFF16A085),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => BudgetPage()));
+                              },
+                            ),
+
+                            FeatureBox(
+                              title: "IOU",
+                              subtitle: "Track money you owe or are owed",
+                              icon: Icons.receipt_long,
+                              accentColor: const Color(0xFF3498DB),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => IOUPage()));
+                              },
+                            ),
+                            FeatureBox(
+                              title: "Account",
+                              subtitle: "Your Personal Account Information",
+                              icon: Icons.person,
+                              accentColor: const Color(0xFF9B59B6),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            AccountSettingsPage())).then((_) {
+                                  // Refresh currency when returning from settings
+                                  setState(() {
+                                    initCurrency();
+                                  });
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+                    if (_isBannerAdLoaded)
+                      Center(
+                        child: Container(
+                          width: _bannerAd.size.width.toDouble(),
+                          height: _bannerAd.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+
+                    // Recent Transactions Widget (if you have it)
+                    // const RecentTransactionsWidget(),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -2,7 +2,6 @@ import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
-import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -54,19 +53,41 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
     if (_formKey.currentState!.validate()) {
       final amount = double.parse(_amountController.text);
 
-      DialogBox().showLoadingDialog(context);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Saving locally… we will sync when you are online.'),
+        ),
+      );
 
-      await firestoreService.updateIOUFields(
-          FirebaseAuth.instance.currentUser!.uid, widget.iou.id,
-          settledAmount: amount + widget.iou.settledAmount);
-      print(amount == (widget.iou.amount - widget.iou.settledAmount));
-      if (amount == (widget.iou.amount - widget.iou.settledAmount)) {
+      try {
         await firestoreService.updateIOUFields(
             FirebaseAuth.instance.currentUser!.uid, widget.iou.id,
-            status: IOUStatus.SETTLED.name);
+            settledAmount: amount + widget.iou.settledAmount);
+        if (amount == (widget.iou.amount - widget.iou.settledAmount)) {
+          await firestoreService.updateIOUFields(
+              FirebaseAuth.instance.currentUser!.uid, widget.iou.id,
+              status: IOUStatus.SETTLED.name);
+        }
+        if (!mounted) return;
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Settlement saved! Sync happens automatically.'),
+          ),
+        );
+        await Future.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        Navigator.pop(context);
+      } catch (e) {
+        if (!mounted) return;
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(
+          SnackBar(content: Text('Failed to settle IOU: $e')),
+        );
       }
-      Navigator.pop(context);
-      Navigator.pop(context);
     }
   }
 

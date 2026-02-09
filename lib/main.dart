@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/firebase_options.dart';
 import 'package:finance_tracker/pages/SplashScreen.dart';
 import 'package:finance_tracker/pages/auth/LoginChecker.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +11,12 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseFirestore.instance.settings =
+      const Settings(persistenceEnabled: true);
   MobileAds.instance.initialize();
+
+  // Initialize connectivity monitoring early
+  ConnectivityService();
 
   runApp(const MyApp());
 }

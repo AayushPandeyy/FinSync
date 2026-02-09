@@ -4,6 +4,7 @@ import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/service/BudgetFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/widgets/budgetPage/BuildBudgetCard.dart';
+import 'package:finance_tracker/widgets/general/OfflineStatusBanner.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -258,9 +259,10 @@ class _BudgetPageState extends State<BudgetPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: StreamBuilder<List<Map<String, dynamic>>>(
+        child: Scaffold(
+      backgroundColor: Colors.white,
+      body: OfflineStatusBanner(
+        child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: _budgetService.getBudget(uid),
           builder: (context, budgetSnapshot) {
             return StreamBuilder<List<Map<String, dynamic>>>(
@@ -404,6 +406,6 @@ class _BudgetPageState extends State<BudgetPage> {
           },
         ),
       ),
-    );
+    ));
   }
 }

@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 
-class UserFirestoreService{
+class UserFirestoreService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-    Stream<List<Map<String, dynamic>>> getUserDataByEmail(String email) {
+  Stream<List<Map<String, dynamic>>> getUserDataByEmail(String email) {
     return firestore
         .collection('Users') // The name of your collection
         .where('email', isEqualTo: email)
@@ -30,13 +30,13 @@ class UserFirestoreService{
     });
   }
 
-    Future<void> updateUserFinancialData(
+  Future<void> updateUserFinancialData(
     String uid,
     double amount,
     String type,
   ) async {
     bool isExpense = TransactionType.EXPENSE.name == type;
-    await FirebaseFirestore.instance.collection("Users").doc(uid).update({
+    await firestore.collection("Users").doc(uid).set({
       "totalBalance": isExpense
           ? FieldValue.increment(-amount)
           : FieldValue.increment(amount),
@@ -44,10 +44,10 @@ class UserFirestoreService{
           isExpense ? FieldValue.increment(0) : FieldValue.increment(amount),
       "expense":
           !isExpense ? FieldValue.increment(0) : FieldValue.increment(amount),
-    });
+    }, SetOptions(merge: true));
   }
 
-   Future<void> updateAllUserFields({
+  Future<void> updateAllUserFields({
     required String uid,
     required String email,
     required String username,
@@ -74,7 +74,7 @@ class UserFirestoreService{
     await firestore.collection("Users").doc(uid).update(fieldsToUpdate);
   }
 
-Future<void> deleteUser(String uid) async {
+  Future<void> deleteUser(String uid) async {
     // Delete subcollections FIRST
     await _deleteSubcollectionSafely("Transactions", uid, "transaction");
     await _deleteSubcollectionSafely("Budgets", uid, "budget");
@@ -87,11 +87,9 @@ Future<void> deleteUser(String uid) async {
     await firestore.collection("Goals").doc(uid).delete();
     await firestore.collection("IOUs").doc(uid).delete();
     await firestore.collection("Users").doc(uid).delete();
-
   }
 
-
-Future<void> _deleteSubcollectionSafely(
+  Future<void> _deleteSubcollectionSafely(
     String parentCollection,
     String uid,
     String subcollectionName,
@@ -116,6 +114,4 @@ Future<void> _deleteSubcollectionSafely(
       await batch.commit();
     } while (snapshot.docs.isNotEmpty);
   }
-
-
 }
