@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-class BannerService{
+class BannerService {
   InterstitialAd? _interstitialAd;
 
   void showInterstitialAd() {
     InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // test Ad Unit ID
-      // adUnitId:'ca-app-pub-3804780729029008/1042521213',
+      // adUnitId: 'ca-app-pub-3940256099942544/1033173712', // test Ad Unit ID
+      adUnitId: 'ca-app-pub-3804780729029008/1042521213',
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -29,5 +29,4 @@ class BannerService{
       ),
     );
   }
-
 }

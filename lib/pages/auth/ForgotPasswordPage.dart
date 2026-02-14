@@ -12,41 +12,72 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
-  Future<void> _resetPassword() async {
-    final String email = _emailController.text.trim();
 
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your email")),
-      );
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _resetPassword() async {
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
+    final String email = _emailController.text.trim();
+
     try {
-      DialogBox().showLoadingDialog(context);
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Reset Email Sent"),
-          content: const Text(
-              "A reset email has been sent. Please reset your account and login to your account."),
-          actions: [
-            TextButton(
-              onPressed: () => {
-                Navigator.pop(context),
-                Navigator.pop(context),
-                Navigator.pop(context)
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        ),
+
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: true,
+        title: "Reset Email Sent",
+        message:
+            "A reset email has been sent. Please check your email and follow the instructions to reset your password.",
+      );
+      // Navigate back to login after dialog is dismissed
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      Navigator.pop(context); // Return to login
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+
+      String errorMessage;
+      switch (error.code) {
+        case 'invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'user-not-found':
+          errorMessage = 'No account found with this email.';
+          break;
+        case 'network-request-failed':
+          errorMessage = 'Network error. Please check your connection.';
+          break;
+        default:
+          errorMessage = 'Failed to send reset email. Please try again.';
+      }
+
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Reset Failed",
+        message: errorMessage,
       );
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${error.toString()}")),
+      if (!mounted) return;
+
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Error",
+        message: "An unexpected error occurred. Please try again.",
       );
     }
   }
@@ -90,7 +121,51 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                _buildTextField(Icons.email, "Email", false, _emailController),
+                Form(
+                  key: _formKey,
+                  child: TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      final emailRegex =
+                          RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                      if (!emailRegex.hasMatch(value.trim())) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.email, color: Colors.white),
+                      hintText: "Email",
+                      hintStyle: const TextStyle(color: Colors.white70),
+                      errorStyle: const TextStyle(color: Colors.yellow),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.2),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: const BorderSide(color: Colors.white),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: const BorderSide(color: Colors.yellow),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: const BorderSide(color: Colors.yellow),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: Colors.white,
+                  ),
+                ),
                 const SizedBox(height: 20),
                 const SizedBox(height: 30),
                 ElevatedButton(
@@ -152,30 +227,4 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ),
     );
   }
-}
-
-Widget _buildTextField(IconData icon, String hintText, bool isPassword,
-    TextEditingController controller) {
-  return TextField(
-    controller: controller,
-    obscureText: isPassword,
-    decoration: InputDecoration(
-      prefixIcon: Icon(icon, color: Colors.white),
-      hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.white70),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.2),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: const BorderSide(color: Colors.white),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-    ),
-    style: const TextStyle(color: Colors.white),
-    cursorColor: Colors.white,
-  );
 }

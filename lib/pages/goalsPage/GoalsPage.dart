@@ -1,8 +1,10 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/pages/goalsPage/AddGoalsPage.dart';
 import 'package:finance_tracker/pages/goalsPage/EditGoalPage.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/GoalsFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/goalsPage/GoalWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -48,79 +50,57 @@ class _GoalsPageState extends State<GoalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            // Header Section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Back button and Add button row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Color(0xFF000000),
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddGoalsPage(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF000000),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+    return Scaffold(
+        backgroundColor: const Color(0xFFF8F8FA),
+        appBar: StandardAppBar(
+          title: 'Financial Goals',
+          subtitle: 'Track your savings goals',
+          useCustomDesign: true,
+          actions: [
+            GestureDetector(
+              onTap: () async {
+                final isOnline =
+                    await ConnectivityService.ensureConnected(
+                  context,
+                  actionDescription: 'add a goal',
+                );
+                if (!isOnline) return;
 
-                  const SizedBox(height: 32),
-
-                  // Title
-                  const Text(
-                    "Financial Goals",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 32,
-                      color: Color(0xFF000000),
-                      letterSpacing: -1.2,
-                      height: 1.1,
-                    ),
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddGoalsPage(),
                   ),
-                ],
+                );
+
+                if (result == true && mounted) {
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text('Goal saved successfully.'),
+                      ),
+                    );
+                }
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A90E2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
+          ],
+        ),
+        body: Column(
+          children: [
 
             // Divider
             Container(
@@ -294,7 +274,7 @@ class _GoalsPageState extends State<GoalsPage> {
             const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
+      );
+    
   }
 }

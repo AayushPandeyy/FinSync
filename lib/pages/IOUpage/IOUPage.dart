@@ -1,6 +1,7 @@
 import 'package:finance_tracker/pages/IOUpage/EditIOUPage.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/IOUPage/IOUTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/pages/IOUpage/AddIOUPage.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class IOUPage extends StatefulWidget {
@@ -211,212 +213,109 @@ class _IOUPageState extends State<IOUPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Custom Nav Bar ---
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8F8FA),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Color(0xFF1A1A1A),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "IOUs",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 24,
-                                color: Color(0xFF1A1A1A),
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "I Owe You & You Owe Me",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF999999),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _showFilterDialog,
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: _selectedFilter != 'All'
-                                ? const Color(0xFF4A90E2)
-                                : const Color(0xFFF8F8FA),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.filter_list,
-                            color: _selectedFilter != 'All'
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A),
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AddIOUPage()));
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4A90E2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.add,
-                              color: Colors.white, size: 24),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // --- Summary Cards ---
-                  StreamBuilder<List<IOU>>(
-                    stream: firestoreService.getIOUsStream(userId),
-                    builder: (context, snapshot) {
-                      final allIOUs = snapshot.data ?? [];
-                      final totalIOwe = _totalIOwe(allIOUs);
-                      final totalOwedToMe = _totalOwedToMe(allIOUs);
-
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: _summaryCard(
-                              title: 'I Owe',
-                              amount: totalIOwe,
-                              icon: Icons.arrow_downward,
-                              color: const Color(0xFFE63946),
-                              bgColor: const Color(0xFFFFF3F3),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _summaryCard(
-                              title: 'Owed to Me',
-                              amount: totalOwedToMe,
-                              icon: Icons.arrow_upward,
-                              color: const Color(0xFF06D6A0),
-                              bgColor: const Color(0xFFF0F7FF),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+      appBar: StandardAppBar(
+        title: 'IOUs',
+        subtitle: 'I Owe You & You Owe Me',
+        useCustomDesign: true,
+        actions: [
+          GestureDetector(
+            onTap: _showFilterDialog,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _selectedFilter != 'All'
+                    ? const Color(0xFF4A90E2)
+                    : const Color(0xFFF8F8FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.filter_list,
+                color: _selectedFilter != 'All'
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
+                size: 20,
               ),
             ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () async {
+              final isOnline = await ConnectivityService.ensureConnected(
+                context,
+                actionDescription: 'add an IOU',
+              );
+              if (!isOnline) return;
 
-            Container(height: 1, color: const Color(0xFFF0F0F0)),
-
-            // --- IOUs List ---
-            Expanded(
-              child: StreamBuilder<List<IOU>>(
-                stream: firestoreService.getIOUsStream(userId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return const Center(child: Text("Something went wrong"));
-                  }
-
-                  final allIOUs = snapshot.data ?? [];
-                  final filteredIOUs = _applyFilter(allIOUs);
-
-                  if (filteredIOUs.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.handshake_outlined,
-                              size: 80, color: Colors.grey[300]),
-                          const SizedBox(height: 16),
-                          const Text("No IOUs Yet",
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: filteredIOUs.length,
-                    itemBuilder: (context, index) {
-                      return IOUTile(
-                        iou: filteredIOUs[index],
-                        onDelete: () async {
-                          await firestoreService.deleteIOU(
-                              uid, filteredIOUs[index].id);
-                        },
-                        onEdit: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => EditIOUPage(
-                                        iou: filteredIOUs[index],
-                                      )));
-                        },
-                        onSettle: () async {
-                          await firestoreService.updateIOUFields(
-                              uid, filteredIOUs[index].id,
-                              status: IOUStatus.SETTLED.name);
-                        },
-                        onPartialSettle: () {},
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (_isBannerAdLoaded)
-              Center(
-                child: Container(
-                  width: _bannerAd.size.width.toDouble(),
-                  height: _bannerAd.size.height.toDouble(),
-                  child: AdWidget(ad: _bannerAd),
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AddIOUPage(),
                 ),
+              );
+
+              if (result == true && mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('IOU saved successfully.'),
+                    ),
+                  );
+              }
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2),
+                borderRadius: BorderRadius.circular(12),
               ),
-          ],
-        ),
+              child: const Icon(Icons.add, color: Colors.white, size: 24),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
+          // --- Summary Cards ---
+          StreamBuilder<List<IOU>>(
+            stream: firestoreService.getIOUsStream(userId),
+            builder: (context, snapshot) {
+              final allIOUs = snapshot.data ?? [];
+              final totalIOwe = _totalIOwe(allIOUs);
+              final totalOwedToMe = _totalOwedToMe(allIOUs);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _summaryCard(
+                        title: 'I Owe',
+                        amount: totalIOwe,
+                        icon: Icons.arrow_downward,
+                        color: const Color(0xFFE63946),
+                        bgColor: const Color(0xFFFFF3F3),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _summaryCard(
+                        title: 'Owed to Me',
+                        amount: totalOwedToMe,
+                        icon: Icons.arrow_upward,
+                        color: const Color(0xFF06D6A0),
+                        bgColor: const Color(0xFFF0F7FF),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

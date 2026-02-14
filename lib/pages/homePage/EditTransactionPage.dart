@@ -2,6 +2,7 @@ import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -87,13 +88,13 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: 'Edit Transaction',
+        useCustomDesign: true,
         backgroundColor:
             _transactionType == "EXPENSE" ? Colors.red : Colors.green,
-        elevation: 0,
-        title: const Text('Edit Transaction', style: TextStyle(fontSize: 24)),
-        centerTitle: true,
+        titleColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

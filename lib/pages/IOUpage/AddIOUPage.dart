@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/models/IOU.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
@@ -22,6 +23,7 @@ class _AddIOUPageState extends State<AddIOUPage> {
   final _personNameController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  bool _isLoadingDialogVisible = false;
 
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedDueDate;
@@ -44,6 +46,12 @@ class _AddIOUPageState extends State<AddIOUPage> {
   ];
 
   String _selectedCategory = 'Personal';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
+  }
 
   @override
   void dispose() {
@@ -85,14 +93,50 @@ class _AddIOUPageState extends State<AddIOUPage> {
     }
   }
 
-  Future<void> _saveIOU() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _guardOfflineEntry() async {
+    await ConnectivityService.ensureConnected(
+      context,
+      actionDescription: 'add an IOU',
+      popCurrentRouteOnFailure: true,
+    );
+  }
 
-    // Show loading
+  void _showLoadingDialog() {
     DialogBox().showLoadingDialog(context);
+    _isLoadingDialogVisible = true;
+  }
+
+  void _hideLoadingDialog() {
+    if (_isLoadingDialogVisible && mounted) {
+      Navigator.of(context).pop();
+      _isLoadingDialogVisible = false;
+    }
+  }
+
+  void _showSnack(String message,
+      {Color background = const Color(0xFFE63946)}) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: background,
+        ),
+      );
+  }
+
+  Future<void> _saveIOU() async {
+    final canProceed = await ConnectivityService.ensureConnected(
+      context,
+      actionDescription: 'add an IOU',
+    );
+    if (!canProceed) return;
+
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    _showLoadingDialog();
 
     try {
-      // Create IOU object
       final iou = IOU(
         id: Uuid().v1(),
         personName: _personNameController.text.trim(),
@@ -104,36 +148,21 @@ class _AddIOUPageState extends State<AddIOUPage> {
         category: _selectedCategory,
       );
 
-      // Get current user ID
       final userId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Add to Firestore
       await firestoreService.addIOU(userId, iou);
 
-      // Close loading dialog
-      Navigator.of(context).pop();
+      _hideLoadingDialog();
+      if (!mounted) return;
 
       BannerService().showInterstitialAd();
-
-      // Close AddIOUPage
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('IOU added successfully!'),
-          backgroundColor: Color(0xFF06D6A0),
-        ),
-      );
+      Navigator.pop(context, true);
+    } on FirebaseException catch (e) {
+      _hideLoadingDialog();
+      _showSnack(e.message ?? 'Failed to add IOU.');
     } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add IOU: $e'),
-          backgroundColor: const Color(0xFFE63946),
-        ),
-      );
+      _hideLoadingDialog();
+      _showSnack('Failed to add IOU. Please try again.');
     }
   }
 

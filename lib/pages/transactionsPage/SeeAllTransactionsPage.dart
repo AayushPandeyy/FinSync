@@ -1,6 +1,7 @@
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
@@ -179,8 +180,9 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
 
                       // Get all unique categories
                       StreamBuilder(
-                        stream: TransactionFirestoreService().getTransactionsOfUser(
-                            FirebaseAuth.instance.currentUser!.uid),
+                        stream: TransactionFirestoreService()
+                            .getTransactionsOfUser(
+                                FirebaseAuth.instance.currentUser!.uid),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             final allCategories = <String>{'All Categories'};
@@ -468,14 +470,32 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                           ),
                           const SizedBox(width: 8),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              final isOnline =
+                                  await ConnectivityService.ensureConnected(
+                                context,
+                                actionDescription: 'add a transaction',
+                              );
+                              if (!isOnline) return;
+
+                              final result = await Navigator.push<bool>(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const AddTransactionPage(),
                                 ),
                               );
+
+                              if (result == true && mounted) {
+                                ScaffoldMessenger.of(context)
+                                  ..clearSnackBars()
+                                  ..showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Transaction saved successfully.'),
+                                    ),
+                                  );
+                              }
                             },
                             child: Container(
                               width: 40,

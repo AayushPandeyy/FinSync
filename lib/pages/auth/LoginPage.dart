@@ -1,5 +1,3 @@
-import 'package:finance_tracker/pages/homePage/HomePage.dart';
-import 'package:finance_tracker/pages/homePage/NavigatorPage.dart';
 import 'package:finance_tracker/pages/auth/ForgotPasswordPage.dart';
 import 'package:finance_tracker/pages/auth/RegisterPage.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
@@ -16,11 +14,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   bool isObscured = true;
+  bool _isLoggingIn = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthFirestoreService authService = AuthFirestoreService();
-  bool obscure = true;
 
   @override
   void dispose() {
@@ -30,39 +29,61 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login(BuildContext context) async {
-    final AuthFirestoreService authService = AuthFirestoreService();
+    // Dismiss keyboard
+    FocusScope.of(context).unfocus();
+
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoggingIn = true;
+    });
 
     try {
-      DialogBox().showLoadingDialog(context);
-
       UserCredential user = await authService.signIn(
-        _emailController.text,
+        _emailController.text.trim(),
         _passwordController.text,
       );
 
       if (!user.user!.emailVerified) {
-        Navigator.pop(context);
+        if (!mounted) return;
+        setState(() {
+          _isLoggingIn = false;
+        });
         await authService.logout();
-        DialogBox().showAlertDialog(context, "Email Verification Required",
-            "Your email has not yet been verified. Please verify your email and try again.");
-      } else {
-        Navigator.pop(context);
-        _resetFields();
-        Navigator.pop(context);
-        Navigator.pushAndRemoveUntil(
+
+        if (!mounted) return;
+        DialogBox().showMessageDialog(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-          (Route<dynamic> route) => false,
+          isSuccess: false,
+          title: "Email Verification Required",
+          message:
+              "Your email has not yet been verified. Please verify your email and try again.",
         );
+      } else {
+        if (!mounted) return;
+        _resetFields();
+
+        // Don't navigate manually - LoginChecker's StreamBuilder will automatically
+        // detect the auth state change and show HomePage
+        // Keep _isLoggingIn = true since we're navigating away
       }
     } on FirebaseAuthException catch (e) {
-      Navigator.pop(context);
+      if (!mounted) return;
+      setState(() {
+        _isLoggingIn = false;
+      });
+
+      if (!mounted) return;
       String errorMessage;
       switch (e.code) {
         case 'user-not-found':
           errorMessage = 'No user found with this email.';
           break;
         case 'wrong-password':
+        case 'invalid-credential':
           errorMessage = 'Incorrect password. Please try again.';
           break;
         case 'invalid-email':
@@ -74,16 +95,32 @@ class _LoginPageState extends State<LoginPage> {
         case 'too-many-requests':
           errorMessage = 'Too many login attempts. Please try again later.';
           break;
+        case 'network-request-failed':
+          errorMessage = 'Network error. Please check your connection.';
+          break;
         default:
-          errorMessage = 'An unexpected error occurred. Please try again.';
+          errorMessage = 'Login failed. Please try again.';
       }
-
-      DialogBox().showAlertDialog(context, "Login Failed", errorMessage);
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Login Failed",
+        message: errorMessage,
+      );
     } catch (e) {
-      print(e);
-      Navigator.pop(context);
-      DialogBox().showAlertDialog(context, "Login Failed",
-          "An unknown error occurred.Please try again");
+      if (!mounted) return;
+      setState(() {
+        _isLoggingIn = false;
+      });
+
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Login Failed",
+        message: "An unknown error occurred. Please try again.",
+      );
     }
   }
 
@@ -131,72 +168,134 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                _buildTextField(Icons.email, "Email", false, _emailController),
-                const SizedBox(height: 20),
-                TextField(
-      controller: _passwordController,
-      obscureText: isObscured,
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.lock, color: Colors.white),
-        suffixIcon: IconButton(
-          icon: Icon(
-            isObscured ? Icons.visibility_off : Icons.visibility,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            setState(() {
-              isObscured = !isObscured;
-            });
-          },
-        ),
-        hintText: "Password",
-        hintStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.2),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Colors.white),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-      ),
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
-    ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          final emailRegex =
+                              RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value.trim())) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.email, color: Colors.white),
+                          hintText: "Email",
+                          hintStyle: const TextStyle(color: Colors.white70),
+                          errorStyle: const TextStyle(color: Colors.yellow),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.2),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.white),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.yellow),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.yellow),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        cursorColor: Colors.white,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: isObscured,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.lock, color: Colors.white),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isObscured
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                isObscured = !isObscured;
+                              });
+                            },
+                          ),
+                          hintText: "Password",
+                          hintStyle: const TextStyle(color: Colors.white70),
+                          errorStyle: const TextStyle(color: Colors.yellow),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.2),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.white),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.yellow),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: const BorderSide(color: Colors.yellow),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        cursorColor: Colors.white,
+                      ),
+                    ],
                   ),
-                  onPressed: () {
-                    login(context);
-                  },
-                  child: Ink(
+                ),
+                const SizedBox(height: 30),
+                GestureDetector(
+                  onTap: _isLoggingIn
+                      ? null
+                      : () {
+                          login(context);
+                        },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [
-                          Color(0xFFFF8C00),
-                          Color(0xFFFFD700),
+                          const Color(0xFFFF8C00),
+                          const Color(0xFFFFD700),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      constraints: const BoxConstraints(
-                        minWidth: double.infinity,
-                        minHeight: 48,
-                      ),
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(
+                    child: Center(
+                      child: Text(
+                        _isLoggingIn ? "Logging in..." : "Login",
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -242,32 +341,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(IconData icon, String hintText, bool isPassword,
-      TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      obscureText: isPassword,
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.white),
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.2),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Colors.white),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-      ),
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
     );
   }
 }

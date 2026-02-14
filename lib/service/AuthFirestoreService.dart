@@ -17,38 +17,34 @@ class AuthFirestoreService {
       );
       return user;
     } on FirebaseAuthException catch (err) {
-      print("FirebaseAuthException: ${err.code} - ${err.message}");
-      // Re-throwing the FirebaseAuthException with both code and message
-      throw FirebaseAuthException(
-        code: err.code,
-        message: err.message,
-      );
+      // Re-throw to preserve error code for proper UI handling
+      rethrow;
     } catch (e) {
-      print("Unexpected error: $e");
       throw Exception('An unexpected error occurred');
     }
   }
 
   //signUp
-
   Future<UserCredential> signUp(String email, String password, String username,
       String phoneNumber) async {
-    print("check");
     try {
       UserCredential user = await auth.createUserWithEmailAndPassword(
           email: email, password: password);
-      userFirestoreService.addUserToDatabase(
+
+      await userFirestoreService.addUserToDatabase(
           user.user!.uid, email, username, phoneNumber);
+
       if (!user.user!.emailVerified) {
         await user.user!.sendEmailVerification();
       }
-      print(user);
 
       await FirebaseAuth.instance.signOut();
       return user;
     } on FirebaseAuthException catch (err) {
-      print(err);
-      throw Exception(err);
+      // Re-throw to preserve error code for proper UI handling
+      rethrow;
+    } catch (e) {
+      throw Exception('An unexpected error occurred during registration');
     }
   }
 
@@ -72,11 +68,25 @@ class AuthFirestoreService {
   }
 
   Future<void> deleteAccount() async {
-    final user = auth.currentUser;
-    if (user == null) return;
+    try {
+      final user = auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently logged in');
+      }
 
-    await userFirestoreService.deleteUser(user.uid);
-    await user.delete();
-    await auth.signOut();
+      // Delete Firestore data first (while we still have auth token)
+      await userFirestoreService.deleteUser(user.uid);
+
+      // Then delete the Firebase Auth account
+      await user.delete();
+
+      // Sign out is automatic after user.delete(), but we'll call it for safety
+      await auth.signOut();
+    } on FirebaseAuthException catch (e) {
+      // Re-throw Firebase Auth exceptions (like requires-recent-login)
+      rethrow;
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
+    }
   }
 }

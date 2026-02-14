@@ -2,6 +2,7 @@ import 'package:finance_tracker/models/FinancialGoal.dart';
 import 'package:finance_tracker/service/GoalsFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -65,12 +66,10 @@ class _EditGoalPageState extends State<EditGoalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 233, 233, 130),
-        elevation: 0,
-        title: const Text('Add Goal', style: TextStyle(fontSize: 24)),
-        centerTitle: true,
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: const StandardAppBar(
+        title: 'Edit Goal',
+        useCustomDesign: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

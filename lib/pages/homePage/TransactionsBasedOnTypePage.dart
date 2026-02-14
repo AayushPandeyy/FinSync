@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,14 +25,10 @@ class _TransactionsBasedOnTypePageState
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          title: Text(
-            widget.type,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+        backgroundColor: const Color(0xFFF8F8FA),
+        appBar: StandardAppBar(
+          title: widget.type,
+          useCustomDesign: true,
         ),
         body: StreamBuilder(
             stream: TransactionFirestoreService().getTransactionsBasedOnType(
@@ -64,7 +61,8 @@ class _TransactionsBasedOnTypePageState
                                   .firstWhere(
                                       (cat) => cat.name == data["category"],
                                       orElse: () =>
-                                          Categories().categories.first).icon;
+                                          Categories().categories.first)
+                                  .icon;
                               DialogBox().showTransactionDetailPopUp(
                                   context,
                                   TransactionModel(
@@ -126,16 +124,11 @@ class _TransactionsBasedOnTypePageState
                                     ),
                                   ]),
                               child: TransactionTile(
-                                    title: 
-                                      data["title"],
-                                      date: 
-                                      data["date"].toDate(),
-                                      amount: 
-                                      (data["amount"] as num).toDouble(),
-                                      type: 
-                                      data["type"],
-                                      category: 
-                                      data["category"]),
+                                  title: data["title"],
+                                  date: data["date"].toDate(),
+                                  amount: (data["amount"] as num).toDouble(),
+                                  type: data["type"],
+                                  category: data["category"]),
                             ),
                           ))
                       .toList());

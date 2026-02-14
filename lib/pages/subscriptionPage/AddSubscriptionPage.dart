@@ -1,10 +1,13 @@
 import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Subscription.dart';
+import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/SubscriptionFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -20,6 +23,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
+  bool _isLoadingDialogVisible = false;
 
   DateTime _selectedDate = DateTime.now();
   String _selectedBillingCycle = 'Monthly';
@@ -31,6 +35,12 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
   final List<String> _billingCycles = ['Monthly', 'Yearly', 'Weekly'];
 
   final List<Category> categories = Categories().categories;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
+  }
 
   @override
   void dispose() {
@@ -53,33 +63,90 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
     }
   }
 
-  void _saveSubscription() async {
-    print(FirebaseAuth.instance.currentUser!.uid);
-    Subscription subscription = Subscription(
-        name: _nameController.text,
-        amount: double.parse(_amountController.text),
-        billingCycle: _selectedBillingCycle,
-        nextBillingDate: _selectedDate,
-        category: _selectedCategory,
-        id: Uuid().v6(),
-        isActive: true);
+  Future<void> _guardOfflineEntry() async {
+    await ConnectivityService.ensureConnected(
+      context,
+      actionDescription: 'add a subscription',
+      popCurrentRouteOnFailure: true,
+    );
+  }
+
+  void _showLoadingDialog() {
     DialogBox().showLoadingDialog(context);
-    await service.addSubscription(
-        FirebaseAuth.instance.currentUser!.uid, subscription);
-    Navigator.pop(context);
-    BannerService().showInterstitialAd();
-    Navigator.pop(context);
+    _isLoadingDialogVisible = true;
+  }
+
+  void _hideLoadingDialog() {
+    if (_isLoadingDialogVisible && mounted) {
+      Navigator.of(context).pop();
+      _isLoadingDialogVisible = false;
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+  }
+
+  Future<void> _saveSubscription() async {
+    final canProceed = await ConnectivityService.ensureConnected(
+      context,
+      actionDescription: 'add a subscription',
+    );
+    if (!canProceed) return;
+
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final amount = double.tryParse(_amountController.text.trim());
+    if (amount == null) {
+      _showSnack('Enter a valid amount.');
+      return;
+    }
+
+    final subscription = Subscription(
+      name: _nameController.text.trim(),
+      amount: amount,
+      billingCycle: _selectedBillingCycle,
+      nextBillingDate: _selectedDate,
+      category: _selectedCategory,
+      id: Uuid().v6(),
+      isActive: true,
+    );
+
+    _showLoadingDialog();
+
+    try {
+      await service.addSubscription(
+        FirebaseAuth.instance.currentUser!.uid,
+        subscription,
+      );
+
+      _hideLoadingDialog();
+      if (!mounted) return;
+
+      BannerService().showInterstitialAd();
+      Navigator.pop(context, true);
+    } on FirebaseException catch (e) {
+      _hideLoadingDialog();
+      _showSnack(e.message ?? 'Failed to add subscription.');
+    } catch (e) {
+      _hideLoadingDialog();
+      _showSnack('Failed to add subscription. Please try again.');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF4A90E2),
-        elevation: 0,
-        title: const Text('Add Subscription', style: TextStyle(fontSize: 24)),
-        centerTitle: true,
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: const StandardAppBar(
+        title: 'Add Subscription',
+        useCustomDesign: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -95,7 +162,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 5),
-                TextField(
+                TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     hintText: "e.g., Netflix, Spotify",
@@ -106,6 +173,12 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Subscription name is required';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
 
@@ -115,9 +188,10 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 5),
-                TextField(
+                TextFormField(
                   controller: _amountController,
-                  keyboardType: TextInputType.number,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: "0.00",
                     prefixIcon: const Icon(Icons.money),
@@ -127,6 +201,16 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Amount is required';
+                    }
+                    final parsed = double.tryParse(value.trim());
+                    if (parsed == null || parsed <= 0) {
+                      return 'Enter a valid amount';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
 

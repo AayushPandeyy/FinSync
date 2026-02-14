@@ -1,19 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/models/FinancialGoal.dart';
+import 'package:finance_tracker/service/OfflineCacheService.dart';
 
-class GoalsFirestoreService{
+class GoalsFirestoreService {
   final firestore = FirebaseFirestore.instance;
-  Stream<List<Map<String, dynamic>>> getGoalsOfUser(String uid) {
-    return firestore
+  Stream<List<Map<String, dynamic>>> getGoalsOfUser(String uid) async* {
+    final cacheKey = 'goals_$uid';
+    final cached = await OfflineCacheService.readList(cacheKey);
+    if (cached != null) {
+      yield cached;
+    }
+
+    yield* firestore
         .collection("Goals")
         .doc(uid)
         .collection("goal")
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final goalsData = doc.data();
-        return goalsData;
-      }).toList();
+        .asyncMap((snapshot) async {
+      final goalsData =
+          snapshot.docs.map((doc) => doc.data()).toList(growable: false);
+      await OfflineCacheService.saveList(cacheKey, goalsData);
+      return goalsData;
     });
   }
 
