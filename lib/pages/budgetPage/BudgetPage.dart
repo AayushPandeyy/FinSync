@@ -122,40 +122,67 @@ class _BudgetPageState extends State<BudgetPage> {
     final TextEditingController controller = TextEditingController(
       text: currentBudget?.toStringAsFixed(0) ?? '',
     );
+    final isEditing = budgetId != null;
+    final Color accentColor;
+    final IconData headerIcon;
+
+    switch (type) {
+      case 'Monthly':
+        accentColor = const Color(0xFF4A90E2);
+        headerIcon = Icons.calendar_month_rounded;
+        break;
+      case 'Weekly':
+        accentColor = const Color(0xFFE67E22);
+        headerIcon = Icons.view_week_rounded;
+        break;
+      default:
+        accentColor = const Color(0xFF9B59B6);
+        headerIcon = Icons.today_rounded;
+    }
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           padding: EdgeInsets.only(
-            left: 28,
-            right: 28,
-            top: 28,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+            left: 24,
+            right: 24,
+            top: 16,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              const SizedBox(height: 24),
+
+              // Header icon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(headerIcon, color: accentColor, size: 30),
+              ),
+              const SizedBox(height: 16),
               Text(
-                budgetId == null ? "Set $type Budget" : "Edit $type Budget",
+                isEditing ? 'Edit $type Budget' : 'Set $type Budget',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -163,49 +190,54 @@ class _BudgetPageState extends State<BudgetPage> {
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                budgetId == null
-                    ? 'Set a spending limit for this period'
-                    : 'Update your spending limit',
+                isEditing
+                    ? 'Update or remove your $type spending limit'
+                    : 'Set a $type spending limit to stay on track',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[500],
                   fontWeight: FontWeight.w400,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 28),
+
+              // Amount input
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F8FA),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE8E8E8)),
+                  border: Border.all(color: accentColor.withOpacity(0.2)),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A90E2).withOpacity(0.1),
+                        color: accentColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         _currencySymbol,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF4A90E2),
+                          color: accentColor,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: TextField(
                         controller: controller,
                         decoration: InputDecoration(
-                          hintText: "Enter amount",
+                          hintText: 'Enter amount',
                           hintStyle: TextStyle(
                             color: Colors.grey[400],
                             fontWeight: FontWeight.w400,
@@ -215,7 +247,7 @@ class _BudgetPageState extends State<BudgetPage> {
                         ),
                         keyboardType: TextInputType.number,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1A1A1A),
                         ),
@@ -225,7 +257,10 @@ class _BudgetPageState extends State<BudgetPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+
+              const SizedBox(height: 24),
+
+              // Save button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -253,7 +288,7 @@ class _BudgetPageState extends State<BudgetPage> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
+                    backgroundColor: accentColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -262,13 +297,157 @@ class _BudgetPageState extends State<BudgetPage> {
                     elevation: 0,
                   ),
                   child: Text(
-                    budgetId == null ? 'Set Budget' : 'Update Budget',
+                    isEditing ? 'Update Budget' : 'Set Budget',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ),
+
+              // Remove budget button (only when editing)
+              if (isEditing) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      _showRemoveBudgetConfirmation(type, budgetId);
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFDC2626),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: const Color(0xFFDC2626).withOpacity(0.15),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.remove_circle_outline_rounded,
+                            size: 18,
+                            color: const Color(0xFFDC2626).withOpacity(0.8)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Remove Budget',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRemoveBudgetConfirmation(String type, String budgetId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Remove Budget?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your $type budget will be removed. You can always set it up again later.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w400,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await _budgetService.deleteBudget(uid, budgetId);
+                        if (mounted) {
+                          Navigator.pop(dialogContext);
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Remove',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -531,7 +710,7 @@ class _BudgetPageState extends State<BudgetPage> {
                 Text(
                   totalBudget > 0
                       ? 'of $_currencySymbol ${totalBudget.toStringAsFixed(0)} total budget'
-                      : 'No budgets set yet',
+                      : 'No monthly budgets set yet',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 13,

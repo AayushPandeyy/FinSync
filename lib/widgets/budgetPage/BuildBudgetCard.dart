@@ -133,6 +133,8 @@ class _BudgetCardState extends State<BudgetCard> {
     // CASE 2: Budget is set
     final progress = (widget.spent / widget.budget!).clamp(0.0, 1.0);
     final remaining = widget.budget! - widget.spent;
+    final isOverLimit = widget.spent > widget.budget!;
+    final exceededBy = widget.spent - widget.budget!;
     final progressColor =
         Utilities().getProgressColor(widget.spent, widget.budget!);
 
@@ -143,9 +145,17 @@ class _BudgetCardState extends State<BudgetCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: isOverLimit
+              ? Border.all(
+                  color: const Color(0xFFDC2626).withOpacity(0.18),
+                  width: 1.5,
+                )
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: isOverLimit
+                  ? const Color(0xFFDC2626).withOpacity(0.06)
+                  : Colors.black.withOpacity(0.04),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -212,14 +222,21 @@ class _BudgetCardState extends State<BudgetCard> {
                           ),
                         ),
                       ),
-                      Text(
-                        '${(progress * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: progressColor,
+                      if (isOverLimit)
+                        const Icon(
+                          Icons.priority_high_rounded,
+                          color: Color(0xFFDC2626),
+                          size: 22,
+                        )
+                      else
+                        Text(
+                          '${(progress * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: progressColor,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -290,6 +307,65 @@ class _BudgetCardState extends State<BudgetCard> {
                 ),
               ],
             ),
+
+            // Over limit banner
+            if (isOverLimit) ...[
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFDC2626).withOpacity(0.10),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFDC2626),
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Over Budget!',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Exceeded by $_currencySymbol ${exceededBy.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFFDC2626).withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

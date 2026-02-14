@@ -277,43 +277,57 @@ class _IOUPageState extends State<IOUPage> {
         ],
       ),
       body: Column(
+        // mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 16),
           // --- Summary Cards ---
-          StreamBuilder<List<IOU>>(
-            stream: firestoreService.getIOUsStream(userId),
-            builder: (context, snapshot) {
-              final allIOUs = snapshot.data ?? [];
-              final totalIOwe = _totalIOwe(allIOUs);
-              final totalOwedToMe = _totalOwedToMe(allIOUs);
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _summaryCard(
-                        title: 'I Owe',
-                        amount: totalIOwe,
-                        icon: Icons.arrow_downward,
-                        color: const Color(0xFFE63946),
-                        bgColor: const Color(0xFFFFF3F3),
-                      ),
+          Expanded(
+            child: StreamBuilder<List<IOU>>(
+              stream: firestoreService.getIOUsStream(userId),
+              builder: (context, snapshot) {
+                final allIOUs = snapshot.data ?? [];
+                final totalIOwe = _totalIOwe(allIOUs);
+                final totalOwedToMe = _totalOwedToMe(allIOUs);
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (allIOUs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No IOUs yet. Tap the + button to add your first IOU!",
+                      style: TextStyle(fontSize: 16, color: Color(0xFF666666)),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _summaryCard(
-                        title: 'Owed to Me',
-                        amount: totalOwedToMe,
-                        icon: Icons.arrow_upward,
-                        color: const Color(0xFF06D6A0),
-                        bgColor: const Color(0xFFF0F7FF),
+                  );
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _summaryCard(
+                          title: 'I Owe',
+                          amount: totalIOwe,
+                          icon: Icons.arrow_downward,
+                          color: const Color(0xFFE63946),
+                          bgColor: const Color(0xFFFFF3F3),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _summaryCard(
+                          title: 'Owed to Me',
+                          amount: totalOwedToMe,
+                          icon: Icons.arrow_upward,
+                          color: const Color(0xFF06D6A0),
+                          bgColor: const Color(0xFFF0F7FF),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
