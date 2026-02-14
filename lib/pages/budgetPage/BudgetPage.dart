@@ -4,6 +4,7 @@ import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/service/BudgetFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/widgets/budgetPage/BuildBudgetCard.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -257,152 +258,114 @@ class _BudgetPageState extends State<BudgetPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: StreamBuilder<List<Map<String, dynamic>>>(
-          stream: _budgetService.getBudget(uid),
-          builder: (context, budgetSnapshot) {
-            return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: TransactionFirestoreService().getTransactionsBasedOnType(
-                  uid, TransactionType.EXPENSE.name),
-              builder: (context, transactionsSnapshot) {
-                Map<String, String> currentDateInfo = getCurrentDateInfo();
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: 'Budgets',
+        subtitle: 'Manage your spending limits',
+        useCustomDesign: true,
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _budgetService.getBudget(uid),
+        builder: (context, budgetSnapshot) {
+          return StreamBuilder<List<Map<String, dynamic>>>(
+            stream: TransactionFirestoreService()
+                .getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name),
+            builder: (context, transactionsSnapshot) {
+              Map<String, String> currentDateInfo = getCurrentDateInfo();
 
-                // Loading state
-                if (budgetSnapshot.connectionState == ConnectionState.waiting ||
-                    transactionsSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+              // Loading state
+              if (budgetSnapshot.connectionState == ConnectionState.waiting ||
+                  transactionsSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // Get all budgets
+              final budgets = budgetSnapshot.data ?? [];
+
+              // Find specific budget types
+              Map<String, dynamic>? monthlyBudgetData;
+              Map<String, dynamic>? weeklyBudgetData;
+              Map<String, dynamic>? dailyBudgetData;
+
+              for (var budget in budgets) {
+                switch (budget['type']) {
+                  case 'MONTHLY':
+                    monthlyBudgetData = budget;
+                    break;
+                  case 'WEEKLY':
+                    weeklyBudgetData = budget;
+                    break;
+                  case 'DAILY':
+                    dailyBudgetData = budget;
+                    break;
                 }
+              }
 
-                // Get all budgets
-                final budgets = budgetSnapshot.data ?? [];
+              // Extract budget amounts and IDs
+              final monthlyBudget =
+                  (monthlyBudgetData?['amount'] as num?)?.toDouble();
+              final monthlyBudgetId = monthlyBudgetData?['budgetId'] as String?;
 
-                // Find specific budget types
-                Map<String, dynamic>? monthlyBudgetData;
-                Map<String, dynamic>? weeklyBudgetData;
-                Map<String, dynamic>? dailyBudgetData;
+              final weeklyBudget =
+                  (weeklyBudgetData?['amount'] as num?)?.toDouble();
+              final weeklyBudgetId = weeklyBudgetData?['budgetId'] as String?;
 
-                for (var budget in budgets) {
-                  switch (budget['type']) {
-                    case 'MONTHLY':
-                      monthlyBudgetData = budget;
-                      break;
-                    case 'WEEKLY':
-                      weeklyBudgetData = budget;
-                      break;
-                    case 'DAILY':
-                      dailyBudgetData = budget;
-                      break;
-                  }
-                }
+              final dailyLimit =
+                  (dailyBudgetData?['amount'] as num?)?.toDouble();
+              final dailyBudgetId = dailyBudgetData?['budgetId'] as String?;
 
-                // Extract budget amounts and IDs
-                final monthlyBudget =
-                    (monthlyBudgetData?['amount'] as num?)?.toDouble();
-                final monthlyBudgetId =
-                    monthlyBudgetData?['budgetId'] as String?;
+              // Get transactions and calculate spent amounts
+              final transactions = transactionsSnapshot.data ?? [];
+              final monthlySpent = _calculateMonthlySpent(transactions);
+              final weeklySpent = _calculateWeeklySpent(transactions);
+              final dailySpent = _calculateDailySpent(transactions);
 
-                final weeklyBudget =
-                    (weeklyBudgetData?['amount'] as num?)?.toDouble();
-                final weeklyBudgetId = weeklyBudgetData?['budgetId'] as String?;
-
-                final dailyLimit =
-                    (dailyBudgetData?['amount'] as num?)?.toDouble();
-                final dailyBudgetId = dailyBudgetData?['budgetId'] as String?;
-
-                // Get transactions and calculate spent amounts
-                final transactions = transactionsSnapshot.data ?? [];
-                final monthlySpent = _calculateMonthlySpent(transactions);
-                final weeklySpent = _calculateWeeklySpent(transactions);
-                final dailySpent = _calculateDailySpent(transactions);
-
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_back_ios_new,
-                                    color: Color(0xFF000000),
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
-                          const Text(
-                            "Budgets",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 32,
-                              color: Color(0xFF000000),
-                              letterSpacing: -1.2,
-                              height: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
+              return Column(
+                children: [
+                  Container(
+                    height: 1,
+                    color: const Color(0xFFF0F0F0),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        BudgetCard(
+                          title: 'Monthly Budget',
+                          budget: monthlyBudget,
+                          spent: monthlySpent,
+                          subtitle: currentDateInfo['monthYear'] ?? '',
+                          onTap: () => _showSetBudgetDialog(
+                              'Monthly', monthlyBudgetId, monthlyBudget),
+                        ),
+                        const SizedBox(height: 16),
+                        BudgetCard(
+                          title: 'Weekly Budget',
+                          budget: weeklyBudget,
+                          spent: weeklySpent,
+                          subtitle: currentDateInfo['week'] ?? '',
+                          onTap: () => _showSetBudgetDialog(
+                              'Weekly', weeklyBudgetId, weeklyBudget),
+                        ),
+                        const SizedBox(height: 16),
+                        BudgetCard(
+                          title: 'Daily Limit',
+                          budget: dailyLimit,
+                          spent: dailySpent,
+                          subtitle: currentDateInfo['fullDate'] ?? '',
+                          onTap: () => _showSetBudgetDialog(
+                              'Daily', dailyBudgetId, dailyLimit),
+                        ),
+                      ],
                     ),
-                    Container(
-                      height: 1,
-                      color: const Color(0xFFF0F0F0),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.all(24),
-                        children: [
-                          BudgetCard(
-                            title: 'Monthly Budget',
-                            budget: monthlyBudget,
-                            spent: monthlySpent,
-                            subtitle: currentDateInfo['monthYear'] ?? '',
-                            onTap: () => _showSetBudgetDialog(
-                                'Monthly', monthlyBudgetId, monthlyBudget),
-                          ),
-                          const SizedBox(height: 16),
-                          BudgetCard(
-                            title: 'Weekly Budget',
-                            budget: weeklyBudget,
-                            spent: weeklySpent,
-                            subtitle: currentDateInfo['week'] ?? '',
-                            onTap: () => _showSetBudgetDialog(
-                                'Weekly', weeklyBudgetId, weeklyBudget),
-                          ),
-                          const SizedBox(height: 16),
-                          BudgetCard(
-                            title: 'Daily Limit',
-                            budget: dailyLimit,
-                            spent: dailySpent,
-                            subtitle: currentDateInfo['fullDate'] ?? '',
-                            onTap: () => _showSetBudgetDialog(
-                                'Daily', dailyBudgetId, dailyLimit),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }

@@ -1,69 +1,89 @@
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
-import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-class TransactionPieChartsWidget extends StatelessWidget {
-  const TransactionPieChartsWidget({
-    super.key,
-  });
+class TransactionPieChartsWidget extends StatefulWidget {
+  const TransactionPieChartsWidget({super.key});
+
+  @override
+  State<TransactionPieChartsWidget> createState() =>
+      _TransactionPieChartsWidgetState();
+}
+
+class _TransactionPieChartsWidgetState
+    extends State<TransactionPieChartsWidget> {
+  bool _showExpenses = true;
+  int _touchedIndex = -1;
+  late final Stream<List<Map<String, dynamic>>> _transactionStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _transactionStream = TransactionFirestoreService()
+        .getTransactionsOfUser(FirebaseAuth.instance.currentUser!.uid);
+  }
+
+  static const List<Color> _chartColors = [
+    Color(0xFF4A90E2),
+    Color(0xFFE74C3C),
+    Color(0xFF2ECC71),
+    Color(0xFFF39C12),
+    Color(0xFF9B59B6),
+    Color(0xFF1ABC9C),
+    Color(0xFFE67E22),
+    Color(0xFF3498DB),
+    Color(0xFFE91E63),
+    Color(0xFF00BCD4),
+    Color(0xFF8BC34A),
+    Color(0xFFFF5722),
+    Color(0xFF607D8B),
+    Color(0xFFCDDC39),
+    Color(0xFF795548),
+    Color(0xFF9E9E9E),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: TransactionFirestoreService()
-          .getTransactionsOfUser(FirebaseAuth.instance.currentUser!.uid),
+      stream: _transactionStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator.adaptive(
-              backgroundColor: Colors.yellow,
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 60),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading data: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-            ),
+          return const SizedBox(
+            height: 300,
+            child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF4A90E2))),
           );
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.pie_chart, size: 60, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No transaction data available',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
+          return SizedBox(
+            height: 200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.pie_chart_rounded,
+                      size: 48, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text('No data available',
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
             ),
           );
         }
 
-        // Process data for pie charts
         Map<String, double> incomeByCategory = {};
         Map<String, double> expenseByCategory = {};
 
         for (var transaction in snapshot.data!) {
-          final amount = transaction['amount']?.toDouble() ?? 0.0;
-          final category = transaction['category'] ?? 'Other';
-          final type = transaction['type'];
+          final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
+          final category = transaction['category']?.toString() ?? 'Other';
+          final type = transaction['type']?.toString();
 
           if (type == 'INCOME') {
             incomeByCategory[category] =
@@ -74,169 +94,191 @@ class TransactionPieChartsWidget extends StatelessWidget {
           }
         }
 
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              // Income Pie Chart
-              Card(
-                elevation: 4,
-                margin: const EdgeInsets.all(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Income Distribution',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      SizedBox(
-                        height: 240,
-                        child: _buildPieChart(
-                          incomeByCategory,
-                          Colors.green,
-                          'income',
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      _buildLegend(incomeByCategory, Colors.green),
-                    ],
-                  ),
-                ),
+        final currentData =
+            _showExpenses ? expenseByCategory : incomeByCategory;
+
+        if (currentData.isEmpty) {
+          return SizedBox(
+            height: 200,
+            child: Center(
+              child: Text(
+                _showExpenses ? 'No expense data' : 'No income data',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
               ),
+            ),
+          );
+        }
 
-              // Expense Pie Chart
-              Card(
-                elevation: 4,
-                margin: const EdgeInsets.all(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Expense Distribution',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      SizedBox(
-                        height: 240,
-                        child: _buildPieChart(
-                          expenseByCategory,
-                          Colors.red,
-                          'expense',
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      _buildLegend(expenseByCategory, Colors.red),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+        // Sort by amount descending
+        final sortedEntries = currentData.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final total = sortedEntries.fold(0.0, (sum, e) => sum + e.value);
 
-  Widget _buildPieChart(
-      Map<String, double> data, MaterialColor baseColor, String type) {
-    if (data.isEmpty) {
-      return Center(
-        child: Text(
-          'No $type transactions',
-          style: const TextStyle(color: Colors.grey),
-        ),
-      );
-    }
-
-    final total =
-        data.values.isNotEmpty ? data.values.reduce((a, b) => a + b) : 0.0;
-    final List<PieChartSectionData> sections = [];
-
-    int colorIndex = 0;
-    data.forEach((category, amount) {
-      final percentage = (amount / total) * 100;
-      sections.add(
-        PieChartSectionData(
-          color: baseColor[((colorIndex + 3) * 100)],
-          value: percentage,
-          title: '${percentage.toStringAsFixed(1)}%',
-          radius: 100,
-          titleStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      );
-      colorIndex++;
-    });
-
-    return PieChart(
-      PieChartData(
-        sections: sections,
-        sectionsSpace: 2,
-        centerSpaceRadius: 40,
-        startDegreeOffset: -90,
-      ),
-    );
-  }
-
-  Widget _buildLegend(Map<String, double> data, MaterialColor baseColor) {
-    if (data.isEmpty) {
-      return const Center(
-        child: Text(
-          'No data available',
-          style: TextStyle(color: Colors.grey),
-        ),
-      );
-    }
-
-    final total =
-        data.values.isNotEmpty ? data.values.reduce((a, b) => a + b) : 0.0;
-    int colorIndex = 0;
-
-    return FutureBuilder<String>(
-      future: CurrencyService.getCurrencySymbol(),
-      builder: (context, currencySnapshot) {
-        final symbol = currencySnapshot.data ?? 'Rs';
-        return Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: data.entries.map((entry) {
-            final percentage = (entry.value / total) * 100;
-            final color = baseColor[((colorIndex + 3) * 100)];
-            colorIndex++;
-
-            return Row(
-              mainAxisSize: MainAxisSize.min,
+        return Column(
+          children: [
+            // Toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Text('By Category',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800])),
                 Container(
-                  width: 16,
-                  height: 16,
-                  color: color,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${entry.key}: ${NumberFormat.currency(
-                    symbol: '$symbol ',
-                    decimalDigits: 2,
-                  ).format(entry.value)} (${percentage.toStringAsFixed(1)}%)',
-                  style: const TextStyle(fontSize: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildToggle(
+                          'Expense',
+                          _showExpenses,
+                          const Color(0xFFFF6B6B),
+                          () => setState(() {
+                                _showExpenses = true;
+                                _touchedIndex = -1;
+                              })),
+                      _buildToggle(
+                          'Income',
+                          !_showExpenses,
+                          const Color(0xFF4ADE80),
+                          () => setState(() {
+                                _showExpenses = false;
+                                _touchedIndex = -1;
+                              })),
+                    ],
+                  ),
                 ),
               ],
-            );
-          }).toList(),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Pie chart
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  pieTouchData: PieTouchData(
+                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                      setState(() {
+                        if (!event.isInterestedForInteractions ||
+                            pieTouchResponse == null ||
+                            pieTouchResponse.touchedSection == null) {
+                          _touchedIndex = -1;
+                          return;
+                        }
+                        _touchedIndex = pieTouchResponse
+                            .touchedSection!.touchedSectionIndex;
+                      });
+                    },
+                  ),
+                  sectionsSpace: 3,
+                  centerSpaceRadius: 50,
+                  startDegreeOffset: -90,
+                  sections: List.generate(sortedEntries.length, (i) {
+                    final isTouched = i == _touchedIndex;
+                    final entry = sortedEntries[i];
+                    final percentage = (entry.value / total) * 100;
+                    return PieChartSectionData(
+                      color: _chartColors[i % _chartColors.length],
+                      value: entry.value,
+                      title:
+                          isTouched ? '${percentage.toStringAsFixed(1)}%' : '',
+                      radius: isTouched ? 45 : 35,
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Legend list
+            ...List.generate(sortedEntries.length, (i) {
+              final entry = sortedEntries[i];
+              final percentage = (entry.value / total) * 100;
+              final isTouched = i == _touchedIndex;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isTouched
+                      ? _chartColors[i % _chartColors.length].withOpacity(0.08)
+                      : const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isTouched
+                        ? _chartColors[i % _chartColors.length].withOpacity(0.3)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: _chartColors[i % _chartColors.length],
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              isTouched ? FontWeight.w700 : FontWeight.w500,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${percentage.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _chartColors[i % _chartColors.length],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildToggle(
+      String label, bool isSelected, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? color : Colors.grey[500],
+            )),
+      ),
     );
   }
 }

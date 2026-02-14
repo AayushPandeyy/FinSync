@@ -192,7 +192,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Weekly Expenses",
+                          "Weekly Insights",
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,

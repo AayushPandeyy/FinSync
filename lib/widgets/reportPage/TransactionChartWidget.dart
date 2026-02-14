@@ -1,10 +1,9 @@
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
-import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class TransactionChartWidget extends StatelessWidget {
+class TransactionChartWidget extends StatefulWidget {
   final String uid;
 
   const TransactionChartWidget({
@@ -13,222 +12,254 @@ class TransactionChartWidget extends StatelessWidget {
   });
 
   @override
+  State<TransactionChartWidget> createState() => _TransactionChartWidgetState();
+}
+
+class _TransactionChartWidgetState extends State<TransactionChartWidget> {
+  bool _showExpenses = true;
+  late final Future<Map<String, Map<String, double>>> _chartFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _chartFuture =
+        TransactionFirestoreService().getTransactionsGroupedByDay(widget.uid);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, Map<String, double>>>(
-      future: TransactionFirestoreService().getTransactionsGroupedByDay(uid),
+      future: _chartFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator.adaptive(backgroundColor: Colors.yellow,),
+          return const SizedBox(
+            height: 250,
+            child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF4A90E2))),
           );
         }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 60),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading data: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
+        if (snapshot.hasError || !snapshot.hasData) {
+          return SizedBox(
+            height: 200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.bar_chart_rounded,
+                      size: 48, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text('No weekly data available',
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
             ),
           );
         }
 
-        if (!snapshot.hasData ||
-            (snapshot.data?['income']?.isEmpty ?? true) &&
-                (snapshot.data?['expense']?.isEmpty ?? true)) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.bar_chart, size: 60, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No transaction data available',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
+        final data = snapshot.data!;
+        final expenseData = data['expense'] ?? {};
+        final incomeData = data['income'] ?? {};
+        final chartData = _showExpenses ? expenseData : incomeData;
+        final chartColor =
+            _showExpenses ? const Color(0xFFFF6B6B) : const Color(0xFF4ADE80);
+        final chartColorLight =
+            _showExpenses ? const Color(0xFFFFB4B4) : const Color(0xFFA7F3D0);
 
-        // Get all unique dates from both income and expense
-        Set<String> allDates = {
-          ...snapshot.data!['income']?.keys ?? [],
-          ...snapshot.data!['expense']?.keys ?? []
-        };
-        List<String> sortedDates = allDates.toList()..sort();
+        final now = DateTime.now();
+        final List<DateTime> last7Days =
+            List.generate(7, (i) => now.subtract(Duration(days: 6 - i)));
 
-        return FutureBuilder<String>(
-          future: CurrencyService.getCurrencySymbol(),
-          builder: (context, currencySnapshot) {
-            final symbol = currencySnapshot.data ?? 'Rs';
-            return AspectRatio(
-              aspectRatio: 1,
-              child: Card(
-                elevation: 4,
-                margin: const EdgeInsets.all(8),
-                shape:
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Weekly Transaction Summary',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: BarChart(
-                          BarChartData(
-                            alignment: BarChartAlignment.spaceAround,
-                            maxY: _getMaxAmount(snapshot.data!),
-                            barTouchData: BarTouchData(
-                              touchTooltipData: BarTouchTooltipData(
-                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  String amount = NumberFormat.currency(
-                                    symbol: '$symbol ',
-                                    decimalDigits: 2,
-                                  ).format(rod.toY);
-                                  String type =
-                                      rodIndex == 0 ? 'Income' : 'Expense';
-                                  return BarTooltipItem(
-                                    '$type\n$amount',
-                                    const TextStyle(color: Colors.white),
-                                  );
-                                },
-                              ),
-                            ),
-                            titlesData: FlTitlesData(
-                              show: true,
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    if (value < 0 || value >= sortedDates.length) {
-                                      return const SizedBox();
-                                    }
-                                    final date =
-                                        DateTime.parse(sortedDates[value.toInt()]);
-                                    return Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        DateFormat('MM/dd').format(date),
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 40,
-                                  getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      '$symbol ${value.toInt()}',
-                                      style: const TextStyle(fontSize: 10),
-                                    );
-                                  },
-                                ),
-                              ),
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        barGroups: List.generate(
-                          sortedDates.length,
-                          (index) {
-                            final date = sortedDates[index];
-                            return BarChartGroupData(
-                              x: index,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: snapshot.data!['income']?[date] ?? 0,
-                                  width: 12,
-                                  color: Colors.green.shade300,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    topRight: Radius.circular(4),
-                                  ),
-                                ),
-                                BarChartRodData(
-                                  toY: snapshot.data!['expense']?[date] ?? 0,
-                                  width: 12,
-                                  color: Colors.red.shade300,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    topRight: Radius.circular(4),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+        double maxY = 0;
+        final List<BarChartGroupData> barGroups = [];
+
+        for (int i = 0; i < last7Days.length; i++) {
+          final dayKey = DateFormat('yyyy-MM-dd').format(last7Days[i]);
+          final amount = chartData[dayKey] ?? 0.0;
+          if (amount > maxY) maxY = amount;
+          final isToday = DateUtils.isSameDay(last7Days[i], now);
+
+          barGroups.add(
+            BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: amount,
+                  width: isToday ? 24 : 18,
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [chartColor, chartColorLight],
                   ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildLegendItem('Income', Colors.green.shade300),
-                          const SizedBox(width: 16),
-                          _buildLegendItem('Expense', Colors.red.shade300),
-                        ],
-                      ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        maxY = maxY == 0 ? 100 : maxY * 1.3;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Last 7 Days',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800])),
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildToggle(
+                          'Expense',
+                          _showExpenses,
+                          const Color(0xFFFF6B6B),
+                          () => setState(() => _showExpenses = true)),
+                      _buildToggle(
+                          'Income',
+                          !_showExpenses,
+                          const Color(0xFF4ADE80),
+                          () => setState(() => _showExpenses = false)),
                     ],
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 200,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceEvenly,
+                  maxY: maxY,
+                  barGroups: barGroups,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: maxY / 4,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                        color: Colors.grey.withOpacity(0.08), strokeWidth: 1),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 28,
+                        getTitlesWidget: (value, meta) {
+                          if (value.toInt() < 0 ||
+                              value.toInt() >= last7Days.length)
+                            return const SizedBox();
+                          final day = last7Days[value.toInt()];
+                          final isToday = DateUtils.isSameDay(day, now);
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              isToday
+                                  ? 'Today'
+                                  : DateFormat('E').format(day).substring(0, 3),
+                              style: TextStyle(
+                                color: isToday ? chartColor : Colors.grey[500],
+                                fontSize: 11,
+                                fontWeight:
+                                    isToday ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        interval: maxY / 4,
+                        getTitlesWidget: (value, meta) {
+                          if (value == 0) return const SizedBox();
+                          return Text(_formatAmount(value),
+                              style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500));
+                        },
+                      ),
+                    ),
+                  ),
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipColor: (_) => const Color(0xFF1A1A2E),
+                      tooltipRoundedRadius: 12,
+                      tooltipPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      getTooltipItem: (group, gIdx, rod, rIdx) {
+                        final day = last7Days[group.x.toInt()];
+                        return BarTooltipItem(
+                          '${DateFormat('EEE, MMM d').format(day)}\n',
+                          TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500),
+                          children: [
+                            TextSpan(
+                              text: _formatAmount(rod.toY),
+                              style: TextStyle(
+                                  color: chartColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ),
-            );
-          
-          },
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          color: color,
+  Widget _buildToggle(
+      String label, bool isSelected, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
-        const SizedBox(width: 4),
-        Text(label),
-      ],
+        child: Text(label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? color : Colors.grey[500],
+            )),
+      ),
     );
   }
 
-  double _getMaxAmount(Map<String, Map<String, double>> data) {
-    double maxIncome = 0;
-    double maxExpense = 0;
-
-    data['income']?.values.forEach((amount) {
-      if (amount > maxIncome) maxIncome = amount;
-    });
-
-    data['expense']?.values.forEach((amount) {
-      if (amount > maxExpense) maxExpense = amount;
-    });
-
-    return (maxIncome > maxExpense ? maxIncome : maxExpense);
+  String _formatAmount(double value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+    return value.toInt().toString();
   }
 }

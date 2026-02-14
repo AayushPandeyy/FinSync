@@ -6,6 +6,7 @@ import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -413,501 +414,449 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            // Header Section
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: 'Transactions',
+        subtitle: 'Track your spending & earnings',
+        useCustomDesign: true,
+        actions: [
+          GestureDetector(
+            onTap: _showFilterDialog,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: (_selectedFilter != 'All Time' ||
+                        _selectedCategory != 'All Categories')
+                    ? const Color(0xFF4A90E2)
+                    : const Color(0xFFF8F8FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.filter_list,
+                color: (_selectedFilter != 'All Time' ||
+                        _selectedCategory != 'All Categories')
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () async {
+              final isOnline = await ConnectivityService.ensureConnected(
+                context,
+                actionDescription: 'add a transaction',
+              );
+              if (!isOnline) return;
+
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddTransactionPage(),
+                ),
+              );
+
+              if (result == true && mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Transaction saved successfully.'),
+                    ),
+                  );
+              }
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Active filters indicator
+          if (_selectedFilter != 'All Time' ||
+              _selectedCategory != 'All Categories')
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // Back button, Filter button, and Add button row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Color(0xFF000000),
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _showFilterDialog,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: (_selectedFilter != 'All Time' ||
-                                        _selectedCategory != 'All Categories')
-                                    ? const Color(0xFF000000)
-                                    : const Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Icon(
-                                Icons.filter_list,
-                                color: (_selectedFilter != 'All Time' ||
-                                        _selectedCategory != 'All Categories')
-                                    ? Colors.white
-                                    : const Color(0xFF000000),
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () async {
-                              final isOnline =
-                                  await ConnectivityService.ensureConnected(
-                                context,
-                                actionDescription: 'add a transaction',
-                              );
-                              if (!isOnline) return;
-
-                              final result = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const AddTransactionPage(),
-                                ),
-                              );
-
-                              if (result == true && mounted) {
-                                ScaffoldMessenger.of(context)
-                                  ..clearSnackBars()
-                                  ..showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Transaction saved successfully.'),
-                                    ),
-                                  );
-                              }
-                            },
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF000000),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Title
-                  const Text(
-                    "Transactions",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 32,
-                      color: Color(0xFF000000),
-                      letterSpacing: -1.2,
-                      height: 1.1,
-                    ),
-                  ),
-
-                  // Active filters indicator
-                  if (_selectedFilter != 'All Time' ||
-                      _selectedCategory != 'All Categories') ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (_selectedFilter != 'All Time')
-                          _buildActiveFilterChip(_selectedFilter),
-                        if (_selectedCategory != 'All Categories')
-                          _buildActiveFilterChip(_selectedCategory),
-                      ],
-                    ),
-                  ],
+                  if (_selectedFilter != 'All Time')
+                    _buildActiveFilterChip(_selectedFilter),
+                  if (_selectedCategory != 'All Categories')
+                    _buildActiveFilterChip(_selectedCategory),
                 ],
               ),
             ),
 
-            // Divider
-            Container(
-              height: 1,
-              color: const Color(0xFFF0F0F0),
-            ),
+          // Divider
+          Container(
+            height: 1,
+            color: const Color(0xFFF0F0F0),
+          ),
 
-            // Transactions list
-            Expanded(
-              child: StreamBuilder(
-                  stream: TransactionFirestoreService().getTransactionsOfUser(
-                      FirebaseAuth.instance.currentUser!.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF000000),
-                          strokeWidth: 2,
-                        ),
-                      );
-                    }
+          // Transactions list
+          Expanded(
+            child: StreamBuilder(
+                stream: TransactionFirestoreService().getTransactionsOfUser(
+                    FirebaseAuth.instance.currentUser!.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF000000),
+                        strokeWidth: 2,
+                      ),
+                    );
+                  }
 
-                    final data = snapshot.data;
+                  final data = snapshot.data;
 
-                    // Apply filters
-                    final filteredData = _filterTransactions(data!);
+                  // Apply filters
+                  final filteredData = _filterTransactions(data!);
 
-                    if (filteredData.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(40),
-                              ),
-                              child: Icon(
-                                Icons.receipt_long,
-                                size: 36,
-                                color: Colors.grey[400],
-                              ),
+                  if (filteredData.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(40),
                             ),
-                            const SizedBox(height: 20),
-                            Text(
-                              "No transactions found",
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[800],
-                              ),
+                            child: Icon(
+                              Icons.receipt_long,
+                              size: 36,
+                              color: Colors.grey[400],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "Try adjusting your filters",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                                fontWeight: FontWeight.w400,
-                              ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            "No transactions found",
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
                             ),
-                          ],
-                        ),
-                      );
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "Try adjusting your filters",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Group transactions by month
+                  Map<String, List<dynamic>> groupedTransactions = {};
+                  for (var transaction in filteredData) {
+                    DateTime date = transaction["date"].toDate();
+                    String monthYear =
+                        "${_getMonthName(date.month)} ${date.year}";
+
+                    if (!groupedTransactions.containsKey(monthYear)) {
+                      groupedTransactions[monthYear] = [];
                     }
+                    groupedTransactions[monthYear]!.add(transaction);
+                  }
 
-                    // Group transactions by month
-                    Map<String, List<dynamic>> groupedTransactions = {};
-                    for (var transaction in filteredData) {
-                      DateTime date = transaction["date"].toDate();
-                      String monthYear =
-                          "${_getMonthName(date.month)} ${date.year}";
+                  // Sort months in descending order
+                  var sortedMonths = groupedTransactions.keys.toList()
+                    ..sort((a, b) {
+                      DateTime dateA = _parseMonthYear(a);
+                      DateTime dateB = _parseMonthYear(b);
+                      return dateB.compareTo(dateA);
+                    });
 
-                      if (!groupedTransactions.containsKey(monthYear)) {
-                        groupedTransactions[monthYear] = [];
-                      }
-                      groupedTransactions[monthYear]!.add(transaction);
-                    }
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 16),
+                    itemCount: sortedMonths.length,
+                    itemBuilder: (context, monthIndex) {
+                      String month = sortedMonths[monthIndex];
+                      List<dynamic> transactions = groupedTransactions[month]!;
 
-                    // Sort months in descending order
-                    var sortedMonths = groupedTransactions.keys.toList()
-                      ..sort((a, b) {
-                        DateTime dateA = _parseMonthYear(a);
-                        DateTime dateB = _parseMonthYear(b);
+                      // Sort transactions within month by date (newest first)
+                      transactions.sort((a, b) {
+                        DateTime dateA = a["date"].toDate();
+                        DateTime dateB = b["date"].toDate();
                         return dateB.compareTo(dateA);
                       });
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 16),
-                      itemCount: sortedMonths.length,
-                      itemBuilder: (context, monthIndex) {
-                        String month = sortedMonths[monthIndex];
-                        List<dynamic> transactions =
-                            groupedTransactions[month]!;
+                      // Calculate totals for the month
+                      double totalIncome = 0;
+                      double totalExpense = 0;
 
-                        // Sort transactions within month by date (newest first)
-                        transactions.sort((a, b) {
-                          DateTime dateA = a["date"].toDate();
-                          DateTime dateB = b["date"].toDate();
-                          return dateB.compareTo(dateA);
-                        });
-
-                        // Calculate totals for the month
-                        double totalIncome = 0;
-                        double totalExpense = 0;
-
-                        for (var transaction in transactions) {
-                          double amount =
-                              (transaction["amount"] as num).toDouble();
-                          if (transaction["type"] == "INCOME") {
-                            totalIncome += amount;
-                          } else {
-                            totalExpense += amount;
-                          }
+                      for (var transaction in transactions) {
+                        double amount =
+                            (transaction["amount"] as num).toDouble();
+                        if (transaction["type"] == "INCOME") {
+                          totalIncome += amount;
+                        } else {
+                          totalExpense += amount;
                         }
+                      }
 
-                        double totalAmount = totalIncome - totalExpense;
+                      double totalAmount = totalIncome - totalExpense;
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Month header
-                            Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                              child: Text(
-                                month,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[500],
-                                  letterSpacing: 0.5,
-                                ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Month header
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                            child: Text(
+                              month,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[500],
+                                letterSpacing: 0.5,
                               ),
                             ),
+                          ),
 
-                            // Transactions for this month
-                            ...transactions.map((transaction) {
-                              return GestureDetector(
-                                onTap: () {
-                                  IconData categoryIcon = Categories()
-                                      .categories
-                                      .firstWhere(
-                                          (cat) =>
-                                              cat.name ==
-                                              transaction["category"],
-                                          orElse: () =>
-                                              Categories().categories.first)
-                                      .icon;
-                                  DialogBox().showTransactionDetailPopUp(
-                                      context,
-                                      TransactionModel(
-                                        id: transaction["id"],
-                                        title: transaction["title"],
-                                        amount: (transaction["amount"] as num)
-                                            .toDouble(),
-                                        date: transaction["date"].toDate(),
-                                        transactionDescription:
-                                            transaction["description"],
-                                        category: transaction["category"],
-                                        type: transaction["type"],
-                                      ),
-                                      categoryIcon);
-                                },
-                                child: Slidable(
-                                  endActionPane: ActionPane(
-                                      extentRatio: 0.5,
-                                      motion: const ScrollMotion(),
-                                      children: [
-                                        SlidableAction(
-                                          onPressed: (context) {
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        EditTransactionPage(
-                                                            id: transaction[
-                                                                "id"],
-                                                            type: transaction[
-                                                                "type"],
-                                                            title: transaction[
-                                                                "title"],
-                                                            description: transaction[
-                                                                "description"],
-                                                            amount: (transaction[
-                                                                        "amount"]
-                                                                    as num)
-                                                                .toDouble(),
-                                                            category:
-                                                                transaction[
-                                                                    "category"],
-                                                            date: transaction[
-                                                                    "date"]
-                                                                .toDate())));
-                                          },
-                                          backgroundColor:
-                                              const Color(0xFF000000),
-                                          foregroundColor: Colors.white,
-                                          icon: Icons.edit,
-                                          label: 'Edit',
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(0),
-                                            bottomLeft: Radius.circular(0),
-                                          ),
-                                        ),
-                                        SlidableAction(
-                                          onPressed: (context) async {
-                                            await TransactionFirestoreService()
-                                                .deleteTransaction(
-                                                    FirebaseAuth.instance
-                                                        .currentUser!.uid,
-                                                    transaction["id"],
-                                                    (transaction["amount"]
-                                                            as num)
-                                                        .toDouble(),
-                                                    transaction["type"]);
-                                          },
-                                          backgroundColor:
-                                              const Color(0xFFE63946),
-                                          foregroundColor: Colors.white,
-                                          icon: Icons.delete,
-                                          label: 'Delete',
-                                        ),
-                                      ]),
-                                  child: TransactionTile(
+                          // Transactions for this month
+                          ...transactions.map((transaction) {
+                            return GestureDetector(
+                              onTap: () {
+                                IconData categoryIcon = Categories()
+                                    .categories
+                                    .firstWhere(
+                                        (cat) =>
+                                            cat.name == transaction["category"],
+                                        orElse: () =>
+                                            Categories().categories.first)
+                                    .icon;
+                                DialogBox().showTransactionDetailPopUp(
+                                    context,
+                                    TransactionModel(
+                                      id: transaction["id"],
                                       title: transaction["title"],
-                                      date: transaction["date"].toDate(),
                                       amount: (transaction["amount"] as num)
                                           .toDouble(),
+                                      date: transaction["date"].toDate(),
+                                      transactionDescription:
+                                          transaction["description"],
+                                      category: transaction["category"],
                                       type: transaction["type"],
-                                      category: transaction["category"]),
-                                ),
-                              );
-                            }).toList(),
-
-                            // Month summary
-                            Container(
-                              margin: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8F8F8),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF06D6A0),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            "Income",
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF666666),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        "$_currencySymbol ${totalIncome.toStringAsFixed(0)}",
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF06D6A0),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFE63946),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            "Expense",
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF666666),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        "$_currencySymbol ${totalExpense.toStringAsFixed(0)}",
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFFE63946),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 10),
-                                    child: Divider(
-                                      color: Color(0xFFE0E0E0),
-                                      height: 1,
                                     ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    categoryIcon);
+                              },
+                              child: Slidable(
+                                endActionPane: ActionPane(
+                                    extentRatio: 0.5,
+                                    motion: const ScrollMotion(),
                                     children: [
-                                      const Text(
-                                        "Total",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF1A1A1A),
-                                          fontWeight: FontWeight.w600,
+                                      SlidableAction(
+                                        onPressed: (context) {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      EditTransactionPage(
+                                                          id: transaction["id"],
+                                                          type: transaction[
+                                                              "type"],
+                                                          title: transaction[
+                                                              "title"],
+                                                          description:
+                                                              transaction[
+                                                                  "description"],
+                                                          amount: (transaction[
+                                                                      "amount"]
+                                                                  as num)
+                                                              .toDouble(),
+                                                          category: transaction[
+                                                              "category"],
+                                                          date: transaction[
+                                                                  "date"]
+                                                              .toDate())));
+                                        },
+                                        backgroundColor:
+                                            const Color(0xFF000000),
+                                        foregroundColor: Colors.white,
+                                        icon: Icons.edit,
+                                        label: 'Edit',
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(0),
+                                          bottomLeft: Radius.circular(0),
                                         ),
                                       ),
-                                      Text(
-                                        "$_currencySymbol ${totalAmount.toStringAsFixed(0)}",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: totalAmount >= 0
-                                              ? const Color(0xFF06D6A0)
-                                              : const Color(0xFFE63946),
-                                        ),
+                                      SlidableAction(
+                                        onPressed: (context) async {
+                                          await TransactionFirestoreService()
+                                              .deleteTransaction(
+                                                  FirebaseAuth.instance
+                                                      .currentUser!.uid,
+                                                  transaction["id"],
+                                                  (transaction["amount"] as num)
+                                                      .toDouble(),
+                                                  transaction["type"]);
+                                        },
+                                        backgroundColor:
+                                            const Color(0xFFE63946),
+                                        foregroundColor: Colors.white,
+                                        icon: Icons.delete,
+                                        label: 'Delete',
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ]),
+                                child: TransactionTile(
+                                    title: transaction["title"],
+                                    date: transaction["date"].toDate(),
+                                    amount: (transaction["amount"] as num)
+                                        .toDouble(),
+                                    type: transaction["type"],
+                                    category: transaction["category"]),
                               ),
+                            );
+                          }).toList(),
+
+                          // Month summary
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8F8F8),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ],
-                        );
-                      },
-                    );
-                  }),
-            ),
-          ],
-        ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF06D6A0),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          "Income",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF666666),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      "$_currencySymbol ${totalIncome.toStringAsFixed(0)}",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF06D6A0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFE63946),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          "Expense",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF666666),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      "$_currencySymbol ${totalExpense.toStringAsFixed(0)}",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFE63946),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Divider(
+                                    color: Color(0xFFE0E0E0),
+                                    height: 1,
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      "Total",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF1A1A1A),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      "$_currencySymbol ${totalAmount.toStringAsFixed(0)}",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: totalAmount >= 0
+                                            ? const Color(0xFF06D6A0)
+                                            : const Color(0xFFE63946),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }),
+          ),
+        ],
       ),
     );
   }
