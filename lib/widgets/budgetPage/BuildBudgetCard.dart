@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/Utilities.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,8 @@ class BudgetCard extends StatefulWidget {
   final double spent;
   final String subtitle;
   final VoidCallback onTap;
+  final IconData icon;
+  final Color accentColor;
 
   const BudgetCard({
     Key? key,
@@ -16,6 +19,8 @@ class BudgetCard extends StatefulWidget {
     required this.subtitle,
     required this.onTap,
     this.budget,
+    this.icon = Icons.account_balance_wallet_rounded,
+    this.accentColor = const Color(0xFF4A90E2),
   }) : super(key: key);
 
   @override
@@ -33,16 +38,11 @@ class _BudgetCardState extends State<BudgetCard> {
 
   Future<void> _loadCurrencySymbol() async {
     final symbol = await CurrencyService.getCurrencySymbol();
-    if (mounted) {
-      setState(() {
-        _currencySymbol = symbol;
-      });
-    }
+    if (mounted) setState(() => _currencySymbol = symbol);
   }
 
   @override
   Widget build(BuildContext context) {
-    
     // CASE 1: Budget is not set
     if (widget.budget == null) {
       return GestureDetector(
@@ -51,65 +51,76 @@ class _BudgetCardState extends State<BudgetCard> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: const Color(0xFFE5E5E5), width: 1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.title,
-                          style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF000000),
-                              letterSpacing: -0.3)),
-                      const SizedBox(height: 4),
-                      Text(widget.subtitle,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w400)),
-                    ],
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Text(
-                      'Not Set',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[600]),
-                    ),
-                  ),
-                ],
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
-              const SizedBox(height: 16),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Icon
               Container(
-                padding: const EdgeInsets.all(16),
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: widget.accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(widget.icon, color: widget.accentColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              // Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // CTA
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: widget.accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_circle_outline,
-                        color: Colors.grey[700], size: 20),
-                    const SizedBox(width: 8),
-                    Text('Tap to set budget',
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w500)),
+                    Icon(Icons.add_rounded,
+                        color: widget.accentColor, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Set',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: widget.accentColor,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -122,7 +133,8 @@ class _BudgetCardState extends State<BudgetCard> {
     // CASE 2: Budget is set
     final progress = (widget.spent / widget.budget!).clamp(0.0, 1.0);
     final remaining = widget.budget! - widget.spent;
-    final progressColor = Utilities().getProgressColor(widget.spent, widget.budget!);
+    final progressColor =
+        Utilities().getProgressColor(widget.spent, widget.budget!);
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -130,90 +142,114 @@ class _BudgetCardState extends State<BudgetCard> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFFE5E5E5), width: 1),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title and progress % row
+            // Top row: icon + title + ring
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Title & subtitle
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF000000),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
+                // Icon
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: widget.accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(widget.icon, color: widget.accentColor, size: 22),
                 ),
-                // Progress % and edit icon
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: progressColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
+                const SizedBox(width: 14),
+                // Title + subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                      child: Text(
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Circular progress ring
+                SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: CustomPaint(
+                          painter: _CircularProgressPainter(
+                            progress: progress,
+                            progressColor: progressColor,
+                            trackColor: progressColor.withOpacity(0.12),
+                            strokeWidth: 5,
+                          ),
+                        ),
+                      ),
+                      Text(
                         '${(progress * 100).toStringAsFixed(0)}%',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: progressColor,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.edit, size: 16, color: Colors.grey[600]),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             // Progress bar
             Stack(
               children: [
                 Container(
-                  height: 8,
+                  height: 6,
                   decoration: BoxDecoration(
                     color: progressColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 ),
                 FractionallySizedBox(
                   widthFactor: progress,
                   child: Container(
-                    height: 8,
+                    height: 6,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           progressColor,
-                          progressColor.withOpacity(0.8),
+                          progressColor.withOpacity(0.7),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
@@ -222,75 +258,35 @@ class _BudgetCardState extends State<BudgetCard> {
 
             const SizedBox(height: 16),
 
-            // Spent / Remaining / Total row
+            // Stats row
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Spent',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$_currencySymbol ${widget.spent.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: progressColor,
-                      ),
-                    ),
-                  ],
+                _buildStatItem(
+                  'Spent',
+                  '$_currencySymbol ${widget.spent.toStringAsFixed(0)}',
+                  progressColor,
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Remaining',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$_currencySymbol ${remaining > 0 ? remaining.toStringAsFixed(0) : '0'}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: Colors.grey[200],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$_currencySymbol ${widget.budget!.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: progressColor,
-                      ),
-                    ),
-                  ],
+                _buildStatItem(
+                  'Remaining',
+                  '$_currencySymbol ${remaining > 0 ? remaining.toStringAsFixed(0) : '0'}',
+                  remaining > 0
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFDC2626),
+                ),
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: Colors.grey[200],
+                ),
+                _buildStatItem(
+                  'Budget',
+                  '$_currencySymbol ${widget.budget!.toStringAsFixed(0)}',
+                  Colors.grey[700]!,
                 ),
               ],
             ),
@@ -298,5 +294,84 @@ class _BudgetCardState extends State<BudgetCard> {
         ),
       ),
     );
+  }
+
+  Widget _buildStatItem(String label, String value, Color valueColor) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: valueColor,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Circular Progress Painter ────────────────────────────────────
+
+class _CircularProgressPainter extends CustomPainter {
+  final double progress;
+  final Color progressColor;
+  final Color trackColor;
+  final double strokeWidth;
+
+  _CircularProgressPainter({
+    required this.progress,
+    required this.progressColor,
+    required this.trackColor,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    // Track
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Progress arc
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      2 * pi * progress,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.progressColor != progressColor;
   }
 }
