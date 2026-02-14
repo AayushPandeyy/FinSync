@@ -465,127 +465,131 @@ class _BudgetPageState extends State<BudgetPage> {
         subtitle: 'Manage your spending limits',
         useCustomDesign: true,
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _budgetStream,
-        builder: (context, budgetSnapshot) {
-          return StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _transactionStream,
-            builder: (context, transactionsSnapshot) {
-              if (budgetSnapshot.connectionState == ConnectionState.waiting ||
-                  transactionsSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF4A90E2)),
-                );
-              }
-
-              final budgets = budgetSnapshot.data ?? [];
-              final transactions = transactionsSnapshot.data ?? [];
-              final currentDateInfo = getCurrentDateInfo();
-
-              Map<String, dynamic>? monthlyBudgetData;
-              Map<String, dynamic>? weeklyBudgetData;
-              Map<String, dynamic>? dailyBudgetData;
-
-              for (var budget in budgets) {
-                switch (budget['type']) {
-                  case 'MONTHLY':
-                    monthlyBudgetData = budget;
-                    break;
-                  case 'WEEKLY':
-                    weeklyBudgetData = budget;
-                    break;
-                  case 'DAILY':
-                    dailyBudgetData = budget;
-                    break;
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _budgetStream,
+          builder: (context, budgetSnapshot) {
+            return StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _transactionStream,
+              builder: (context, transactionsSnapshot) {
+                if (budgetSnapshot.connectionState == ConnectionState.waiting ||
+                    transactionsSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF4A90E2)),
+                  );
                 }
-              }
 
-              final monthlyBudget =
-                  (monthlyBudgetData?['amount'] as num?)?.toDouble();
-              final monthlyBudgetId = monthlyBudgetData?['budgetId'] as String?;
-              final weeklyBudget =
-                  (weeklyBudgetData?['amount'] as num?)?.toDouble();
-              final weeklyBudgetId = weeklyBudgetData?['budgetId'] as String?;
-              final dailyLimit =
-                  (dailyBudgetData?['amount'] as num?)?.toDouble();
-              final dailyBudgetId = dailyBudgetData?['budgetId'] as String?;
+                final budgets = budgetSnapshot.data ?? [];
+                final transactions = transactionsSnapshot.data ?? [];
+                final currentDateInfo = getCurrentDateInfo();
 
-              final monthlySpent = _calculateMonthlySpent(transactions);
-              final weeklySpent = _calculateWeeklySpent(transactions);
-              final dailySpent = _calculateDailySpent(transactions);
+                Map<String, dynamic>? monthlyBudgetData;
+                Map<String, dynamic>? weeklyBudgetData;
+                Map<String, dynamic>? dailyBudgetData;
 
-              // Compute overview totals
-              final totalBudget = (monthlyBudget ?? 0);
-              final totalSpent = monthlySpent;
-              final budgetsSet = [
-                if (monthlyBudget != null) 'Monthly',
-                if (weeklyBudget != null) 'Weekly',
-                if (dailyLimit != null) 'Daily',
-              ];
+                for (var budget in budgets) {
+                  switch (budget['type']) {
+                    case 'MONTHLY':
+                      monthlyBudgetData = budget;
+                      break;
+                    case 'WEEKLY':
+                      weeklyBudgetData = budget;
+                      break;
+                    case 'DAILY':
+                      dailyBudgetData = budget;
+                      break;
+                  }
+                }
 
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                children: [
-                  // Overview card
-                  _buildOverviewCard(
-                    totalBudget: totalBudget,
-                    totalSpent: totalSpent,
-                    budgetsSet: budgetsSet.length,
-                    monthName: currentDateInfo['monthYear'] ?? '',
-                  ),
+                final monthlyBudget =
+                    (monthlyBudgetData?['amount'] as num?)?.toDouble();
+                final monthlyBudgetId =
+                    monthlyBudgetData?['budgetId'] as String?;
+                final weeklyBudget =
+                    (weeklyBudgetData?['amount'] as num?)?.toDouble();
+                final weeklyBudgetId = weeklyBudgetData?['budgetId'] as String?;
+                final dailyLimit =
+                    (dailyBudgetData?['amount'] as num?)?.toDouble();
+                final dailyBudgetId = dailyBudgetData?['budgetId'] as String?;
 
-                  const SizedBox(height: 28),
+                final monthlySpent = _calculateMonthlySpent(transactions);
+                final weeklySpent = _calculateWeeklySpent(transactions);
+                final dailySpent = _calculateDailySpent(transactions);
 
-                  // Section header
-                  _buildSectionHeader('Your Budgets'),
+                // Compute overview totals
+                final totalBudget = (monthlyBudget ?? 0);
+                final totalSpent = monthlySpent;
+                final budgetsSet = [
+                  if (monthlyBudget != null) 'Monthly',
+                  if (weeklyBudget != null) 'Weekly',
+                  if (dailyLimit != null) 'Daily',
+                ];
 
-                  const SizedBox(height: 16),
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                  children: [
+                    // Overview card
+                    _buildOverviewCard(
+                      totalBudget: totalBudget,
+                      totalSpent: totalSpent,
+                      budgetsSet: budgetsSet.length,
+                      monthName: currentDateInfo['monthYear'] ?? '',
+                    ),
 
-                  // Monthly
-                  BudgetCard(
-                    title: 'Monthly Budget',
-                    budget: monthlyBudget,
-                    spent: monthlySpent,
-                    subtitle: currentDateInfo['monthYear'] ?? '',
-                    icon: Icons.calendar_month_rounded,
-                    accentColor: const Color(0xFF4A90E2),
-                    onTap: () => _showSetBudgetDialog(
-                        'Monthly', monthlyBudgetId, monthlyBudget),
-                  ),
+                    const SizedBox(height: 28),
 
-                  const SizedBox(height: 12),
+                    // Section header
+                    _buildSectionHeader('Your Budgets'),
 
-                  // Weekly
-                  BudgetCard(
-                    title: 'Weekly Budget',
-                    budget: weeklyBudget,
-                    spent: weeklySpent,
-                    subtitle: currentDateInfo['week'] ?? '',
-                    icon: Icons.view_week_rounded,
-                    accentColor: const Color(0xFFE67E22),
-                    onTap: () => _showSetBudgetDialog(
-                        'Weekly', weeklyBudgetId, weeklyBudget),
-                  ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 12),
+                    // Monthly
+                    BudgetCard(
+                      title: 'Monthly Budget',
+                      budget: monthlyBudget,
+                      spent: monthlySpent,
+                      subtitle: currentDateInfo['monthYear'] ?? '',
+                      icon: Icons.calendar_month_rounded,
+                      accentColor: const Color(0xFF4A90E2),
+                      onTap: () => _showSetBudgetDialog(
+                          'Monthly', monthlyBudgetId, monthlyBudget),
+                    ),
 
-                  // Daily
-                  BudgetCard(
-                    title: 'Daily Limit',
-                    budget: dailyLimit,
-                    spent: dailySpent,
-                    subtitle: currentDateInfo['fullDate'] ?? '',
-                    icon: Icons.today_rounded,
-                    accentColor: const Color(0xFF9B59B6),
-                    onTap: () => _showSetBudgetDialog(
-                        'Daily', dailyBudgetId, dailyLimit),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                    const SizedBox(height: 12),
+
+                    // Weekly
+                    BudgetCard(
+                      title: 'Weekly Budget',
+                      budget: weeklyBudget,
+                      spent: weeklySpent,
+                      subtitle: currentDateInfo['week'] ?? '',
+                      icon: Icons.view_week_rounded,
+                      accentColor: const Color(0xFFE67E22),
+                      onTap: () => _showSetBudgetDialog(
+                          'Weekly', weeklyBudgetId, weeklyBudget),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Daily
+                    BudgetCard(
+                      title: 'Daily Limit',
+                      budget: dailyLimit,
+                      spent: dailySpent,
+                      subtitle: currentDateInfo['fullDate'] ?? '',
+                      icon: Icons.today_rounded,
+                      accentColor: const Color(0xFF9B59B6),
+                      onTap: () => _showSetBudgetDialog(
+                          'Daily', dailyBudgetId, dailyLimit),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

@@ -148,194 +148,198 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
         title: 'Add Subscription',
         useCustomDesign: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Subscription Name
-                const Text(
-                  "Subscription Name",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 5),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    hintText: "e.g., Netflix, Spotify",
-                    prefixIcon: const Icon(Icons.subscriptions),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Subscription name is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Amount
-                const Text(
-                  "Amount",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 5),
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    hintText: "0.00",
-                    prefixIcon: const Icon(Icons.money),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Amount is required';
-                    }
-                    final parsed = double.tryParse(value.trim());
-                    if (parsed == null || parsed <= 0) {
-                      return 'Enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Billing Cycle
-                const Center(
-                  child: Text(
-                    "Billing Cycle",
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Subscription Name
+                  const Text(
+                    "Subscription Name",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _billingCycles.map((cycle) {
-                    return ChoiceChip(
-                      label: Text(cycle),
-                      selected: _selectedBillingCycle == cycle,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedBillingCycle = cycle;
-                        });
-                      },
-                      selectedColor: const Color(0xFF4A90E2),
-                      labelStyle: TextStyle(
-                        color: _selectedBillingCycle == cycle
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-
-                // Next Billing Date
-                const Text(
-                  "Next Billing Date",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 5),
-                InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 15, horizontal: 20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          DateFormat.yMMMMd().format(_selectedDate),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const Icon(
-                          Icons.calendar_today,
-                          color: Color(0xFF4A90E2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Category
-                const Text(
-                  "Category",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: categories.map((category) {
-                    final isSelected = _selectedCategory == category.name;
-                    return ChoiceChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            category.icon,
-                            size: 14,
-                            color: isSelected ? Colors.white : Colors.black54,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(category.name),
-                        ],
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedCategory = category.name;
-                          _selectedIcon = category.icon;
-                        });
-                      },
-                      selectedColor: const Color(0xFF4A90E2),
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 40),
-
-                // Save Button
-                Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 15),
-                      shape: RoundedRectangleBorder(
+                  const SizedBox(height: 5),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: "e.g., Netflix, Spotify",
+                      prefixIcon: const Icon(Icons.subscriptions),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
-                    onPressed: _saveSubscription,
-                    child: const Text(
-                      "Add Subscription",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Subscription name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Amount
+                  const Text(
+                    "Amount",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 5),
+                  TextFormField(
+                    controller: _amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: "0.00",
+                      prefixIcon: const Icon(Icons.money),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Amount is required';
+                      }
+                      final parsed = double.tryParse(value.trim());
+                      if (parsed == null || parsed <= 0) {
+                        return 'Enter a valid amount';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Billing Cycle
+                  const Center(
+                    child: Text(
+                      "Billing Cycle",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: _billingCycles.map((cycle) {
+                      return ChoiceChip(
+                        label: Text(cycle),
+                        selected: _selectedBillingCycle == cycle,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedBillingCycle = cycle;
+                          });
+                        },
+                        selectedColor: const Color(0xFF4A90E2),
+                        labelStyle: TextStyle(
+                          color: _selectedBillingCycle == cycle
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Next Billing Date
+                  const Text(
+                    "Next Billing Date",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 5),
+                  InkWell(
+                    onTap: () => _selectDate(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            DateFormat.yMMMMd().format(_selectedDate),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFF4A90E2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Category
+                  const Text(
+                    "Category",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: categories.map((category) {
+                      final isSelected = _selectedCategory == category.name;
+                      return ChoiceChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              category.icon,
+                              size: 14,
+                              color: isSelected ? Colors.white : Colors.black54,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(category.name),
+                          ],
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedCategory = category.name;
+                            _selectedIcon = category.icon;
+                          });
+                        },
+                        selectedColor: const Color(0xFF4A90E2),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Save Button
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4A90E2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _saveSubscription,
+                      child: const Text(
+                        "Add Subscription",
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -3,16 +3,15 @@ import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/IOUPage/IOUTile.dart';
+import 'package:finance_tracker/widgets/IOUPage/PartialSettleDialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:intl/intl.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/pages/IOUpage/AddIOUPage.dart';
 import 'package:finance_tracker/service/ConnectivityService.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class IOUPage extends StatefulWidget {
   const IOUPage({super.key});
@@ -276,31 +275,70 @@ class _IOUPageState extends State<IOUPage> {
           ),
         ],
       ),
-      body: Column(
-        // mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 16),
-          // --- Summary Cards ---
-          Expanded(
-            child: StreamBuilder<List<IOU>>(
-              stream: firestoreService.getIOUsStream(userId),
-              builder: (context, snapshot) {
-                final allIOUs = snapshot.data ?? [];
-                final totalIOwe = _totalIOwe(allIOUs);
-                final totalOwedToMe = _totalOwedToMe(allIOUs);
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (allIOUs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "No IOUs yet. Tap the + button to add your first IOU!",
-                      style: TextStyle(fontSize: 16, color: Color(0xFF666666)),
-                      textAlign: TextAlign.center,
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<List<IOU>>(
+          stream: firestoreService.getIOUsStream(userId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF4A90E2)),
+              );
+            }
+
+            final allIOUs = snapshot.data ?? [];
+
+            if (allIOUs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(40),
+                      ),
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        size: 36,
+                        color: Colors.grey[400],
+                      ),
                     ),
-                  );
-                }
-                return Padding(
+                    const SizedBox(height: 20),
+                    Text(
+                      'No IOUs yet',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tap + to add your first IOU',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final totalIOwe = _totalIOwe(allIOUs);
+            final totalOwedToMe = _totalOwedToMe(allIOUs);
+            final filteredIOUs = _applyFilter(allIOUs);
+
+            return Column(
+              children: [
+                const SizedBox(height: 16),
+
+                // --- Summary Cards ---
+                Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     children: [
@@ -325,11 +363,128 @@ class _IOUPageState extends State<IOUPage> {
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // --- IOU List ---
+                Expanded(
+                  child: filteredIOUs.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No IOUs match the current filter.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount:
+                              filteredIOUs.length + (_isBannerAdLoaded ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            // Show banner ad after the list
+                            if (index == filteredIOUs.length) {
+                              return Center(
+                                child: Container(
+                                  margin: const EdgeInsets.only(top: 8),
+                                  width: _bannerAd.size.width.toDouble(),
+                                  height: _bannerAd.size.height.toDouble(),
+                                  child: AdWidget(ad: _bannerAd),
+                                ),
+                              );
+                            }
+
+                            final iou = filteredIOUs[index];
+                            return IOUTile(
+                              iou: iou,
+                              onEdit: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditIOUPage(iou: iou),
+                                  ),
+                                );
+                              },
+                              onDelete: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    title: const Text('Delete IOU'),
+                                    content: Text(
+                                      'Delete the IOU with ${iou.personName}?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(true),
+                                        child: const Text(
+                                          'Delete',
+                                          style: TextStyle(
+                                              color: Color(0xFFE63946)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await firestoreService.deleteIOU(uid, iou.id);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context)
+                                      ..clearSnackBars()
+                                      ..showSnackBar(
+                                        const SnackBar(
+                                          content: Text('IOU deleted.'),
+                                        ),
+                                      );
+                                  }
+                                }
+                              },
+                              onSettle: () async {
+                                await firestoreService.updateIOUFields(
+                                  uid,
+                                  iou.id,
+                                  status: IOUStatus.SETTLED.name,
+                                  settledAmount: iou.amount,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                    ..clearSnackBars()
+                                    ..showSnackBar(
+                                      const SnackBar(
+                                        content: Text('IOU settled!'),
+                                      ),
+                                    );
+                                }
+                              },
+                              onPartialSettle: () {
+                                final remaining =
+                                    iou.amount - iou.settledAmount;
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => PartialSettleDialog(
+                                    iou: iou,
+                                    remainingAmount: remaining,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:finance_tracker/pages/accountsPage/AccountSettingsPage.dart';
 import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
+import 'package:finance_tracker/pages/monthlySummaryPage/MonthlySummaryPage.dart';
 import 'package:finance_tracker/pages/homePage/TransactionsBasedOnTypePage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
@@ -166,204 +167,221 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
+            body: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
 
-                  // Unified Balance Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildUnifiedBalanceCard(
-                      totalBalance: (data["totalBalance"] as num).toDouble(),
-                      income: (data["income"] as num).toDouble(),
-                      expense: (data["expense"] as num).toDouble(),
-                      username: data["username"]?.toString() ?? "User",
+                    // Unified Balance Card
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: _buildUnifiedBalanceCard(
+                        totalBalance: (data["totalBalance"] as num).toDouble(),
+                        income: (data["income"] as num).toDouble(),
+                        expense: (data["expense"] as num).toDouble(),
+                        username: data["username"]?.toString() ?? "User",
+                      ),
                     ),
-                  ),
 
-                  // Services section header
+                    // Services section header
 
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Weekly Insights",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[900],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 40,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE74C3C),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  _buildWeeklyExpensesChart(currUser.uid),
-
-                  const SizedBox(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Services",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[900],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 40,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4A90E2),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 20),
-
-                  // Feature boxes section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Center(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 12,
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildFeatureBox(
-                            context,
-                            title: "Transactions",
-                            subtitle: "View all transactions",
-                            icon: Icons.receipt_long,
-                            accentColor: const Color(0xFF4A90E2),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SeeAllTransactionsPage(),
-                                ),
-                              );
-                            },
+                          Text(
+                            "Weekly Insights",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey[900],
+                            ),
                           ),
-                          _buildFeatureBox(
-                            context,
-                            title: "Goals",
-                            subtitle: "Your financial goals",
-                            icon: Icons.savings,
-                            accentColor: const Color(0xFFE67E22),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const GoalsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildFeatureBox(
-                            context,
-                            title: "Analytics",
-                            subtitle: "View insights",
-                            icon: Icons.analytics,
-                            accentColor: const Color(0xFFE74C3C),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ReportPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildFeatureBox(
-                            context,
-                            title: "Budget",
-                            subtitle: "Set your budget",
-                            icon: Icons.pie_chart,
-                            accentColor: const Color(0xFF16A085),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => BudgetPage()));
-                            },
-                          ),
-                          _buildFeatureBox(
-                            context,
-                            title: "IOU",
-                            subtitle: "Track money you owe or are owed",
-                            icon: Icons.receipt_long,
-                            accentColor: const Color(0xFF3498DB),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => IOUPage()));
-                            },
-                          ),
-                          _buildFeatureBox(
-                            context,
-                            title: "Account",
-                            subtitle: "Your Personal Account Information",
-                            icon: Icons.person,
-                            accentColor: const Color(0xFF9B59B6),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          AccountSettingsPage())).then((_) {
-                                // Refresh currency when returning from settings
-                                setState(() {
-                                  initCurrency();
-                                });
-                              });
-                            },
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 40,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE74C3C),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 20),
 
-                  // Weekly Expenses Chart Section
+                    _buildWeeklyExpensesChart(currUser.uid),
 
-                  const SizedBox(height: 24),
-                  if (_isBannerAdLoaded)
-                    Center(
-                      child: Container(
-                        width: _bannerAd.size.width.toDouble(),
-                        height: _bannerAd.size.height.toDouble(),
-                        child: AdWidget(ad: _bannerAd),
+                    const SizedBox(height: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Services",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 40,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A90E2),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 24),
-                ],
+
+                    SizedBox(height: 20),
+
+                    // Feature boxes section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Center(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 12,
+                          children: [
+                            _buildFeatureBox(
+                              context,
+                              title: "Transactions",
+                              subtitle: "View all transactions",
+                              icon: Icons.receipt_long,
+                              accentColor: const Color(0xFF4A90E2),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SeeAllTransactionsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Goals",
+                              subtitle: "Your financial goals",
+                              icon: Icons.savings,
+                              accentColor: const Color(0xFFE67E22),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const GoalsPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Analytics",
+                              subtitle: "View insights",
+                              icon: Icons.analytics,
+                              accentColor: const Color(0xFFE74C3C),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ReportPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Budget",
+                              subtitle: "Set your budget",
+                              icon: Icons.pie_chart,
+                              accentColor: const Color(0xFF16A085),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => BudgetPage()));
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "IOU",
+                              subtitle: "Track money you owe or are owed",
+                              icon: Icons.receipt_long,
+                              accentColor: const Color(0xFF3498DB),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => IOUPage()));
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Account",
+                              subtitle: "Your Personal Account Information",
+                              icon: Icons.person,
+                              accentColor: const Color(0xFF9B59B6),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            AccountSettingsPage())).then((_) {
+                                  // Refresh currency when returning from settings
+                                  setState(() {
+                                    initCurrency();
+                                  });
+                                });
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Summary",
+                              subtitle: "Your month at a glance",
+                              icon: Icons.calendar_month_rounded,
+                              accentColor: const Color(0xFF8E44AD),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const MonthlySummaryPage()));
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Weekly Expenses Chart Section
+
+                    const SizedBox(height: 24),
+                    if (_isBannerAdLoaded)
+                      Center(
+                        child: Container(
+                          width: _bannerAd.size.width.toDouble(),
+                          height: _bannerAd.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           );

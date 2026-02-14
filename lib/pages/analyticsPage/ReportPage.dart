@@ -45,61 +45,64 @@ class _ReportPageState extends State<ReportPage> {
         subtitle: 'Your financial insights',
         useCustomDesign: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-            // 1. Monthly Transaction Summary Chart
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildSectionHeader('Monthly Summary'),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildMonthlySummaryChart(uid),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 2. Weekly Bar Chart
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildSectionHeader('Weekly Trends'),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: _cardDecoration(),
-                child: TransactionChartWidget(uid: uid),
+              // 1. Monthly Transaction Summary Chart
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildSectionHeader('Monthly Summary'),
               ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 3. Category Pie Chart
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildSectionHeader('Category Breakdown'),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: _cardDecoration(),
-                child: const TransactionPieChartsWidget(),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildMonthlySummaryChart(uid),
               ),
-            ),
 
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 32),
+
+              // 2. Weekly Bar Chart
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildSectionHeader('Weekly Trends'),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: _cardDecoration(),
+                  child: TransactionChartWidget(uid: uid),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // 3. Category Pie Chart
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildSectionHeader('Category Breakdown'),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: _cardDecoration(),
+                  child: const TransactionPieChartsWidget(),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

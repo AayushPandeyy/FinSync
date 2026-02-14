@@ -23,14 +23,15 @@ class _TransactionsBasedOnTypePageState
     extends State<TransactionsBasedOnTypePage> {
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F8FA),
-        appBar: StandardAppBar(
-          title: widget.type,
-          useCustomDesign: true,
-        ),
-        body: StreamBuilder(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: widget.type,
+        useCustomDesign: true,
+      ),
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder(
             stream: TransactionFirestoreService().getTransactionsBasedOnType(
                 FirebaseAuth.instance.currentUser!.uid, widget.type),
             builder: (context, snapshot) {

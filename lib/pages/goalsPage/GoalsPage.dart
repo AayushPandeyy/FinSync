@@ -51,57 +51,57 @@ class _GoalsPageState extends State<GoalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: const Color(0xFFF8F8FA),
-        appBar: StandardAppBar(
-          title: 'Financial Goals',
-          subtitle: 'Track your savings goals',
-          useCustomDesign: true,
-          actions: [
-            GestureDetector(
-              onTap: () async {
-                final isOnline =
-                    await ConnectivityService.ensureConnected(
-                  context,
-                  actionDescription: 'add a goal',
-                );
-                if (!isOnline) return;
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: 'Financial Goals',
+        subtitle: 'Track your savings goals',
+        useCustomDesign: true,
+        actions: [
+          GestureDetector(
+            onTap: () async {
+              final isOnline = await ConnectivityService.ensureConnected(
+                context,
+                actionDescription: 'add a goal',
+              );
+              if (!isOnline) return;
 
-                final result = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddGoalsPage(),
-                  ),
-                );
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddGoalsPage(),
+                ),
+              );
 
-                if (result == true && mounted) {
-                  ScaffoldMessenger.of(context)
-                    ..clearSnackBars()
-                    ..showSnackBar(
-                      const SnackBar(
-                        content: Text('Goal saved successfully.'),
-                      ),
-                    );
-                }
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 20,
-                ),
+              if (result == true && mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Goal saved successfully.'),
+                    ),
+                  );
+              }
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 20,
               ),
             ),
-          ],
-        ),
-        body: Column(
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
           children: [
-
             // Divider
             Container(
               height: 1,
@@ -274,7 +274,7 @@ class _GoalsPageState extends State<GoalsPage> {
             const SizedBox(height: 24),
           ],
         ),
-      );
-    
+      ),
+    );
   }
 }
