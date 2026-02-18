@@ -86,12 +86,11 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                   IconData categoryIcon = Categories()
                                       .categories
                                       .firstWhere(
-                                          (cat) =>
-                                              cat.name == data["category"],
+                                          (cat) => cat.name == data["category"],
                                           orElse: () => Category(
-                                                name: 'Unknown',
-                                                icon: Icons.help_outline
-                                              )).icon;
+                                              name: 'Unknown',
+                                              icon: Icons.help_outline))
+                                      .icon;
                                   DialogBox().showTransactionDetailPopUp(
                                       context,
                                       TransactionModel(
@@ -114,13 +113,14 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                       children: [
                                         SlidableAction(
                                           onPressed: (context) async {
-                                            await TransactionFirestoreService().deleteTransaction(
-                                                FirebaseAuth
-                                                    .instance.currentUser!.uid,
-                                                data["id"],
-                                                (data["amount"] as num)
-                                                    .toDouble(),
-                                                data["type"]);
+                                            await TransactionFirestoreService()
+                                                .deleteTransaction(
+                                                    FirebaseAuth.instance
+                                                        .currentUser!.uid,
+                                                    data["id"],
+                                                    (data["amount"] as num)
+                                                        .toDouble(),
+                                                    data["type"]);
                                           },
                                           backgroundColor:
                                               const Color(0xFFFE4A49),
@@ -142,11 +142,16 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                                             description: data[
                                                                 "description"],
                                                             amount:
-                                                                (data["amount"] as num).toDouble(),
+                                                                (data["amount"]
+                                                                        as num)
+                                                                    .toDouble(),
                                                             category: data[
                                                                 "category"],
                                                             date: data["date"]
-                                                                .toDate())));
+                                                                .toDate(),
+                                                            wallet: data[
+                                                                    "wallet"] ??
+                                                                'Cash')));
                                           },
                                           backgroundColor: Colors.blue,
                                           foregroundColor: Colors.white,
@@ -155,16 +160,12 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                         ),
                                       ]),
                                   child: TransactionTile(
-                                    title: 
-                                      data["title"],
-                                      date: 
-                                      data["date"].toDate(),
-                                      amount: 
-                                      (data["amount"] as num).toDouble(),
-                                      type: 
-                                      data["type"],
-                                      category: 
-                                      data["category"]),
+                                      title: data["title"],
+                                      date: data["date"].toDate(),
+                                      amount:
+                                          (data["amount"] as num).toDouble(),
+                                      type: data["type"],
+                                      category: data["category"]),
                                 ),
                               ))
                           .toList()));
@@ -173,4 +174,3 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
     );
   }
 }
-

@@ -6,6 +6,7 @@ import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
 import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/monthlySummaryPage/MonthlySummaryPage.dart';
+import 'package:finance_tracker/pages/walletsPage/WalletsPage.dart';
 import 'package:finance_tracker/pages/homePage/TransactionsBasedOnTypePage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
@@ -359,6 +360,20 @@ class _HomePageState extends State<HomePage> {
                                     MaterialPageRoute(
                                         builder: (context) =>
                                             const MonthlySummaryPage()));
+                              },
+                            ),
+                            _buildFeatureBox(
+                              context,
+                              title: "Wallets",
+                              subtitle: "Cash, Bank & Digital",
+                              icon: Icons.account_balance_wallet,
+                              accentColor: const Color(0xFF2ECC71),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const WalletsPage()));
                               },
                             ),
                           ],

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -106,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
                           borderRadius: BorderRadius.circular(20),
                           child: Image(
                             image: AssetImage(
-                              'assets/images/logo.webp',
+                              'assets/images/logo.png',
                             ),
                           ),
                         )),

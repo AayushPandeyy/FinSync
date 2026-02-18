@@ -1,5 +1,7 @@
 import 'package:finance_tracker/models/Transaction.dart';
+import 'package:finance_tracker/models/Wallet.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/service/WalletFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
@@ -16,6 +18,7 @@ class EditTransactionPage extends StatefulWidget {
   final double amount;
   final String category;
   final DateTime date;
+  final String wallet;
   const EditTransactionPage(
       {super.key,
       required this.type,
@@ -24,7 +27,8 @@ class EditTransactionPage extends StatefulWidget {
       required this.amount,
       required this.category,
       required this.date,
-      required this.id});
+      required this.id,
+      this.wallet = ''});
 
   @override
   _EditTransactionPageState createState() => _EditTransactionPageState();
@@ -38,6 +42,10 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   DateTime? _selectedDate;
   String? _transactionType;
   TransactionFirestoreService service = TransactionFirestoreService();
+  final WalletFirestoreService _walletService = WalletFirestoreService();
+  String? _selectedWalletId;
+  String _selectedWalletName = '';
+  List<WalletModel> _wallets = [];
 
   void _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -61,7 +69,8 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         amount: double.parse(_amountController.text),
         date: _selectedDate!,
         transactionDescription: _descriptionController.text,
-        type: _transactionType!);
+        type: _transactionType!,
+        wallet: _selectedWalletName);
     DialogBox().showLoadingDialog(context);
     await service.updateTransaction(
         uid: FirebaseAuth.instance.currentUser!.uid, transaction: transaction);
@@ -75,6 +84,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    _loadWallets();
     setState(() {
       _titleController.text = widget.title;
       _descriptionController.text = widget.description;
@@ -82,6 +92,24 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
       _selectedDate = widget.date;
       _selectedValue = widget.category;
       _transactionType = widget.type;
+      _selectedWalletName = widget.wallet;
+    });
+  }
+
+  Future<void> _loadWallets() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await _walletService.ensureWalletsExist(uid);
+    _walletService.getWalletsOfUser(uid).listen((data) {
+      if (mounted) {
+        setState(() {
+          _wallets = data.map((json) => WalletModel.fromJson(json)).toList();
+          // Match existing wallet by name
+          final match = _wallets.where((w) => w.name == _selectedWalletName);
+          if (match.isNotEmpty) {
+            _selectedWalletId = match.first.id;
+          }
+        });
+      }
     });
   }
 
@@ -309,6 +337,60 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Wallet Selector
+                const Text("Wallet",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                _wallets.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: _wallets.map((wallet) {
+                          final isSelected = _selectedWalletId == wallet.id;
+                          final color = _getWalletColor(wallet.type);
+                          return ChoiceChip(
+                            avatar: Icon(
+                              _getWalletIcon(wallet.type),
+                              color: isSelected ? Colors.white : color,
+                              size: 18,
+                            ),
+                            label: Text(wallet.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedWalletId = wallet.id;
+                                  _selectedWalletName = wallet.name;
+                                } else {
+                                  _selectedWalletId = null;
+                                  _selectedWalletName = '';
+                                }
+                              });
+                            },
+                            selectedColor: color,
+                            backgroundColor: Colors.white,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected ? color : Colors.grey[300]!,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                 const SizedBox(height: 40),
 
                 // Save Button
@@ -337,5 +419,31 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         ),
       ),
     );
+  }
+
+  IconData _getWalletIcon(String type) {
+    switch (type) {
+      case 'cash':
+        return Icons.money;
+      case 'bank':
+        return Icons.account_balance;
+      case 'digital':
+        return Icons.phone_android;
+      default:
+        return Icons.account_balance_wallet;
+    }
+  }
+
+  Color _getWalletColor(String type) {
+    switch (type) {
+      case 'cash':
+        return const Color(0xFF27AE60);
+      case 'bank':
+        return const Color(0xFF2980B9);
+      case 'digital':
+        return const Color(0xFF8E44AD);
+      default:
+        return const Color(0xFF4A90E2);
+    }
   }
 }

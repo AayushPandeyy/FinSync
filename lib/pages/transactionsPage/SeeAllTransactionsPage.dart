@@ -700,7 +700,10 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                                                     "category"],
                                                             date: transaction[
                                                                     "date"]
-                                                                .toDate())));
+                                                                .toDate(),
+                                                            wallet: transaction[
+                                                                    "wallet"] ??
+                                                                'Cash')));
                                           },
                                           backgroundColor:
                                               const Color(0xFF000000),

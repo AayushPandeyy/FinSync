@@ -116,7 +116,10 @@ class _TransactionsBasedOnTypePageState
                                                         category:
                                                             data["category"],
                                                         date: data["date"]
-                                                            .toDate())));
+                                                            .toDate(),
+                                                        wallet:
+                                                            data["wallet"] ??
+                                                                'Cash')));
                                       },
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,

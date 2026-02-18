@@ -1,6 +1,8 @@
 import 'package:finance_tracker/models/Transaction.dart';
+import 'package:finance_tracker/models/Wallet.dart';
 import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
+import 'package:finance_tracker/service/WalletFirestoreService.dart';
 import 'package:finance_tracker/utilities/BannerService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
@@ -28,12 +30,29 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   DateTime _selectedDate = DateTime.now();
   String _transactionType = 'INCOME';
   final TransactionFirestoreService service = TransactionFirestoreService();
+  final WalletFirestoreService _walletService = WalletFirestoreService();
   bool _isLoadingDialogVisible = false;
+  String? _selectedWalletId;
+  String _selectedWalletName = '';
+  List<WalletModel> _wallets = [];
 
   @override
   void initState() {
     super.initState();
+    _loadWallets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
+  }
+
+  Future<void> _loadWallets() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await _walletService.ensureWalletsExist(uid);
+    _walletService.getWalletsOfUser(uid).listen((data) {
+      if (mounted) {
+        setState(() {
+          _wallets = data.map((json) => WalletModel.fromJson(json)).toList();
+        });
+      }
+    });
   }
 
   @override
@@ -116,6 +135,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       date: _selectedDate,
       transactionDescription: _descriptionController.text.trim(),
       type: _transactionType,
+      wallet: _selectedWalletName,
     );
 
     _showLoadingDialog();
@@ -391,6 +411,63 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+
+                    // Wallet Selector
+                    const Text("Wallet",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    _wallets.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: _wallets.map((wallet) {
+                              final isSelected = _selectedWalletId == wallet.id;
+                              final color = _getWalletColor(wallet.type);
+                              return ChoiceChip(
+                                avatar: Icon(
+                                  _getWalletIcon(wallet.type),
+                                  color: isSelected ? Colors.white : color,
+                                  size: 18,
+                                ),
+                                label: Text(wallet.name),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedWalletId = wallet.id;
+                                      _selectedWalletName = wallet.name;
+                                    } else {
+                                      _selectedWalletId = null;
+                                      _selectedWalletName = '';
+                                    }
+                                  });
+                                },
+                                selectedColor: color,
+                                backgroundColor: Colors.white,
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(
+                                    color:
+                                        isSelected ? color : Colors.grey[300]!,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                     const SizedBox(height: 40),
 
                     // Save Button
@@ -419,5 +496,31 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
           ),
         ));
+  }
+
+  IconData _getWalletIcon(String type) {
+    switch (type) {
+      case 'cash':
+        return Icons.money;
+      case 'bank':
+        return Icons.account_balance;
+      case 'digital':
+        return Icons.phone_android;
+      default:
+        return Icons.account_balance_wallet;
+    }
+  }
+
+  Color _getWalletColor(String type) {
+    switch (type) {
+      case 'cash':
+        return const Color(0xFF27AE60);
+      case 'bank':
+        return const Color(0xFF2980B9);
+      case 'digital':
+        return const Color(0xFF8E44AD);
+      default:
+        return const Color(0xFF4A90E2);
+    }
   }
 }

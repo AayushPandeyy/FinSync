@@ -12,6 +12,25 @@ class TransactionFirestoreService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final UserFirestoreService userFirestoreService = UserFirestoreService();
 
+  /// Helper: adjust wallet balance by wallet name.
+  /// [amount] is positive for income, negative for expense.
+  Future<void> _adjustWalletBalance(
+      String uid, String walletName, double delta) async {
+    if (walletName.isEmpty) return;
+    final snapshot = await firestore
+        .collection("Wallets")
+        .doc(uid)
+        .collection("wallet")
+        .where("name", isEqualTo: walletName)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update({
+        'balance': FieldValue.increment(delta),
+      });
+    }
+  }
+
   Stream<List<Map<String, dynamic>>> getRecentTransactionsOfUser(
       String uid) async* {
     final cacheKey = 'transactions_recent_$uid';
@@ -93,8 +112,17 @@ class TransactionFirestoreService {
       "description": transaction.transactionDescription,
       "amount": transaction.amount,
       "category": transaction.category,
-      "type": transaction.type
+      "type": transaction.type,
+      "wallet": transaction.wallet
     });
+
+    // Update wallet balance
+    if (transaction.wallet.isNotEmpty) {
+      final delta = transaction.type == 'EXPENSE'
+          ? -transaction.amount
+          : transaction.amount;
+      await _adjustWalletBalance(uid, transaction.wallet, delta);
+    }
   }
 
   Stream<double> getTotalAmountInACategory(String category) async* {
@@ -139,6 +167,7 @@ class TransactionFirestoreService {
       final oldData = transactionSnapshot.data();
       final oldAmount = oldData?["amount"] ?? 0;
       final oldType = oldData?["type"] ?? '';
+      final oldWallet = oldData?["wallet"] ?? 'Cash';
 
       // Update total balance, income, and expense based on the new data
       bool isOldExpense = oldType == 'EXPENSE';
@@ -161,7 +190,24 @@ class TransactionFirestoreService {
         "date": transaction.date,
         "category": transaction.category,
         "type": transaction.type,
+        "wallet": transaction.wallet,
       });
+
+      // Reverse old wallet balance
+      if (oldWallet.toString().isNotEmpty) {
+        final oldDelta = isOldExpense
+            ? (oldAmount as num).toDouble()
+            : -(oldAmount as num).toDouble();
+        await _adjustWalletBalance(uid, oldWallet.toString(), oldDelta);
+      }
+
+      // Apply new wallet balance
+      if (transaction.wallet.isNotEmpty) {
+        final newDelta =
+            isNewExpense ? -transaction.amount : transaction.amount;
+        await _adjustWalletBalance(uid, transaction.wallet, newDelta);
+      }
+
       print("Transaction updated successfully");
     } catch (e) {
       print("Failed to update transaction: $e");
@@ -172,6 +218,15 @@ class TransactionFirestoreService {
   Future<void> deleteTransaction(
       String uid, String transactionId, double amount, String type) async {
     bool isExpense = TransactionType.EXPENSE.name == type;
+
+    // Fetch wallet name before deleting
+    final transactionDoc = await FirebaseFirestore.instance
+        .collection("Transactions")
+        .doc(uid)
+        .collection("transaction")
+        .doc(transactionId)
+        .get();
+    final walletName = transactionDoc.data()?["wallet"] ?? 'Cash';
 
     // Delete the transaction document from Firestore
     await FirebaseFirestore.instance
@@ -184,13 +239,17 @@ class TransactionFirestoreService {
     // Update user's totalBalance, income, and expense fields
     await FirebaseFirestore.instance.collection("Users").doc(uid).update({
       "totalBalance": FieldValue.increment(isExpense ? amount : -amount),
-      "income": isExpense
-          ? FieldValue.increment(0)
-          : FieldValue.increment(-amount), // Decrease income if not an expense
-      "expense": isExpense
-          ? FieldValue.increment(-amount)
-          : FieldValue.increment(0), // Decrease expense if it's an expense
+      "income":
+          isExpense ? FieldValue.increment(0) : FieldValue.increment(-amount),
+      "expense":
+          isExpense ? FieldValue.increment(-amount) : FieldValue.increment(0),
     });
+
+    // Reverse wallet balance
+    if (walletName.toString().isNotEmpty) {
+      final delta = isExpense ? amount : -amount;
+      await _adjustWalletBalance(uid, walletName.toString(), delta);
+    }
   }
 
   Future<Map<String, Map<String, double>>> getTransactionsGroupedByDay(

@@ -1,3 +1,4 @@
 class Globals {
-  static double versionCode = 1.1;
+  static double versionCode = 1.2; //live 1.1
+
 }
