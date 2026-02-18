@@ -700,10 +700,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                                                     "category"],
                                                             date: transaction[
                                                                     "date"]
-                                                                .toDate(),
-                                                            wallet: transaction[
-                                                                    "wallet"] ??
-                                                                'Cash')));
+                                                                .toDate())));
                                           },
                                           backgroundColor:
                                               const Color(0xFF000000),
@@ -739,11 +736,12 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                       date: transaction["date"].toDate(),
                                       amount: (transaction["amount"] as num)
                                           .toDouble(),
+                                      wallet: transaction["wallet"] ?? 'Cash',
                                       type: transaction["type"],
                                       category: transaction["category"]),
                                 ),
                               );
-                            }).toList(),
+                            }),
 
                             // Month summary
                             Container(

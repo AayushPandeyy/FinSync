@@ -95,19 +95,6 @@ class _WalletsPageState extends State<WalletsPage> {
     }
   }
 
-  String _getWalletDescription(String type) {
-    switch (type) {
-      case 'cash':
-        return 'Physical cash on hand';
-      case 'bank':
-        return 'Bank account balance';
-      case 'digital':
-        return 'E-wallets & digital payments';
-      default:
-        return 'Custom wallet';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,6 +168,10 @@ class _WalletsPageState extends State<WalletsPage> {
 
                       // Info card
                       _buildInfoCard(),
+
+                      const SizedBox(height: 16),
+
+                      _buildPreviousTransactionsInfoCard(),
 
                       const SizedBox(height: 16),
 
@@ -741,6 +732,42 @@ class _WalletsPageState extends State<WalletsPage> {
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.amber[900],
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviousTransactionsInfoCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 228, 255, 225),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color.fromARGB(255, 165, 255, 130),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: const Color.fromARGB(255, 21, 165, 1),
+            size: 22,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'All your previous transactions are considered to be linked to the "Cash" wallet by default. You can edit these transactions to assign them to the correct wallet for better tracking.',
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color.fromARGB(255, 21, 165, 1),
                 height: 1.5,
               ),
             ),

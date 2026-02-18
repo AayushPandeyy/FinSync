@@ -128,6 +128,7 @@ class _TransactionsBasedOnTypePageState
                                     ),
                                   ]),
                               child: TransactionTile(
+                                  wallet: data["wallet"] ?? 'Cash',
                                   title: data["title"],
                                   date: data["date"].toDate(),
                                   amount: (data["amount"] as num).toDouble(),

@@ -165,6 +165,7 @@ class _RecentTransactionsWidgetState extends State<RecentTransactionsWidget> {
                                       amount:
                                           (data["amount"] as num).toDouble(),
                                       type: data["type"],
+                                      wallet: data["wallet"] ?? 'Cash',
                                       category: data["category"]),
                                 ),
                               ))
