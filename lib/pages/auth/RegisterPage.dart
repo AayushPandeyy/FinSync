@@ -20,6 +20,46 @@ class _RegisterPageState extends State<RegisterPage> {
   final dialogBox = DialogBox();
 
   bool obscure = true;
+  bool _isRegistering = false;
+
+  InputDecoration _fieldDecoration({
+    required String hint,
+    required IconData icon,
+    Widget? suffixIcon,
+    String? helperText,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFF7B8A83)),
+      prefixIcon: Icon(icon, color: const Color(0xFF1F7A53)),
+      suffixIcon: suffixIcon,
+      helperText: helperText,
+      helperStyle: const TextStyle(color: Color(0xFF6E7D76), fontSize: 11),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFD9E3DD)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFD9E3DD)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF1F7A53), width: 1.6),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFC74040)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFC74040), width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+  }
 
   @override
   void dispose() {
@@ -36,6 +76,12 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    FocusScope.of(context).unfocus();
+    if (_isRegistering) return;
+    setState(() {
+      _isRegistering = true;
+    });
+
     final AuthFirestoreService authService = AuthFirestoreService();
     try {
       await authService.signUp(
@@ -45,15 +91,13 @@ class _RegisterPageState extends State<RegisterPage> {
           phoneController.text.trim());
 
       if (!mounted) return;
-      dialogBox.showMessageDialog(
+      await dialogBox.showMessageDialog(
         context,
         isSuccess: true,
         title: "Verification Email Sent",
         message:
             "A verification email has been sent. Please verify your email and login to your account.",
       );
-      // Navigate back to login after dialog is dismissed
-      await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
       Navigator.pop(context); // Return to login
     } on FirebaseAuthException catch (err) {
@@ -83,7 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
 
       if (!mounted) return;
-      dialogBox.showMessageDialog(
+      await dialogBox.showMessageDialog(
         context,
         isSuccess: false,
         title: "Registration Failed",
@@ -93,12 +137,18 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
 
       if (!mounted) return;
-      dialogBox.showMessageDialog(
+      await dialogBox.showMessageDialog(
         context,
         isSuccess: false,
         title: "Error",
         message: "An unexpected error occurred. Please try again.",
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRegistering = false;
+        });
+      }
     }
   }
 
@@ -107,48 +157,68 @@ class _RegisterPageState extends State<RegisterPage> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF00B4DB),
-                Color(0xFF0083B0),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Create Account",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
+        backgroundColor: const Color(0xFFF3F6F4),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 94,
+                      height: 94,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x1A0A3D27),
+                            blurRadius: 16,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Join us by creating your account",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 18,
-                        ),
+                      padding: const EdgeInsets.all(14),
+                      child: Image.asset('assets/images/logo.png'),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF102418),
                       ),
-                      const SizedBox(height: 40),
-                      Form(
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Start managing your money with FinSync.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF5D6E66),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 20,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+                      child: Form(
                         key: _formKey,
                         child: Column(
                           children: [
@@ -167,42 +237,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                 }
                                 return null;
                               },
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.person, color: Colors.white),
-                                hintText: "Username",
-                                hintStyle:
-                                    const TextStyle(color: Colors.white70),
-                                errorStyle:
-                                    const TextStyle(color: Colors.yellow),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.2),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                              decoration: _fieldDecoration(
+                                hint: 'Username',
+                                icon: Icons.person_outline,
                               ),
-                              style: const TextStyle(color: Colors.white),
-                              cursorColor: Colors.white,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
                             TextFormField(
                               controller: emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -217,42 +257,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                 }
                                 return null;
                               },
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.email, color: Colors.white),
-                                hintText: "Email",
-                                hintStyle:
-                                    const TextStyle(color: Colors.white70),
-                                errorStyle:
-                                    const TextStyle(color: Colors.yellow),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.2),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                              decoration: _fieldDecoration(
+                                hint: 'Email',
+                                icon: Icons.email_outlined,
                               ),
-                              style: const TextStyle(color: Colors.white),
-                              cursorColor: Colors.white,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
                             TextFormField(
                               controller: phoneController,
                               keyboardType: TextInputType.phone,
@@ -265,42 +275,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                 }
                                 return null;
                               },
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.phone, color: Colors.white),
-                                hintText: "Phone Number",
-                                hintStyle:
-                                    const TextStyle(color: Colors.white70),
-                                errorStyle:
-                                    const TextStyle(color: Colors.yellow),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.2),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                              decoration: _fieldDecoration(
+                                hint: 'Phone Number',
+                                icon: Icons.phone_outlined,
                               ),
-                              style: const TextStyle(color: Colors.white),
-                              cursorColor: Colors.white,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
                             TextFormField(
                               controller: passwordController,
                               obscureText: obscure,
@@ -322,16 +302,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                 }
                                 return null;
                               },
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.lock, color: Colors.white),
-                                hintText: "Password",
+                              decoration: _fieldDecoration(
+                                hint: 'Password',
+                                icon: Icons.lock_outline,
+                                helperText:
+                                    'Min 8 chars, 1 uppercase, 1 lowercase, 1 number',
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     obscure
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: Colors.white,
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: const Color(0xFF1F7A53),
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -339,99 +320,53 @@ class _RegisterPageState extends State<RegisterPage> {
                                     });
                                   },
                                 ),
-                                hintStyle:
-                                    const TextStyle(color: Colors.white70),
-                                errorStyle: const TextStyle(
-                                    color: Colors.yellow, fontSize: 11),
-                                helperText:
-                                    'Min 8 chars, 1 uppercase, 1 lowercase, 1 number',
-                                helperStyle: const TextStyle(
-                                    color: Colors.white60, fontSize: 11),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.2),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.white),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none,
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.yellow),
-                                ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 16),
                               ),
-                              style: const TextStyle(color: Colors.white),
-                              cursorColor: Colors.white,
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1F7A53),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                onPressed: _isRegistering
+                                    ? null
+                                    : () => signUp(context),
+                                child: Text(
+                                  _isRegistering
+                                      ? 'Creating account...'
+                                      : 'Register',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 30),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                        ),
-                        onPressed: () {
-                          signUp(context);
-                        },
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFFF8C00),
-                                Color(0xFFFFD700),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            constraints: const BoxConstraints(
-                              minWidth: double.infinity,
-                              minHeight: 48,
-                            ),
-                            child: const Text(
-                              "Register",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        'Already have an account? Login',
+                        style: TextStyle(
+                          color: Color(0xFF334C3F),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Go back to login page
-                        },
-                        child: const Text(
-                          "Already have an account? Login",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

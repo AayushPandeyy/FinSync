@@ -8,6 +8,7 @@ import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/monthlySummaryPage/MonthlySummaryPage.dart';
 import 'package:finance_tracker/pages/walletsPage/WalletsPage.dart';
 import 'package:finance_tracker/pages/homePage/TransactionsBasedOnTypePage.dart';
+import 'package:finance_tracker/pages/homePage/ServicesListPage.dart';
 import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
@@ -226,15 +227,37 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Services",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey[900],
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Services",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey[900],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ServicesListPage(),
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  "See all",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Container(
                             width: 40,
                             height: 3,
