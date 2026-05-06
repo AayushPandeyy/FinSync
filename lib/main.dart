@@ -1,6 +1,6 @@
 import 'package:finance_tracker/firebase_options.dart';
-import 'package:finance_tracker/pages/SplashScreen.dart';
-import 'package:finance_tracker/pages/auth/LoginChecker.dart';
+import 'package:finance_tracker/pages/common/SplashScreen.dart';
+import 'package:finance_tracker/pages/common/auth/LoginChecker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

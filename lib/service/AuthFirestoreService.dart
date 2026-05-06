@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthFirestoreService {
   // get firebase instance
@@ -48,10 +49,107 @@ class AuthFirestoreService {
     }
   }
 
-  //logout
+  //signUpWithGoogle
+  Future<UserCredential> signUpWithGoogle() async {
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw Exception('Google sign-in was cancelled');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await auth.signInWithCredential(credential);
+
+      // Check if user already exists in Firestore
+      final userDoc = await firestore
+          .collection('Users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      // If user doesn't exist, add them to Firestore
+      if (!userDoc.exists) {
+        final displayName = userCredential.user?.displayName ?? 'User';
+        final email = userCredential.user?.email ?? '';
+
+        await userFirestoreService.addUserToDatabase(
+          userCredential.user!.uid,
+          email,
+          displayName,
+          '', // Phone number is not provided by Google
+        );
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (err) {
+      rethrow;
+    } catch (e) {
+      throw Exception('Google sign-up failed: $e');
+    }
+  }
+
+  //signInWithGoogle
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw Exception('Google sign-in was cancelled');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await auth.signInWithCredential(credential);
+
+      // Check if user already exists in Firestore
+      final userDoc = await firestore
+          .collection('Users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      // If user doesn't exist, add them to Firestore
+      if (!userDoc.exists) {
+        final displayName = userCredential.user?.displayName ?? 'User';
+        final email = userCredential.user?.email ?? '';
+
+        await userFirestoreService.addUserToDatabase(
+          userCredential.user!.uid,
+          email,
+          displayName,
+          '', // Phone number is not provided by Google
+        );
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (err) {
+      rethrow;
+    } catch (e) {
+      throw Exception('Google sign-in failed: $e');
+    }
+  }
 
   Future<void> logout() async {
     try {
+      // Sign out from Google as well
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
       await FirebaseAuth.instance.signOut();
     } catch (e) {
       throw Exception('Logout failed: $e');

@@ -59,6 +59,14 @@
           }
         },
         {
+          "client_id": "49236096528-e7hpev2horfb9efp80t7ptjiak031aku.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pandeyaayush.finsync",
+            "certificate_hash": "6188b6044eaec90623af6477df4fd6da147332a8"
+          }
+        },
+        {
           "client_id": "49236096528-i9hftafvingta1n3cba9jqf30kl9to2u.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

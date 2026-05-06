@@ -61,6 +61,17 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
     }
   }
 
+  void _setTransactionType(String type) {
+    final categories = Categories().getCategories(type);
+    setState(() {
+      _transactionType = type;
+      if (_selectedValue != null &&
+          !categories.any((category) => category.name == _selectedValue)) {
+        _selectedValue = null;
+      }
+    });
+  }
+
   void _saveTransaction() async {
     TransactionModel transaction = TransactionModel(
         id: widget.id,
@@ -149,9 +160,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                       label: const Text("Income"),
                       selected: _transactionType == "INCOME",
                       onSelected: (selected) {
-                        setState(() {
-                          _transactionType = "INCOME";
-                        });
+                        _setTransactionType("INCOME");
                       },
                       selectedColor: Colors.green,
                       labelStyle: TextStyle(
@@ -163,9 +172,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                       label: const Text("Expense"),
                       selected: _transactionType == "EXPENSE",
                       onSelected: (selected) {
-                        setState(() {
-                          _transactionType = "EXPENSE";
-                        });
+                        _setTransactionType("EXPENSE");
                       },
                       selectedColor: Colors.red,
                       labelStyle: TextStyle(
@@ -260,7 +267,12 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedValue,
+                        value: Categories()
+                                .getCategories(_transactionType!)
+                                .any((category) =>
+                                    category.name == _selectedValue)
+                            ? _selectedValue
+                            : null,
                         hint: Text("Select an option",
                             style: GoogleFonts.afacad(fontSize: 16)),
                         icon: const Icon(
@@ -280,7 +292,9 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                             _selectedValue = value;
                           });
                         },
-                        items: Categories().categories.map((category) {
+                        items: Categories()
+                            .getCategories(_transactionType!)
+                            .map((category) {
                           return DropdownMenuItem<String>(
                             value: category.name,
                             child: Padding(

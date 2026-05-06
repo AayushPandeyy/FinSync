@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
-import 'package:finance_tracker/pages/goalsPage/GoalsPage.dart';
-import 'package:finance_tracker/pages/analyticsPage/ReportPage.dart';
-import 'package:finance_tracker/pages/budgetPage/BudgetPage.dart';
-import 'package:finance_tracker/pages/IOUpage/IOUPage.dart';
-import 'package:finance_tracker/pages/accountsPage/AccountSettingsPage.dart';
-import 'package:finance_tracker/pages/monthlySummaryPage/MonthlySummaryPage.dart';
-import 'package:finance_tracker/pages/walletsPage/WalletsPage.dart';
+import 'package:finance_tracker/pages/personalMode/transactionsPage/SeeAllTransactionsPage.dart';
+import 'package:finance_tracker/pages/personalMode/goalsPage/GoalsPage.dart';
+import 'package:finance_tracker/pages/personalMode/analyticsPage/ReportPage.dart';
+import 'package:finance_tracker/pages/personalMode/budgetPage/BudgetPage.dart';
+import 'package:finance_tracker/pages/personalMode/IOUpage/IOUPage.dart';
+import 'package:finance_tracker/pages/common/accountsPage/AccountSettingsPage.dart';
+import 'package:finance_tracker/pages/personalMode/monthlySummaryPage/MonthlySummaryPage.dart';
+import 'package:finance_tracker/pages/personalMode/walletsPage/WalletsPage.dart';
+import 'package:finance_tracker/pages/personalMode/transferPage/TransferPage.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 
 class ServicesListPage extends StatelessWidget {
@@ -29,6 +30,9 @@ class ServicesListPage extends StatelessWidget {
         break;
       case 'IOU':
         page = IOUPage();
+        break;
+      case 'Transfer':
+        page = const TransferPage();
         break;
       case 'Account':
         page = AccountSettingsPage();
@@ -79,6 +83,12 @@ class ServicesListPage extends StatelessWidget {
       subtitle: 'Manage money you owe and are owed',
       icon: Icons.request_page,
       color: Color(0xFF3498DB),
+    ),
+    _ServiceItem(
+      title: 'Transfer',
+      subtitle: 'Transfer money between your wallets',
+      icon: Icons.swap_horiz,
+      color: Color(0xFF20B894),
     ),
     _ServiceItem(
       title: 'Account',

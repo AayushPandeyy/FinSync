@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/pages/homePage/HomePage.dart';
-import 'package:finance_tracker/pages/auth/LoginPage.dart';
+import 'package:finance_tracker/pages/common/auth/LoginPage.dart';
 import 'package:finance_tracker/utilities/Globals.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

@@ -15,7 +15,9 @@ import 'package:intl/intl.dart';
 import 'package:uuid/v6.dart';
 
 class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
+  const AddTransactionPage({super.key, this.transactionType});
+
+  final String? transactionType;
 
   @override
   _AddTransactionPageState createState() => _AddTransactionPageState();
@@ -39,6 +41,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   @override
   void initState() {
     super.initState();
+
+    // Set transaction type based on passed parameter
+    if (widget.transactionType != null) {
+      _transactionType = widget.transactionType!.toUpperCase();
+    }
+
     _loadWallets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
   }
@@ -160,6 +168,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
   }
 
+  void _setTransactionType(String type) {
+    final categories = Categories().getCategories(type);
+    setState(() {
+      _transactionType = type;
+      if (_selectedValue != null &&
+          !categories.any((category) => category.name == _selectedValue)) {
+        _selectedValue = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,9 +218,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           label: const Text("Income"),
                           selected: _transactionType == "INCOME",
                           onSelected: (selected) {
-                            setState(() {
-                              _transactionType = "INCOME";
-                            });
+                            _setTransactionType("INCOME");
                           },
                           selectedColor: Colors.green,
                           labelStyle: TextStyle(
@@ -213,9 +230,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           label: const Text("Expense"),
                           selected: _transactionType == "EXPENSE",
                           onSelected: (selected) {
-                            setState(() {
-                              _transactionType = "EXPENSE";
-                            });
+                            _setTransactionType("EXPENSE");
                           },
                           selectedColor: Colors.red,
                           labelStyle: TextStyle(
@@ -333,7 +348,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _selectedValue,
+                            value: Categories()
+                                    .getCategories(_transactionType)
+                                    .any((category) =>
+                                        category.name == _selectedValue)
+                                ? _selectedValue
+                                : null,
                             hint: Text("Select an option",
                                 style: GoogleFonts.afacad(fontSize: 16)),
                             icon: const Icon(
@@ -353,7 +373,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                 _selectedValue = value;
                               });
                             },
-                            items: Categories().categories.map((category) {
+                            items: Categories()
+                                .getCategories(_transactionType)
+                                .map((category) {
                               return DropdownMenuItem<String>(
                                 value: category.name,
                                 child: Padding(

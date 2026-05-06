@@ -1,4 +1,4 @@
-import 'package:finance_tracker/pages/auth/RegisterPage.dart';
+import 'package:finance_tracker/pages/common/auth/RegisterPage.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';

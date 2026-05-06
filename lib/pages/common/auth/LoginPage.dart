@@ -1,5 +1,5 @@
-import 'package:finance_tracker/pages/auth/ForgotPasswordPage.dart';
-import 'package:finance_tracker/pages/auth/RegisterPage.dart';
+import 'package:finance_tracker/pages/common/auth/ForgotPasswordPage.dart';
+import 'package:finance_tracker/pages/common/auth/RegisterPage.dart';
 import 'package:finance_tracker/service/AuthFirestoreService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool isObscured = true;
   bool _isLoggingIn = false;
+  bool _isGoogleLoggingIn = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthFirestoreService authService = AuthFirestoreService();
@@ -121,6 +122,79 @@ class _LoginPageState extends State<LoginPage> {
         isSuccess: false,
         title: "Login Failed",
         message: "An unknown error occurred. Please try again.",
+      );
+    }
+  }
+
+  void _loginWithGoogle(BuildContext context) async {
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isGoogleLoggingIn = true;
+    });
+
+    try {
+      UserCredential user = await authService.signInWithGoogle();
+
+      if (!mounted) return;
+      _resetFields();
+      // LoginChecker will automatically detect the auth state change
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGoogleLoggingIn = false;
+      });
+
+      if (!mounted) return;
+      String errorMessage;
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          errorMessage =
+              'An account already exists with this email but different credentials.';
+          break;
+        case 'invalid-credential':
+          errorMessage = 'Invalid credentials. Please try again.';
+          break;
+        case 'operation-not-allowed':
+          errorMessage = 'Google sign-in is not enabled.';
+          break;
+        case 'user-disabled':
+          errorMessage = 'This user account has been disabled.';
+          break;
+        case 'user-not-found':
+          errorMessage = 'No user found.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Incorrect password.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Invalid email address.';
+          break;
+        default:
+          errorMessage = 'Google sign-in failed. Please try again.';
+      }
+      if (!mounted) return;
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Google Sign-in Failed",
+        message: errorMessage,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGoogleLoggingIn = false;
+      });
+
+      if (!mounted) return;
+      print('Google sign-in error: $e');
+      DialogBox().showMessageDialog(
+        context,
+        isSuccess: false,
+        title: "Google Sign-in Failed",
+        message: e.toString().contains('cancelled')
+            ? 'Google sign-in was cancelled.'
+            : "An error occurred. Please try again.",
       );
     }
   }
@@ -311,6 +385,73 @@ class _LoginPageState extends State<LoginPage> {
                                     fontSize: 16,
                                   ),
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                    child:
+                                        Divider(color: Colors.grey.shade300)),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text("or"),
+                                ),
+                                Expanded(
+                                    child:
+                                        Divider(color: Colors.grey.shade300)),
+                              ],
+                            ),
+                            SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF102418),
+                                  side: const BorderSide(
+                                    color: Color(0xFFE0E6E2),
+                                    width: 1.3,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14, horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                onPressed: _isGoogleLoggingIn || _isLoggingIn
+                                    ? null
+                                    : () {
+                                        _loginWithGoogle(context);
+                                      },
+                                child: _isGoogleLoggingIn
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/google_logo.webp',
+                                            height: 22,
+                                            width: 22,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            'Continue with Google',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ),
                             ),
                           ],

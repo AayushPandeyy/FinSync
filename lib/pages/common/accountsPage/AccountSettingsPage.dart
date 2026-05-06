@@ -301,119 +301,221 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   void _showCurrencyPicker() {
+    final TextEditingController searchController = TextEditingController();
+    String searchQuery = '';
+    bool showSearch = false;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Select Currency",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
-                  ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredCurrencies = _currencies.where((currency) {
+              final query = searchQuery.trim().toLowerCase();
+              if (query.isEmpty) return true;
+              final code = (currency['code'] ?? '').toLowerCase();
+              final name = (currency['name'] ?? '').toLowerCase();
+              final symbol = (currency['symbol'] ?? '').toLowerCase();
+              return code.contains(query) ||
+                  name.contains(query) ||
+                  symbol.contains(query);
+            }).toList();
+
+            return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                const SizedBox(height: 20),
-                ...(_currencies.map((currency) {
-                  bool isSelected = _selectedCurrency == currency['code'];
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCurrency = currency['code']!;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFF0F7FF)
-                            : const Color(0xFFF8F8FA),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF4A90E2)
-                              : const Color(0xFFE5E5E5),
-                          width: isSelected ? 2 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF4A90E2).withOpacity(0.1)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.82,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Select Currency",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A1A),
+                              ),
                             ),
-                            child: Center(
-                              child: Text(
-                                currency['symbol']!,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: isSelected
-                                      ? const Color(0xFF4A90E2)
-                                      : const Color(0xFF666666),
-                                ),
+                            IconButton(
+                              tooltip: 'Search currency',
+                              onPressed: () {
+                                setModalState(() {
+                                  showSearch = !showSearch;
+                                  if (!showSearch) {
+                                    searchController.clear();
+                                    searchQuery = '';
+                                  }
+                                });
+                              },
+                              icon: Icon(
+                                showSearch ? Icons.close : Icons.search,
+                                color: const Color(0xFF4A90E2),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (showSearch) ...[
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: searchController,
+                            onChanged: (value) {
+                              setModalState(() {
+                                searchQuery = value;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Search by code, name, or symbol',
+                              prefixIcon: const Icon(Icons.search),
+                              isDense: true,
+                              filled: true,
+                              fillColor: const Color(0xFFF8F8FA),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE5E5E5)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE5E5E5)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFF4A90E2)),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  currency['code']!,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected
-                                        ? const Color(0xFF1A1A1A)
-                                        : const Color(0xFF666666),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  currency['name']!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF999999),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isSelected)
-                            const Icon(Icons.check_circle,
-                                color: Color(0xFF4A90E2), size: 24),
                         ],
-                      ),
+                        const SizedBox(height: 20),
+                        if (filteredCurrencies.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: Text(
+                                'No matching currencies found',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF999999),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ...filteredCurrencies.map((currency) {
+                            bool isSelected =
+                                _selectedCurrency == currency['code'];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedCurrency = currency['code']!;
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFF0F7FF)
+                                      : const Color(0xFFF8F8FA),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF4A90E2)
+                                        : const Color(0xFFE5E5E5),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? const Color(0xFF4A90E2)
+                                                .withOpacity(0.1)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          currency['symbol']!,
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            color: isSelected
+                                                ? const Color(0xFF4A90E2)
+                                                : const Color(0xFF666666),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            currency['code']!,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? const Color(0xFF1A1A1A)
+                                                  : const Color(0xFF666666),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            currency['name']!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF999999),
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle,
+                                          color: Color(0xFF4A90E2), size: 24),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                  );
-                }).toList()),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
+                  ),
+                ));
+          },
         );
       },
-    );
+    ).whenComplete(() {
+      searchController.dispose();
+    });
   }
 
   @override
@@ -520,8 +622,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                               hint: 'Enter phone number',
                               keyboardType: TextInputType.phone,
                               validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter phone number';
+                                if (value == null ||
+                                    value.isEmpty ||
+                                    !RegExp(r'^\+?[1-9][0-9]{6,14}$')
+                                        .hasMatch(value)) {
+                                  return 'Please enter a valid phone number';
                                 }
                                 return null;
                               },

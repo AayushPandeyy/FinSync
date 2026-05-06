@@ -3,7 +3,7 @@
 import 'package:finance_tracker/models/Category.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
-import 'package:finance_tracker/pages/transactionsPage/SeeAllTransactionsPage.dart';
+import 'package:finance_tracker/pages/personalMode/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';

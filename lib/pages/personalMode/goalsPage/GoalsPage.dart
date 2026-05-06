@@ -1,6 +1,6 @@
 import 'package:finance_tracker/models/FinancialGoal.dart';
-import 'package:finance_tracker/pages/goalsPage/AddGoalsPage.dart';
-import 'package:finance_tracker/pages/goalsPage/EditGoalPage.dart';
+import 'package:finance_tracker/pages/personalMode/goalsPage/AddGoalsPage.dart';
+import 'package:finance_tracker/pages/personalMode/goalsPage/EditGoalPage.dart';
 import 'package:finance_tracker/service/ConnectivityService.dart';
 import 'package:finance_tracker/service/GoalsFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';

@@ -96,7 +96,7 @@ class _RegisterPageState extends State<RegisterPage> {
         isSuccess: true,
         title: "Verification Email Sent",
         message:
-            "A verification email has been sent. Please verify your email and login to your account.",
+            "A verification email has been sent. Please verify your email and login to your account. Please check  your spam folder if you don't see it in your inbox.",
       );
       if (!mounted) return;
       Navigator.pop(context); // Return to login
@@ -267,12 +267,13 @@ class _RegisterPageState extends State<RegisterPage> {
                               controller: phoneController,
                               keyboardType: TextInputType.phone,
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
+                                if (value == null ||
+                                    value.trim().isEmpty ||
+                                    !RegExp(r'^\+?[1-9][0-9]{6,14}$')
+                                        .hasMatch(value.trim())) {
                                   return 'Please enter your phone number';
                                 }
-                                if (value.trim().length < 10) {
-                                  return 'Please enter a valid phone number';
-                                }
+
                                 return null;
                               },
                               decoration: _fieldDecoration(

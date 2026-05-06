@@ -34,7 +34,7 @@ class _AddSubscriptionPageState extends State<AddSubscriptionPage> {
 
   final List<String> _billingCycles = ['Monthly', 'Yearly', 'Weekly'];
 
-  final List<Category> categories = Categories().categories;
+  final List<Category> categories = Categories().getCategories('EXPENSE');
 
   @override
   void initState() {

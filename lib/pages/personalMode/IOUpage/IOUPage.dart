@@ -1,4 +1,4 @@
-import 'package:finance_tracker/pages/IOUpage/EditIOUPage.dart';
+import 'package:finance_tracker/pages/personalMode/IOUpage/EditIOUPage.dart';
 import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
@@ -10,7 +10,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:finance_tracker/models/IOU.dart';
 import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
-import 'package:finance_tracker/pages/IOUpage/AddIOUPage.dart';
+import 'package:finance_tracker/pages/personalMode/IOUpage/AddIOUPage.dart';
 import 'package:finance_tracker/service/ConnectivityService.dart';
 
 class IOUPage extends StatefulWidget {
@@ -283,6 +283,42 @@ class _IOUPageState extends State<IOUPage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(color: Color(0xFF4A90E2)),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: Color(0xFFE63946),
+                        size: 44,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Could not load IOUs',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
 
