@@ -135,6 +135,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       return;
     }
 
+    if (parsedAmount > 99999999) {
+      _showSnack('Amount too large');
+      return;
+    }
+
     final transaction = TransactionModel(
       id: const UuidV6().generate(),
       category: _selectedValue!,
@@ -294,6 +299,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         final parsed = double.tryParse(value.trim());
                         if (parsed == null || parsed <= 0) {
                           return 'Enter a valid amount';
+                        }
+                        if (parsed > 99999999) {
+                          return 'Amount too large';
                         }
                         return null;
                       },
