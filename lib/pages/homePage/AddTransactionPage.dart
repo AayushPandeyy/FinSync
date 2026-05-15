@@ -140,11 +140,14 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       return;
     }
 
+    // Round amount to 2 decimal places
+    final roundedAmount = double.parse(parsedAmount.toStringAsFixed(2));
+
     final transaction = TransactionModel(
       id: const UuidV6().generate(),
       category: _selectedValue!,
       title: _titleController.text.trim(),
-      amount: parsedAmount,
+      amount: roundedAmount,
       date: _selectedDate,
       transactionDescription: _descriptionController.text.trim(),
       type: _transactionType,

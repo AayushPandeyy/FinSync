@@ -83,7 +83,7 @@ class _MonthlySummaryPageState extends State<MonthlySummaryPage> {
     } else if (amount >= 1000) {
       return '${(amount / 1000).toStringAsFixed(1)}K';
     }
-    return amount.toStringAsFixed(0);
+    return amount.toStringAsFixed(2);
   }
 
   // ─── Date helpers ────────────────────────────────────────────────

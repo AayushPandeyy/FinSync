@@ -779,7 +779,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ],
                                       ),
                                       Text(
-                                        "$_currencySymbol ${totalIncome.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalIncome.toStringAsFixed(2)}",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -815,7 +815,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ],
                                       ),
                                       Text(
-                                        "$_currencySymbol ${totalExpense.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalExpense.toStringAsFixed(2)}",
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -844,7 +844,7 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                                         ),
                                       ),
                                       Text(
-                                        "$_currencySymbol ${totalAmount.toStringAsFixed(0)}",
+                                        "$_currencySymbol ${totalAmount.toStringAsFixed(2)}",
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,

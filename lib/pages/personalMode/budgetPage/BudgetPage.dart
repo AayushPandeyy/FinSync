@@ -120,7 +120,7 @@ class _BudgetPageState extends State<BudgetPage> {
   void _showSetBudgetDialog(
       String type, String? budgetId, double? currentBudget) {
     final TextEditingController controller = TextEditingController(
-      text: currentBudget?.toStringAsFixed(0) ?? '',
+      text: currentBudget?.toStringAsFixed(2) ?? '',
     );
     final isEditing = budgetId != null;
     final Color accentColor;
@@ -702,7 +702,7 @@ class _BudgetPageState extends State<BudgetPage> {
 
                 // Total spent
                 Text(
-                  '$_currencySymbol ${totalSpent.toStringAsFixed(0)}',
+                  '$_currencySymbol ${totalSpent.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -713,7 +713,7 @@ class _BudgetPageState extends State<BudgetPage> {
                 const SizedBox(height: 4),
                 Text(
                   totalBudget > 0
-                      ? 'of $_currencySymbol ${totalBudget.toStringAsFixed(0)} total budget'
+                      ? 'of $_currencySymbol ${totalBudget.toStringAsFixed(2)} total budget'
                       : 'No monthly budgets set yet',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
@@ -768,8 +768,8 @@ class _BudgetPageState extends State<BudgetPage> {
                           const SizedBox(width: 6),
                           Text(
                             remaining >= 0
-                                ? '$_currencySymbol ${remaining.toStringAsFixed(0)} remaining'
-                                : '$_currencySymbol ${remaining.abs().toStringAsFixed(0)} over budget',
+                                ? '$_currencySymbol ${remaining.toStringAsFixed(2)} remaining'
+                                : '$_currencySymbol ${remaining.abs().toStringAsFixed(2)} over budget',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.8),
                               fontSize: 13,

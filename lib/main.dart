@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'FinSync',
       theme: ThemeData(
         textTheme: GoogleFonts.afacadTextTheme(),
         // This is the theme of your application.

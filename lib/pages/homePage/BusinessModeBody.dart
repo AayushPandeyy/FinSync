@@ -198,7 +198,7 @@ class BusinessModeBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '$currency ${balance.toStringAsFixed(0)}',
+            '$currency ${balance.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -210,7 +210,7 @@ class BusinessModeBody extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Receivable\n$currency ${receivable.toStringAsFixed(0)}',
+                  'Receivable\n$currency ${receivable.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Color(0xFFE2E8F0),
                     height: 1.35,
@@ -220,7 +220,7 @@ class BusinessModeBody extends StatelessWidget {
               ),
               Expanded(
                 child: Text(
-                  'Payable\n$currency ${payable.toStringAsFixed(0)}',
+                  'Payable\n$currency ${payable.toStringAsFixed(2)}',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Color(0xFFE2E8F0),
@@ -257,7 +257,7 @@ class BusinessModeBody extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Net Profit: $currency ${netProfit.toStringAsFixed(0)}',
+                  'Net Profit: $currency ${netProfit.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 17,
@@ -272,7 +272,7 @@ class BusinessModeBody extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Revenue $currency ${revenue.toStringAsFixed(0)} • Expenses $currency ${expenses.toStringAsFixed(0)}',
+            'Revenue $currency ${revenue.toStringAsFixed(2)} • Expenses $currency ${expenses.toStringAsFixed(2)}',
             style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 12),

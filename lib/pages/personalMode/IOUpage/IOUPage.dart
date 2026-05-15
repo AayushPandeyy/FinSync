@@ -562,7 +562,7 @@ class _IOUPageState extends State<IOUPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('$_currencySymbol ${amount.toStringAsFixed(0)}',
+          Text('$_currencySymbol ${amount.toStringAsFixed(2)}',
               style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,

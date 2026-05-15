@@ -279,7 +279,7 @@ class _ReportPageState extends State<ReportPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${netBalance >= 0 ? '+' : ''}$_currencySymbol ${netBalance.toStringAsFixed(0)}',
+                      '${netBalance >= 0 ? '+' : ''}$_currencySymbol ${netBalance.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -382,7 +382,7 @@ class _ReportPageState extends State<ReportPage> {
                           return touchedSpots.map((spot) {
                             final isIncome = spot.barIndex == 0;
                             return LineTooltipItem(
-                              '${isIncome ? 'Income' : 'Expense'}\n$_currencySymbol ${spot.y.toStringAsFixed(0)}',
+                              '${isIncome ? 'Income' : 'Expense'}\n$_currencySymbol ${spot.y.toStringAsFixed(2)}',
                               TextStyle(
                                 color: isIncome
                                     ? const Color(0xFF4ADE80)
@@ -492,7 +492,7 @@ class _ReportPageState extends State<ReportPage> {
                           color: Colors.grey[600])),
                   const SizedBox(height: 2),
                   Text(
-                    '$_currencySymbol ${amount.toStringAsFixed(0)}',
+                    '$_currencySymbol ${amount.toStringAsFixed(2)}',
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

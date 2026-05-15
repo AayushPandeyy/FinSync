@@ -108,7 +108,7 @@ class TransactionTile extends StatelessWidget {
                 builder: (context, snapshot) {
                   final symbol = snapshot.data ?? 'Rs';
                   return Text(
-                    "${isExpense ? '−' : '+'} $symbol ${amount.toStringAsFixed(0)}",
+                    "${isExpense ? '−' : '+'} $symbol ${amount.toStringAsFixed(2)}",
                     style: TextStyle(
                       color: textColor,
                       fontSize: width * 0.04,

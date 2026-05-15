@@ -454,7 +454,7 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          totalBalance.toString(),
+                          totalBalance.toStringAsFixed(2),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 32,
@@ -606,7 +606,7 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
           ),
           const SizedBox(height: 12),
           Text(
-            amount.toString(),
+            amount.toStringAsFixed(2),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -805,7 +805,7 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '${txn['type'] == 'EXPENSE' ? '−' : '+'} $_currencySymbol ${(txn['amount'] as num).toStringAsFixed(0)}',
+                        '${txn['type'] == 'EXPENSE' ? '−' : '+'} $_currencySymbol ${(txn['amount'] as num).toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1038,7 +1038,7 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
                             ),
                             children: [
                               TextSpan(
-                                text: '₹${rod.toY.toStringAsFixed(0)}',
+                                text: '₹${rod.toY.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   color: chartColor,
                                   fontSize: 14,

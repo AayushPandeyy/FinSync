@@ -72,7 +72,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
 
   void _setQuickAmount(double amount) {
     setState(() {
-      _amountController.text = amount.toStringAsFixed(0);
+      _amountController.text = amount.toStringAsFixed(2);
     });
   }
 
@@ -169,7 +169,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
                             ),
                           ),
                           Text(
-                            '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
+                            '$_currencySymbol ${widget.iou.amount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -196,7 +196,7 @@ class _PartialSettleDialogState extends State<PartialSettleDialog> {
                             ),
                           ),
                           Text(
-                            '$_currencySymbol ${widget.remainingAmount.toStringAsFixed(0)}',
+                            '$_currencySymbol ${widget.remainingAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
