@@ -8,6 +8,7 @@ import 'package:finance_tracker/pages/common/accountsPage/AccountSettingsPage.da
 import 'package:finance_tracker/pages/personalMode/monthlySummaryPage/MonthlySummaryPage.dart';
 import 'package:finance_tracker/pages/personalMode/walletsPage/WalletsPage.dart';
 import 'package:finance_tracker/pages/personalMode/transferPage/TransferPage.dart';
+import 'package:finance_tracker/pages/personalMode/splitBillsPage/SplitBillsPage.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 
 class ServicesListPage extends StatelessWidget {
@@ -42,6 +43,9 @@ class ServicesListPage extends StatelessWidget {
         break;
       case 'Wallets':
         page = const WalletsPage();
+        break;
+      case 'Split Bills':
+        page = SplitBillsPage();
         break;
       default:
         return;
@@ -107,6 +111,12 @@ class ServicesListPage extends StatelessWidget {
       subtitle: 'Manage cash, bank, and digital balances',
       icon: Icons.account_balance_wallet,
       color: Color(0xFF2ECC71),
+    ),
+    _ServiceItem(
+      title: 'Split Bills',
+      subtitle: 'Divide and track shared expenses easily',
+      icon: Icons.money_off,
+      color: Color(0xFFF39C12),
     ),
   ];
 
