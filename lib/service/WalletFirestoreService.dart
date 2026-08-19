@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/models/Wallet.dart';
 import 'package:finance_tracker/service/OfflineCacheService.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 
 class WalletFirestoreService {
   final firestore = FirebaseFirestore.instance;
@@ -53,14 +54,38 @@ class WalletFirestoreService {
     }
   }
 
+  /// Transactions reference a wallet by *name*, so two wallets sharing one name
+  /// would silently pool their transactions and report the same merged balance
+  /// on both cards. Names are therefore unique, compared case-insensitively.
+  Future<void> _assertNameIsFree(String uid, String name,
+      {String? exceptId}) async {
+    final wanted = name.trim().toLowerCase();
+    if (wanted.isEmpty) throw Exception('Wallet name cannot be empty');
+
+    final snapshot = await firestore
+        .collection("Wallets")
+        .doc(uid)
+        .collection("wallet")
+        .get();
+
+    for (final doc in snapshot.docs) {
+      if (doc.id == exceptId) continue;
+      final other = (doc.data()['name'] ?? '').toString().trim().toLowerCase();
+      if (other == wanted) {
+        throw Exception('A wallet named "${name.trim()}" already exists');
+      }
+    }
+  }
+
   /// Add a new wallet
   Future<void> addWallet(String uid, WalletModel wallet) async {
+    await _assertNameIsFree(uid, wallet.name);
     await firestore
         .collection("Wallets")
         .doc(uid)
         .collection("wallet")
         .doc(wallet.id)
-        .set(wallet.toJson());
+        .set(wallet.copyWith(name: wallet.name.trim()).toJson());
   }
 
   /// Update wallet balance
@@ -79,15 +104,21 @@ class WalletFirestoreService {
   /// will be updated to the new name.
   Future<void> updateWallet(String uid, WalletModel wallet,
       {String? oldName}) async {
+    await _assertNameIsFree(uid, wallet.name, exceptId: wallet.id);
+
+    // The stored name and the name cascaded onto transactions must be
+    // identical, or the stats lookup (keyed by name) stops finding the wallet's
+    // history.
+    final name = wallet.name.trim();
     await firestore
         .collection("Wallets")
         .doc(uid)
         .collection("wallet")
         .doc(wallet.id)
-        .update(wallet.toJson());
+        .update(wallet.copyWith(name: name).toJson());
 
     // Rename wallet in all transactions if the name changed
-    if (oldName != null && oldName.isNotEmpty && oldName != wallet.name) {
+    if (oldName != null && oldName.isNotEmpty && oldName != name) {
       final txSnapshot = await firestore
           .collection("Transactions")
           .doc(uid)
@@ -96,7 +127,7 @@ class WalletFirestoreService {
           .get();
       final batch = firestore.batch();
       for (final doc in txSnapshot.docs) {
-        batch.update(doc.reference, {'wallet': wallet.name});
+        batch.update(doc.reference, {'wallet': name});
       }
       await batch.commit();
     }
@@ -112,8 +143,12 @@ class WalletFirestoreService {
         .delete();
   }
 
-  /// Stream per-wallet income & expense totals from transactions.
-  /// Returns a Map<walletName, {income: double, expense: double}>.
+  /// Stream per-wallet totals derived from the transaction log.
+  /// Returns `Map<walletName, {income, expense, transferIn, transferOut}>`.
+  ///
+  /// Transfer legs are split out from income/expense so that a transfer moves
+  /// the balance (see [balanceOf]) without being reported as earning on one
+  /// side of the move and spending on the other.
   Stream<Map<String, Map<String, double>>> getWalletStats(String uid) {
     return firestore
         .collection("Transactions")
@@ -124,18 +159,49 @@ class WalletFirestoreService {
       final Map<String, Map<String, double>> stats = {};
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        final wallet = (data['wallet'] ?? 'Cash').toString();
+        final wallet = (data['wallet'] ?? 'Cash').toString().trim();
         if (wallet.isEmpty) continue;
         final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
         final type = (data['type'] ?? '').toString();
-        stats.putIfAbsent(wallet, () => {'income': 0.0, 'expense': 0.0});
-        if (type == 'EXPENSE') {
-          stats[wallet]!['expense'] = stats[wallet]!['expense']! + amount;
-        } else {
-          stats[wallet]!['income'] = stats[wallet]!['income']! + amount;
-        }
+        final isTransfer = TransferRules.isTransferLeg(data);
+
+        stats.putIfAbsent(
+          wallet,
+          () => {
+            'income': 0.0,
+            'expense': 0.0,
+            'transferIn': 0.0,
+            'transferOut': 0.0,
+          },
+        );
+
+        final bucket = type == 'EXPENSE'
+            ? (isTransfer ? 'transferOut' : 'expense')
+            : (isTransfer ? 'transferIn' : 'income');
+        stats[wallet]![bucket] = stats[wallet]![bucket]! + amount;
       }
       return stats;
     });
+  }
+
+  /// The spendable balance of a wallet, derived from the transaction log: real
+  /// earnings and spending plus whatever transfers moved in and out.
+  ///
+  /// This — not the stored `balance` field — is the single source of truth. The
+  /// stored field is kept in step for compatibility, but it is not
+  /// authoritative: [initializeDefaultWallets] seeds every wallet at 0, and
+  /// `_adjustWalletBalance` never saw the transactions written before the
+  /// wallet feature existed (those count towards "Cash" in the stats above).
+  /// Reading the stored field is what made the transfer screen disagree with
+  /// the wallets screen.
+  static double balanceOf(
+      Map<String, Map<String, double>> stats, String walletName) {
+    final stat = stats[walletName.trim()];
+    if (stat == null) return 0.0;
+    final income = stat['income'] ?? 0.0;
+    final expense = stat['expense'] ?? 0.0;
+    final transferIn = stat['transferIn'] ?? 0.0;
+    final transferOut = stat['transferOut'] ?? 0.0;
+    return income + transferIn - expense - transferOut;
   }
 }

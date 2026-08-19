@@ -18,28 +18,28 @@ class SplitBillsFirestoreService {
   /// Stream all split bills
   Stream<List<SplitBill>> getSplitBillsStream(String uid) async* {
     final cacheKey = 'splitbills_$uid';
+
     final cached = await OfflineCacheService.readList(cacheKey);
+
     if (cached != null) {
       try {
         yield cached
             .map((map) => SplitBill.fromMap(map))
             .where((bill) => bill.id.isNotEmpty)
             .toList(growable: false);
-      } catch (_) {
-        // Ignore a malformed cache payload and continue with network data.
-      }
+      } catch (_) {}
     }
 
     yield* firestore
-        .collection("SplitBills")
-        .doc(uid)
-        .collection("bills")
+        .collectionGroup("bills") // 👈 KEY CHANGE
+        .where("participants", arrayContains: uid)
         .orderBy("date", descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
-      final data =
-          snapshot.docs.map((doc) => doc.data()).toList(growable: false);
+      final data = snapshot.docs.map((doc) => doc.data()).toList();
+
       await OfflineCacheService.saveList(cacheKey, data);
+
       return snapshot.docs
           .map((doc) => SplitBill.fromMap(doc.data(), fallbackId: doc.id))
           .where((bill) => bill.id.isNotEmpty)
@@ -82,18 +82,18 @@ class SplitBillsFirestoreService {
         .delete();
   }
 
-  /// Get split bills by category
+  /// Get split bills by category (across all bills the user participates in)
   Stream<List<SplitBill>> getSplitBillsByCategory(
       String uid, String category) async* {
     yield* firestore
-        .collection("SplitBills")
-        .doc(uid)
-        .collection("bills")
+        .collectionGroup("bills")
+        .where("participants", arrayContains: uid)
         .where("category", isEqualTo: category)
         .orderBy("date", descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => SplitBill.fromMap(doc.data(), fallbackId: doc.id))
+            .where((bill) => bill.id.isNotEmpty)
             .toList());
   }
 }

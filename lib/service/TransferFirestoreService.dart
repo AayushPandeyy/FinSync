@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 
 class TransferFirestoreService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -6,11 +7,18 @@ class TransferFirestoreService {
   /// Transfer [amount] from [fromWalletId] to [toWalletId] for user [uid].
   /// Creates two transaction records (outgoing and incoming) and updates
   /// the wallet balances in a single Firestore transaction.
+  ///
+  /// [fromBalance] is the source wallet's spendable balance from
+  /// [WalletFirestoreService.balanceOf]. The caller supplies it because the
+  /// balance is derived from the transaction collection, which a Firestore
+  /// transaction cannot query — and because the stored `balance` field it used
+  /// to check instead lags behind and rejected valid transfers.
   Future<void> transferBetweenWallets({
     required String uid,
     required String fromWalletId,
     required String toWalletId,
     required double amount,
+    required double fromBalance,
     String? note,
   }) async {
     if (fromWalletId == toWalletId) {
@@ -18,6 +26,11 @@ class TransferFirestoreService {
     }
     if (amount <= 0) {
       throw Exception('Amount must be greater than zero');
+    }
+    // Compared in whole cents so float drift cannot reject an exact-balance
+    // transfer.
+    if ((fromBalance * 100).round() < (amount * 100).round()) {
+      throw Exception('Insufficient balance in source wallet');
     }
 
     final fromRef = firestore
@@ -44,17 +57,10 @@ class TransferFirestoreService {
       final fromData = fromSnap.data()!;
       final toData = toSnap.data()!;
 
-      final double fromBalance =
-          (fromData['balance'] as num?)?.toDouble() ?? 0.0;
-      final double toBalance = (toData['balance'] as num?)?.toDouble() ?? 0.0;
-
-      if (fromBalance < amount) {
-        throw Exception('Insufficient balance in source wallet');
-      }
-
-      // Update balances
-      tx.update(fromRef, {'balance': fromBalance - amount});
-      tx.update(toRef, {'balance': toBalance + amount});
+      // The stored field is a mirror, not the source of truth, so move it by a
+      // delta rather than overwriting it with a figure read here.
+      tx.update(fromRef, {'balance': FieldValue.increment(-amount)});
+      tx.update(toRef, {'balance': FieldValue.increment(amount)});
 
       // Create transaction docs for both sides. Use server timestamp.
       final now = Timestamp.now();
@@ -71,7 +77,7 @@ class TransferFirestoreService {
         'date': now,
         'description': note ?? 'Transfer to $toWalletName from $fromWalletName',
         'amount': amount,
-        'category': 'Transfer',
+        'category': TransferRules.category,
         'type': 'EXPENSE',
         'wallet': fromWalletName,
       });
@@ -82,7 +88,7 @@ class TransferFirestoreService {
         'date': now,
         'description': note ?? 'Transfer from $fromWalletName to $toWalletName',
         'amount': amount,
-        'category': 'Transfer',
+        'category': TransferRules.category,
         'type': 'INCOME',
         'wallet': toWalletName,
       });

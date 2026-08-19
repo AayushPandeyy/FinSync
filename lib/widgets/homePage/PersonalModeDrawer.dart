@@ -6,6 +6,8 @@ import 'package:finance_tracker/pages/personalMode/budgetPage/BudgetPage.dart';
 import 'package:finance_tracker/pages/personalMode/friendsPage/FriendsPage.dart';
 import 'package:finance_tracker/pages/personalMode/goalsPage/GoalsPage.dart';
 import 'package:finance_tracker/pages/personalMode/monthlySummaryPage/MonthlySummaryPage.dart';
+import 'package:finance_tracker/pages/personalMode/splitBillsPage/SplitBillsPage.dart';
+import 'package:finance_tracker/pages/personalMode/templatesPage/TemplatesPage.dart';
 import 'package:finance_tracker/pages/personalMode/transactionsPage/SeeAllTransactionsPage.dart';
 import 'package:finance_tracker/pages/personalMode/walletsPage/WalletsPage.dart';
 import 'package:finance_tracker/pages/personalMode/transferPage/TransferPage.dart';
@@ -57,6 +59,11 @@ class PersonalModeDrawer extends StatelessWidget {
       case 'All Services':
         _openPage(context, const ServicesListPage());
         break;
+      case 'Split Bills':
+        _openPage(context, const SplitBillsPage());
+        break;
+      case 'Templates':
+        _openPage(context, const TemplatesPage());
     }
   }
 
@@ -99,7 +106,7 @@ class PersonalModeDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Personal Mode',
+                    'FinSync',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -133,12 +140,14 @@ class PersonalModeDrawer extends StatelessWidget {
                     color: const Color(0xFF4A90E2),
                     onTap: () => _openService(context, 'Transactions'),
                   ),
-                  _DrawerTile(
-                    icon: Icons.savings,
-                    title: 'Goals',
-                    color: const Color(0xFFE67E22),
-                    onTap: () => _openService(context, 'Goals'),
-                  ),
+                  // Goals is hidden from the menu but still fully implemented —
+                  // GoalsPage and its route in _openService remain.
+                  // _DrawerTile(
+                  //   icon: Icons.savings,
+                  //   title: 'Goals',
+                  //   color: const Color(0xFFE67E22),
+                  //   onTap: () => _openService(context, 'Goals'),
+                  // ),
                   _DrawerTile(
                     icon: Icons.analytics,
                     title: 'Analytics',
@@ -180,6 +189,20 @@ class PersonalModeDrawer extends StatelessWidget {
                     title: 'Transfer',
                     color: const Color(0xFF20B894),
                     onTap: () => _openService(context, 'Transfer'),
+                  ),
+                  // Split Bills is hidden from the menu but still fully
+                  // implemented — SplitBillsPage and its route remain.
+                  // _DrawerTile(
+                  //   icon: Icons.apps_rounded,
+                  //   title: 'Split Bills',
+                  //   color: const Color(0xFF34495E),
+                  //   onTap: () => _openService(context, 'Split Bills'),
+                  // ),
+                  _DrawerTile(
+                    icon: Icons.dashboard_customize,
+                    title: 'Templates',
+                    color: const Color(0xFFF39C12),
+                    onTap: () => _openService(context, 'Templates'),
                   ),
                 ],
               ),

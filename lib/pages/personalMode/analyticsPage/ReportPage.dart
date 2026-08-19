@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/reportPage/TransactionChartWidget.dart';
 import 'package:finance_tracker/widgets/reportPage/TransactionPieChartWidget.dart';
@@ -157,7 +158,11 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildMonthlySummaryChart(String uid) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: TransactionFirestoreService().getTransactionsOfUser(uid),
+      // Wallet-to-wallet transfers are not earning or spending — counting them
+      // would inflate both sides of every chart by the same amount.
+      stream: TransactionFirestoreService()
+          .getTransactionsOfUser(uid)
+          .map(TransferRules.exclude),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(

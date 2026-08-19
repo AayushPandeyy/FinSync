@@ -9,6 +9,7 @@ import 'package:finance_tracker/service/IOUFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/utilities/Utilities.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -43,7 +44,11 @@ class _MonthlySummaryPageState extends State<MonthlySummaryPage> {
   @override
   void initState() {
     super.initState();
-    _transactionStream = _transactionService.getTransactionsOfUser(uid);
+    // Every figure on this page is earning or spending, so both legs of each
+    // wallet transfer are dropped up front.
+    _transactionStream = _transactionService
+        .getTransactionsOfUser(uid)
+        .map(TransferRules.exclude);
     _budgetStream = _budgetService.getBudget(uid);
     _goalsStream = _goalsService.getGoalsOfUser(uid);
     _iouStream = _iouService.getIOUsStream(uid);

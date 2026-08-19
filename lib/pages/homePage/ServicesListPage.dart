@@ -9,6 +9,7 @@ import 'package:finance_tracker/pages/personalMode/monthlySummaryPage/MonthlySum
 import 'package:finance_tracker/pages/personalMode/walletsPage/WalletsPage.dart';
 import 'package:finance_tracker/pages/personalMode/transferPage/TransferPage.dart';
 import 'package:finance_tracker/pages/personalMode/splitBillsPage/SplitBillsPage.dart';
+import 'package:finance_tracker/pages/personalMode/templatesPage/TemplatesPage.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 
 class ServicesListPage extends StatelessWidget {
@@ -47,6 +48,9 @@ class ServicesListPage extends StatelessWidget {
       case 'Split Bills':
         page = SplitBillsPage();
         break;
+      case 'Templates':
+        page = const TemplatesPage();
+        break;
       default:
         return;
     }
@@ -64,12 +68,14 @@ class ServicesListPage extends StatelessWidget {
       icon: Icons.receipt_long,
       color: Color(0xFF4A90E2),
     ),
-    _ServiceItem(
-      title: 'Goals',
-      subtitle: 'Set and monitor your financial targets',
-      icon: Icons.savings,
-      color: Color(0xFFE67E22),
-    ),
+    // Goals is hidden from the services menu. GoalsPage and its case in
+    // _openServicePage stay, so re-listing it here is all it takes to restore.
+    // _ServiceItem(
+    //   title: 'Goals',
+    //   subtitle: 'Set and monitor your financial targets',
+    //   icon: Icons.savings,
+    //   color: Color(0xFFE67E22),
+    // ),
     _ServiceItem(
       title: 'Analytics',
       subtitle: 'Visual insights and spending breakdowns',
@@ -112,10 +118,18 @@ class ServicesListPage extends StatelessWidget {
       icon: Icons.account_balance_wallet,
       color: Color(0xFF2ECC71),
     ),
+    // Split Bills is hidden from the services menu; SplitBillsPage and its
+    // case in _openServicePage stay.
+    // _ServiceItem(
+    //   title: 'Split Bills',
+    //   subtitle: 'Divide and track shared expenses easily',
+    //   icon: Icons.money_off,
+    //   color: Color(0xFFF39C12),
+    // ),
     _ServiceItem(
-      title: 'Split Bills',
-      subtitle: 'Divide and track shared expenses easily',
-      icon: Icons.money_off,
+      title: 'Templates',
+      subtitle: 'Quick-add your regular transactions',
+      icon: Icons.dashboard_customize,
       color: Color(0xFFF39C12),
     ),
   ];

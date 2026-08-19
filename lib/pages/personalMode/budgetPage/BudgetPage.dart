@@ -4,6 +4,7 @@ import 'package:finance_tracker/enums/transaction/TransactionType.dart';
 import 'package:finance_tracker/service/BudgetFirestoreService.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/widgets/budgetPage/BuildBudgetCard.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,8 +30,11 @@ class _BudgetPageState extends State<BudgetPage> {
   void initState() {
     super.initState();
     _budgetStream = _budgetService.getBudget(uid);
+    // The outgoing leg of a wallet transfer is not spending, so it must not eat
+    // into a budget.
     _transactionStream = TransactionFirestoreService()
-        .getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name);
+        .getTransactionsBasedOnType(uid, TransactionType.EXPENSE.name)
+        .map(TransferRules.exclude);
     _loadCurrencySymbol();
   }
 

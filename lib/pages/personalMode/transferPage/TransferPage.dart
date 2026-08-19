@@ -28,6 +28,16 @@ class _TransferPageState extends State<TransferPage>
   List<WalletModel> _wallets = [];
   bool _isLoading = false;
 
+  /// Balances come from the transaction log, exactly like the wallet cards.
+  /// The stored `balance` field lags behind and would show a different number
+  /// here than the wallets screen does.
+  Map<String, Map<String, double>> _walletStats = {};
+  StreamSubscription? _statsSubscription;
+
+  double _balanceOf(WalletModel? wallet) => wallet == null
+      ? 0.0
+      : WalletFirestoreService.balanceOf(_walletStats, wallet.name);
+
   // ── palette ──────────────────────────────────────────────────────────────
   static const _bg = Color(0xFFF4F6FB);
   static const _surface = Colors.white;
@@ -62,6 +72,10 @@ class _TransferPageState extends State<TransferPage>
         });
       }
     });
+
+    _statsSubscription = _walletService.getWalletStats(uid).listen((stats) {
+      if (mounted) setState(() => _walletStats = stats);
+    });
   }
 
   void _swapWallets() {
@@ -83,6 +97,7 @@ class _TransferPageState extends State<TransferPage>
         wallets: _wallets,
         excludeId: isFrom ? _toWallet?.id : _fromWallet?.id,
         label: isFrom ? 'From wallet' : 'To wallet',
+        balanceOf: _balanceOf,
       ),
     );
     if (selected == null) return;
@@ -110,7 +125,8 @@ class _TransferPageState extends State<TransferPage>
       _showError('Source and destination must be different.');
       return;
     }
-    if (_fromWallet!.balance < amt) {
+    final fromBalance = _balanceOf(_fromWallet);
+    if ((fromBalance * 100).round() < (amt * 100).round()) {
       _showError('Insufficient balance in source wallet.');
       return;
     }
@@ -123,6 +139,7 @@ class _TransferPageState extends State<TransferPage>
         fromWalletId: _fromWallet!.id,
         toWalletId: _toWallet!.id,
         amount: amt,
+        fromBalance: fromBalance,
         note: null,
       );
 
@@ -166,6 +183,7 @@ class _TransferPageState extends State<TransferPage>
   @override
   void dispose() {
     _walletSubscription?.cancel();
+    _statsSubscription?.cancel();
     _amountController.dispose();
     _amountFocus.dispose();
     _swapController.dispose();
@@ -229,6 +247,7 @@ class _TransferPageState extends State<TransferPage>
                       _WalletSelector(
                         role: 'From',
                         wallet: _fromWallet,
+                        balance: _balanceOf(_fromWallet),
                         roleColor: const Color(0xFF2563EB),
                         roleBg: const Color(0xFFEFF4FF),
                         onTap: () => _selectWallet(true),
@@ -239,6 +258,7 @@ class _TransferPageState extends State<TransferPage>
                       _WalletSelector(
                         role: 'To',
                         wallet: _toWallet,
+                        balance: _balanceOf(_toWallet),
                         roleColor: const Color(0xFF16A34A),
                         roleBg: const Color(0xFFDCFCE7),
                         onTap: () => _selectWallet(false),
@@ -267,6 +287,7 @@ class _TransferPageState extends State<TransferPage>
                 _SummaryCard(
                   fromWallet: _fromWallet!,
                   toWallet: _toWallet!,
+                  fromBalance: _balanceOf(_fromWallet),
                   amount: double.tryParse(_amountController.text),
                 ),
                 const SizedBox(height: 28),
@@ -419,6 +440,7 @@ class _WalletSelector extends StatelessWidget {
   const _WalletSelector({
     required this.role,
     required this.wallet,
+    required this.balance,
     required this.roleColor,
     required this.roleBg,
     required this.onTap,
@@ -426,6 +448,9 @@ class _WalletSelector extends StatelessWidget {
 
   final String role;
   final WalletModel? wallet;
+
+  /// Derived from the ledger, not `wallet.balance`.
+  final double balance;
   final Color roleColor;
   final Color roleBg;
   final VoidCallback onTap;
@@ -485,7 +510,7 @@ class _WalletSelector extends StatelessWidget {
                     if (wallet != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Balance: ${wallet!.balance.toStringAsFixed(2)}',
+                        'Balance: ${balance.toStringAsFixed(2)}',
                         style: const TextStyle(
                             fontSize: 12, color: Color(0xFF8A94A6)),
                       ),
@@ -588,18 +613,21 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.fromWallet,
     required this.toWallet,
+    required this.fromBalance,
     required this.amount,
   });
 
   final WalletModel fromWallet;
   final WalletModel toWallet;
+
+  /// Derived from the ledger, not `fromWallet.balance`.
+  final double fromBalance;
   final double? amount;
 
   @override
   Widget build(BuildContext context) {
-    final remaining = amount != null
-        ? (fromWallet.balance - amount!).toStringAsFixed(2)
-        : '-';
+    final remaining =
+        amount != null ? (fromBalance - amount!).toStringAsFixed(2) : '-';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -631,12 +659,21 @@ class _SummaryCard extends StatelessWidget {
             child: Divider(height: 1, color: Color(0xFFD1DCF5)),
           ),
           _SummaryRow(
+            label: 'Current balance',
+            value: fromBalance.toStringAsFixed(2),
+            valueStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0D1117)),
+          ),
+          const SizedBox(height: 8),
+          _SummaryRow(
             label: 'Remaining balance',
             value: remaining,
             valueStyle: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: (amount != null && fromWallet.balance - amount! < 0)
+              color: (amount != null && fromBalance - amount! < 0)
                   ? const Color(0xFFDC2626)
                   : const Color(0xFF16A34A),
             ),
@@ -746,11 +783,13 @@ class _WalletPickerSheet extends StatelessWidget {
     required this.wallets,
     required this.excludeId,
     required this.label,
+    required this.balanceOf,
   });
 
   final List<WalletModel> wallets;
   final String? excludeId;
   final String label;
+  final double Function(WalletModel?) balanceOf;
 
   @override
   Widget build(BuildContext context) {
@@ -801,6 +840,7 @@ class _WalletPickerSheet extends StatelessWidget {
           else
             ...available.map((w) => _WalletPickerTile(
                   wallet: w,
+                  balance: balanceOf(w),
                   onTap: () => Navigator.pop(context, w),
                 )),
         ],
@@ -810,8 +850,15 @@ class _WalletPickerSheet extends StatelessWidget {
 }
 
 class _WalletPickerTile extends StatelessWidget {
-  const _WalletPickerTile({required this.wallet, required this.onTap});
+  const _WalletPickerTile({
+    required this.wallet,
+    required this.balance,
+    required this.onTap,
+  });
   final WalletModel wallet;
+
+  /// Derived from the ledger, not `wallet.balance`.
+  final double balance;
   final VoidCallback onTap;
 
   @override
@@ -853,7 +900,7 @@ class _WalletPickerTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Balance: ${wallet.balance.toStringAsFixed(2)}',
+                        'Balance: ${balance.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF8A94A6),

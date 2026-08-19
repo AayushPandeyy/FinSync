@@ -6,6 +6,7 @@ import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -614,6 +615,10 @@ class _SeeAllTransactionsPageState extends State<SeeAllTransactionsPage> {
                         double totalExpense = 0;
 
                         for (var transaction in transactions) {
+                          // Transfer legs stay in the list but are left out of
+                          // the month's income/expense headline, matching every
+                          // other total in the app.
+                          if (TransferRules.isTransferLeg(transaction)) continue;
                           double amount =
                               (transaction["amount"] as num).toDouble();
                           if (transaction["type"] == "INCOME") {

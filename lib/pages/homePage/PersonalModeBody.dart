@@ -1,5 +1,11 @@
 import 'package:finance_tracker/enums/transaction/TransactionType.dart';
+import 'package:finance_tracker/models/Category.dart';
+import 'package:finance_tracker/models/TransactionTemplate.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
+import 'package:finance_tracker/pages/personalMode/templatesPage/QuickAddTemplateSheet.dart';
+import 'package:finance_tracker/pages/personalMode/templatesPage/TemplatesPage.dart';
+import 'package:finance_tracker/service/TemplateFirestoreService.dart';
+import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/pages/personalMode/IOUpage/IOUPage.dart';
 import 'package:finance_tracker/pages/common/accountsPage/AccountSettingsPage.dart';
 import 'package:finance_tracker/pages/personalMode/analyticsPage/ReportPage.dart';
@@ -44,8 +50,12 @@ class PersonalModeBody extends StatefulWidget {
 
 class _PersonalModeBodyState extends State<PersonalModeBody> {
   final TransactionFirestoreService service = TransactionFirestoreService();
+  final TemplateFirestoreService templateService = TemplateFirestoreService();
   bool _showExpenses = true;
   String _currencySymbol = 'Rs';
+
+  /// How many templates the home page surfaces before "See all".
+  static const int _homeTemplateCount = 3;
 
   @override
   void initState() {
@@ -125,7 +135,9 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          _buildQuickAddTemplates(widget.currUser.uid),
+          const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
@@ -377,6 +389,265 @@ class _PersonalModeBodyState extends State<PersonalModeBody> {
             ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  IconData _categoryIcon(String name) {
+    final Category? match = Categories().categories.cast<Category?>().firstWhere(
+          (category) => category?.name == name,
+          orElse: () => null,
+        );
+    return match?.icon ?? Icons.more_horiz;
+  }
+
+  /// Opens the same sheet the Templates page uses, so a home-page quick add and
+  /// a quick add from the full list behave identically.
+  Future<void> _quickAddFromTemplate(TransactionTemplate template) async {
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => QuickAddTemplateSheet(template: template),
+    );
+
+    if (added == true && mounted) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(const SnackBar(content: Text('Transaction added.')));
+    }
+  }
+
+  /// The newest few templates, as one-tap shortcuts. Templates already stream
+  /// newest-first, so this is just the head of that list.
+  Widget _buildQuickAddTemplates(String uid) {
+    return StreamBuilder<List<TransactionTemplate>>(
+      stream: templateService.getTemplatesStream(uid),
+      builder: (context, snapshot) {
+        // Say nothing until we know whether there are templates — an empty
+        // prompt that flashes on every home load would be noise.
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+
+        final templates =
+            (snapshot.data ?? const <TransactionTemplate>[]).take(_homeTemplateCount).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Quick Add',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TemplatesPage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'See all',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 40,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4A90E2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (templates.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildCreateTemplateCard(),
+              )
+            else
+              SizedBox(
+                height: 112,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  itemCount: templates.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) =>
+                      _buildTemplateCard(templates[index]),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTemplateCard(TransactionTemplate template) {
+    final isExpense = template.type == 'EXPENSE';
+    final accent =
+        isExpense ? const Color(0xFFE63946) : const Color(0xFF06D6A0);
+
+    return SizedBox(
+      width: 158,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _quickAddFromTemplate(template),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE9EDF2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _categoryIcon(template.category),
+                        color: accent,
+                        size: 19,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      isExpense
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
+                      color: accent,
+                      size: 16,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  template.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  template.category,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateTemplateCard() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TemplatesPage()),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE9EDF2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF39C12).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.dashboard_customize,
+                  color: Color(0xFFF39C12),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Create a template',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Save the transactions you add often and post them in one tap.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF9AA3AF),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

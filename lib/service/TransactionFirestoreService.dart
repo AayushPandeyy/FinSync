@@ -5,6 +5,7 @@ import 'package:finance_tracker/models/Subscription.dart';
 import 'package:finance_tracker/models/Transaction.dart';
 import 'package:finance_tracker/service/OfflineCacheService.dart';
 import 'package:finance_tracker/service/UserFirestoreService.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
@@ -272,6 +273,9 @@ class TransactionFirestoreService {
 
     for (var doc in snapshot.docs) {
       Map<String, dynamic> transaction = doc.data();
+      // A wallet transfer is neither income nor expense; leaving its two legs
+      // in would add the same amount to both series.
+      if (TransferRules.isTransferLeg(transaction)) continue;
       DateTime transactionDate = (transaction["date"] as Timestamp).toDate();
       String dayKey = DateFormat('yyyy-MM-dd').format(transactionDate);
 

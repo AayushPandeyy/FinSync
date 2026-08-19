@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
@@ -32,8 +33,13 @@ class _TransactionsBasedOnTypePageState
       body: SafeArea(
         top: false,
         child: StreamBuilder(
-            stream: TransactionFirestoreService().getTransactionsBasedOnType(
-                FirebaseAuth.instance.currentUser!.uid, widget.type),
+            // This page is the drill-down for the home screen's income/expense
+            // totals, which come from the `Users` aggregates and never counted
+            // transfers — so the transfer legs are left out here too.
+            stream: TransactionFirestoreService()
+                .getTransactionsBasedOnType(
+                    FirebaseAuth.instance.currentUser!.uid, widget.type)
+                .map(TransferRules.exclude),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(

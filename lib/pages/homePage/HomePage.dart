@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finance_tracker/pages/common/accountsPage/AccountSettingsPage.dart';
 import 'package:finance_tracker/pages/homePage/AddTransactionPage.dart';
+import 'package:finance_tracker/pages/familyMode/FamilyModeBody.dart';
 import 'package:finance_tracker/pages/homePage/BusinessModeHomePage.dart';
+import 'package:finance_tracker/pages/homePage/FamilyModeHomePage.dart';
 import 'package:finance_tracker/pages/homePage/PersonalModeHomePage.dart';
 import 'package:finance_tracker/pages/homePage/BusinessModeBody.dart';
 import 'package:finance_tracker/pages/homePage/PersonalModeBody.dart';
@@ -132,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  ...AppMode.values.map(
+                  ...Globals.selectableModes.map(
                     (mode) {
                       final isSelected = mode == Globals.currentMode;
                       final color = _modeColor(mode);
@@ -231,11 +233,11 @@ class _HomePageState extends State<HomePage> {
       },
     );
 
-    if (selectedMode == null || !mounted) return;
+    if (selectedMode == null || selectedMode == Globals.currentMode) return;
 
-    setState(() {
-      Globals.currentMode = selectedMode;
-    });
+    await Globals.setMode(selectedMode);
+    if (!mounted) return;
+    setState(() {});
   }
 
   Widget _buildModeToggleButton() {
@@ -329,8 +331,8 @@ class _HomePageState extends State<HomePage> {
             )
           : const SizedBox.shrink(),
       actions: [
-        // _buildModeToggleButton(),
-
+        // Nothing to switch to when family mode is compiled out.
+        if (Globals.familyModeEnabled) _buildModeToggleButton(),
         IconButton(
           onPressed: () {
             Navigator.push(
@@ -397,6 +399,16 @@ class _HomePageState extends State<HomePage> {
             return BusinessModeHomePage(
               appBar: appBar,
               body: BusinessModeBody(data: data),
+            );
+          }
+
+          // The `familyModeEnabled` const lets the compiler drop this branch —
+          // and with it the whole family feature — from a release build.
+          if (Globals.familyModeEnabled &&
+              Globals.currentMode == AppMode.family) {
+            return FamilyModeHomePage(
+              appBar: appBar,
+              body: FamilyModeBody(data: data),
             );
           }
 

@@ -62,20 +62,20 @@ class Friendsfirestoreservice {
   /// GET FRIENDS (accepted only)
   Stream<List<Map<String, dynamic>>> getFriends(String userId) {
     return _ref
-        .where("status", isEqualTo: "accepted")
+        .where(Filter.and(
+          Filter("status", isEqualTo: "accepted"),
+          Filter.or(
+            Filter("requesterId", isEqualTo: userId),
+            Filter("receiverId", isEqualTo: userId),
+          ),
+        ))
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => {
-                "id": doc.id,
-                ...doc.data() as Map<String, dynamic>,
-              })
-          .where((friendship) {
-        final requesterId = friendship["requesterId"]?.toString();
-        final receiverId = friendship["receiverId"]?.toString();
-        return requesterId == userId || receiverId == userId;
-      }).toList();
-    });
+        .map((snapshot) => snapshot.docs
+            .map((doc) => {
+                  "id": doc.id,
+                  ...doc.data() as Map<String, dynamic>,
+                })
+            .toList());
   }
 
   /// GET INCOMING REQUESTS

@@ -1,7 +1,9 @@
 import 'package:finance_tracker/firebase_options.dart';
 import 'package:finance_tracker/pages/common/SplashScreen.dart';
 import 'package:finance_tracker/pages/common/auth/LoginChecker.dart';
+import 'package:finance_tracker/utilities/Globals.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,7 +16,10 @@ void main() async {
     statusBarIconBrightness: Brightness.dark,
   ));
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Globals.loadPersistedMode();
   MobileAds.instance.initialize();
+
+  // await FirebaseMessaging.instance.subscribeToTopic('all');
 
   runApp(const MyApp());
 }

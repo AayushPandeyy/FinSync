@@ -422,7 +422,21 @@ class _WalletsPageState extends State<WalletsPage> {
                               userId: _uid,
                             );
 
-                            await _walletService.addWallet(_uid, newWallet);
+                            try {
+                              await _walletService.addWallet(_uid, newWallet);
+                            } catch (e) {
+                              // Surfaces the duplicate-name rejection.
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        e.toString().replaceAll('Exception: ', '')),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+
                             if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -504,10 +518,12 @@ class _WalletsPageState extends State<WalletsPage> {
   Widget _buildWalletCard(WalletModel wallet) {
     final color = _getWalletColor(wallet.type);
     final icon = _getWalletIcon(wallet.type);
-    final stats = _walletStats[wallet.name] ?? {'income': 0.0, 'expense': 0.0};
+    final stats = _walletStats[wallet.name] ?? const {};
+    // Income and expense are real earning and spending; transfers between the
+    // user's own wallets move the balance without showing up as either.
     final income = stats['income'] ?? 0.0;
     final expense = stats['expense'] ?? 0.0;
-    final balance = income - expense;
+    final balance = WalletFirestoreService.balanceOf(_walletStats, wallet.name);
 
     return Container(
       width: double.infinity,
@@ -1096,9 +1112,23 @@ class _WalletsPageState extends State<WalletsPage> {
                               icon: selectedType,
                             );
 
-                            await _walletService.updateWallet(
-                                _uid, updatedWallet,
-                                oldName: wallet.name);
+                            try {
+                              await _walletService.updateWallet(
+                                  _uid, updatedWallet,
+                                  oldName: wallet.name);
+                            } catch (e) {
+                              // Surfaces the duplicate-name rejection.
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        e.toString().replaceAll('Exception: ', '')),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+
                             if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(

@@ -27,10 +27,19 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Other';
+
+  // Participant state
   Set<String> _selectedParticipants = {};
   Map<String, String> _friendNames = {};
-  Map<String, double> _participantAmounts = {};
+
+  // splitAmounts[uid] = how much that person owes the payer.
+  // Includes the payer themselves (their own share of the bill).
+  Map<String, double> _splitAmounts = {};
   Map<String, TextEditingController> _participantControllers = {};
+
+  // When true, amounts are kept equal automatically.
+  bool _isEqualSplit = true;
+
   String _searchQuery = '';
 
   late String _currentUserId;
@@ -52,10 +61,19 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
   final SplitBillsFirestoreService splitBillsService =
       SplitBillsFirestoreService();
 
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
     _currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    // Keep the payer's own share tracked from the start.
+    _splitAmounts[_currentUserId] = 0.0;
+
+    // Recompute equal split whenever the total amount field changes.
+    _amountController.addListener(_onAmountChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
   }
 
@@ -65,11 +83,13 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     _amountController.dispose();
     _descriptionController.dispose();
     _searchController.dispose();
-    for (final controller in _participantControllers.values) {
-      controller.dispose();
+    for (final c in _participantControllers.values) {
+      c.dispose();
     }
     super.dispose();
   }
+
+  // ─── Connectivity guard ───────────────────────────────────────────────────
 
   Future<void> _guardOfflineEntry() async {
     await ConnectivityService.ensureConnected(
@@ -79,55 +99,106 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     );
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFFF39C12),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF1A1A1A),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-      });
+  // ─── Splitting logic ──────────────────────────────────────────────────────
+
+  /// Full list of people sharing this bill: payer + selected friends.
+  List<String> get _allParticipants =>
+      [_currentUserId, ..._selectedParticipants];
+
+  /// Equal share per person (rounded to 2 dp; last person absorbs rounding).
+  double _equalShare(double total, int count) {
+    if (count == 0) return 0;
+    return double.parse((total / count).toStringAsFixed(2));
+  }
+
+  /// Called whenever the total amount field changes (only in equal-split mode).
+  void _onAmountChanged() {
+    if (_isEqualSplit) _applyEqualSplit();
+  }
+
+  /// Distributes the total evenly across all participants and updates both
+  /// [_splitAmounts] and every participant's text controller.
+  void _applyEqualSplit() {
+    final total = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final count = _allParticipants.length;
+    final share = _equalShare(total, count);
+
+    setState(() {
+      for (final uid in _allParticipants) {
+        _splitAmounts[uid] = share;
+        _participantControllers[uid]?.text =
+            share > 0 ? share.toStringAsFixed(2) : '';
+      }
+
+      // Absorb rounding difference in the payer's own share.
+      if (count > 0) {
+        final friendsTotal = _selectedParticipants.fold(
+            0.0, (sum, uid) => sum + (_splitAmounts[uid] ?? 0.0));
+        _splitAmounts[_currentUserId] =
+            double.parse((total - friendsTotal).toStringAsFixed(2));
+      }
+    });
+  }
+
+  /// Switches between equal-split and manual modes.
+  void _toggleSplitMode(bool equalSplit) {
+    setState(() {
+      _isEqualSplit = equalSplit;
+      if (equalSplit) {
+        _applyEqualSplit();
+      } else {
+        // In manual mode clear all fields so the user starts fresh.
+        for (final uid in _allParticipants) {
+          _splitAmounts[uid] = 0.0;
+          _participantControllers[uid]?.text = '';
+        }
+      }
+    });
+  }
+
+  /// Called when a friend is added or removed; keeps the split consistent.
+  void _onParticipantsChanged() {
+    // Ensure a controller exists for every participant (including payer).
+    for (final uid in _allParticipants) {
+      _participantControllers.putIfAbsent(uid, () => TextEditingController());
+    }
+
+    if (_isEqualSplit) {
+      _applyEqualSplit();
+    } else {
+      // In manual mode just zero out any newly-added participant.
+      for (final uid in _allParticipants) {
+        _splitAmounts.putIfAbsent(uid, () => 0.0);
+      }
     }
   }
 
-  void _showLoadingDialog() {
-    DialogBox().showLoadingDialog(context);
-    _isLoadingDialogVisible = true;
-  }
+  // ─── Validation helpers ───────────────────────────────────────────────────
 
-  void _hideLoadingDialog() {
-    if (_isLoadingDialogVisible && mounted) {
-      Navigator.of(context).pop();
-      _isLoadingDialogVisible = false;
+  /// Returns a user-facing error string or null if everything is valid.
+  String? _validateSplits(double total) {
+    if (_selectedParticipants.isEmpty) {
+      return 'Please select at least one participant';
     }
+
+    final sumOfFriendShares = _selectedParticipants.fold(
+        0.0, (sum, uid) => sum + (_splitAmounts[uid] ?? 0.0));
+
+    if (!_isEqualSplit) {
+      // In manual mode the friend shares must not exceed the total.
+      if (sumOfFriendShares > total + 0.01) {
+        return 'Sum of participant amounts (${sumOfFriendShares.toStringAsFixed(2)}) exceeds total (${total.toStringAsFixed(2)})';
+      }
+      // Warn if no amounts have been entered at all.
+      if (sumOfFriendShares == 0.0) {
+        return 'Please enter at least one participant amount';
+      }
+    }
+
+    return null;
   }
 
-  void _showSnack(String message,
-      {Color background = const Color(0xFFE63946)}) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: background,
-        ),
-      );
-  }
+  // ─── Save ─────────────────────────────────────────────────────────────────
 
   Future<void> _saveSplitBill() async {
     final canProceed = await ConnectivityService.ensureConnected(
@@ -138,47 +209,44 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    if (_selectedParticipants.isEmpty) {
-      _showSnack('Please select at least one participant');
+    final total = double.parse(_amountController.text.trim());
+
+    final validationError = _validateSplits(total);
+    if (validationError != null) {
+      _showSnack(validationError);
       return;
     }
 
     _showLoadingDialog();
 
     try {
-      final totalAmount = double.parse(_amountController.text.trim());
-      final participants = [_currentUserId, ..._selectedParticipants];
+      // Build the final splitAmounts map.
+      // friend share  = what they owe the payer.
+      // payer share   = their own portion (total − sum of friend shares).
+      final Map<String, double> finalSplitAmounts = {};
 
-      final splitAmounts = <String, double>{};
+      final sumOfFriendShares = _selectedParticipants.fold(
+          0.0, (sum, uid) => sum + (_splitAmounts[uid] ?? 0.0));
 
-      // Add current user with their share (or 0 if they haven't entered an amount)
-      splitAmounts[_currentUserId] = 0.0;
+      // Payer's own share is whatever is left after friends' portions.
+      finalSplitAmounts[_currentUserId] =
+          double.parse((total - sumOfFriendShares).toStringAsFixed(2));
 
-      // Add selected participants with their custom amounts
-      for (final participantId in _selectedParticipants) {
-        final amount = _participantAmounts[participantId] ?? 0.0;
-        splitAmounts[participantId] = amount;
-      }
-
-      // Validate that total of splits equals or doesn't exceed total amount
-      final totalSplits =
-          splitAmounts.values.fold(0.0, (sum, val) => sum + val);
-      if (totalSplits > totalAmount) {
-        _hideLoadingDialog();
-        _showSnack('Sum of participant amounts exceeds total amount');
-        return;
+      for (final uid in _selectedParticipants) {
+        finalSplitAmounts[uid] =
+            double.parse((_splitAmounts[uid] ?? 0.0).toStringAsFixed(2));
       }
 
       final splitBill = SplitBill(
-        id: Uuid().v1(),
+        id: const Uuid().v1(),
         title: _titleController.text.trim(),
-        totalAmount: totalAmount,
+        totalAmount: total,
         description: _descriptionController.text.trim(),
         date: _selectedDate,
         paidBy: _currentUserId,
-        splitAmounts: splitAmounts,
+        splitAmounts: finalSplitAmounts,
         category: _selectedCategory,
-        participants: participants,
+        participants: _allParticipants,
       );
 
       await splitBillsService.addSplitBill(_currentUserId, splitBill);
@@ -197,6 +265,52 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     }
   }
 
+  // ─── Dialog helpers ───────────────────────────────────────────────────────
+
+  void _showLoadingDialog() {
+    DialogBox().showLoadingDialog(context);
+    _isLoadingDialogVisible = true;
+  }
+
+  void _hideLoadingDialog() {
+    if (_isLoadingDialogVisible && mounted) {
+      Navigator.of(context).pop();
+      _isLoadingDialogVisible = false;
+    }
+  }
+
+  void _showSnack(String message,
+      {Color background = const Color(0xFFE63946)}) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        backgroundColor: background,
+      ));
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFFF39C12),
+            onPrimary: Colors.white,
+            onSurface: Color(0xFF1A1A1A),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -208,7 +322,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // --- Navigation Bar ---
+            // Nav bar
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -233,7 +347,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Add Split Bill",
+                          'Add Split Bill',
                           style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 24,
@@ -241,7 +355,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          "Divide expenses with friends",
+                          'Divide expenses with friends',
                           style:
                               TextStyle(fontSize: 14, color: Color(0xFF999999)),
                         ),
@@ -254,7 +368,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
             Container(height: 1, color: const Color(0xFFF0F0F0)),
 
-            // --- Form ---
+            // Form
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
@@ -272,7 +386,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         controller: _titleController,
                         hint: 'e.g., Dinner at Restaurant',
                         width: width,
-                        validator: (value) => (value == null || value.isEmpty)
+                        validator: (v) => (v == null || v.isEmpty)
                             ? 'Please enter a title'
                             : null,
                       ),
@@ -284,12 +398,16 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         hint: '0.00',
                         width: width,
                         keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
                             return 'Please enter amount';
                           }
-                          if (double.tryParse(value) == null) {
+                          final parsed = double.tryParse(v);
+                          if (parsed == null) {
                             return 'Enter a valid number';
+                          }
+                          if (parsed <= 0) {
+                            return 'Amount must be greater than 0';
                           }
                           return null;
                         },
@@ -348,11 +466,12 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     );
   }
 
-  // --- UI Helpers ---
-  Widget _buildSectionTitle(String title, double width) {
-    return Text(title,
-        style: TextStyle(fontSize: width * 0.038, fontWeight: FontWeight.w600));
-  }
+  // ─── UI helpers ───────────────────────────────────────────────────────────
+
+  Widget _buildSectionTitle(String title, double width) => Text(
+        title,
+        style: TextStyle(fontSize: width * 0.038, fontWeight: FontWeight.w600),
+      );
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -427,180 +546,74 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
         value: _selectedCategory,
         isExpanded: true,
         underline: const SizedBox.shrink(),
-        items: _categories.map((category) {
-          return DropdownMenuItem(
-            value: category,
-            child: Text(category, style: TextStyle(fontSize: width * 0.04)),
-          );
-        }).toList(),
-        onChanged: (value) {
-          if (value != null) {
-            setState(() => _selectedCategory = value);
-          }
+        items: _categories
+            .map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c, style: TextStyle(fontSize: width * 0.04)),
+                ))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) setState(() => _selectedCategory = v);
         },
       ),
     );
   }
 
+  // ─── Participants section ─────────────────────────────────────────────────
+
   Widget _buildParticipantsSection(double width) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_selectedParticipants.isNotEmpty)
-          Column(
-            children: [
-              // Selected participants with amount inputs
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _selectedParticipants.length,
-                  separatorBuilder: (_, __) => Divider(
-                    color: Colors.grey[200],
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
-                  ),
-                  itemBuilder: (context, index) {
-                    final participantId = _selectedParticipants.toList()[index];
-                    final participantName =
-                        _friendNames[participantId] ?? 'Unknown';
+        if (_selectedParticipants.isNotEmpty) ...[
+          // ── Split mode toggle ──────────────────────────────────────────
+          _buildSplitModeToggle(width),
+          const SizedBox(height: 12),
 
-                    // Create controller if it doesn't exist
-                    if (!_participantControllers.containsKey(participantId)) {
-                      _participantControllers[participantId] =
-                          TextEditingController();
-                    }
+          // ── Summary row ────────────────────────────────────────────────
+          _buildSplitSummary(width),
+          const SizedBox(height: 12),
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      child: Row(
-                        children: [
-                          // Participant name with remove button
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        participantName,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF1A1A1A),
-                                        ),
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedParticipants
-                                              .remove(participantId);
-                                          _participantAmounts
-                                              .remove(participantId);
-                                          _participantControllers[
-                                                  participantId]!
-                                              .dispose();
-                                          _participantControllers
-                                              .remove(participantId);
-                                        });
-                                      },
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 18,
-                                        color: Colors.grey[400],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Amount input field
-                          SizedBox(
-                            width: 100,
-                            child: TextField(
-                              controller:
-                                  _participantControllers[participantId]!,
-                              keyboardType: TextInputType.number,
-                              onChanged: (value) {
-                                setState(() {
-                                  _participantAmounts[participantId] =
-                                      double.tryParse(value) ?? 0.0;
-                                });
-                              },
-                              decoration: InputDecoration(
-                                hintText: '0.00',
-                                hintStyle: TextStyle(
-                                    color: Colors.grey[400], fontSize: 13),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E5E5),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E5E5),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFF39C12),
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 8,
-                                ),
-                                isDense: true,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+          // ── Per-participant rows ───────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _selectedParticipants.length,
+              separatorBuilder: (_, __) => Divider(
+                  color: Colors.grey[200],
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16),
+              itemBuilder: (context, index) {
+                final uid = _selectedParticipants.toList()[index];
+                return _buildParticipantRow(uid, width);
+              },
+            ),
           ),
+          const SizedBox(height: 12),
+        ],
+
+        // ── Add participants button ─────────────────────────────────────
         GestureDetector(
           onTap: _showAddParticipantsDialog,
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border.all(
-                color: const Color(0xFFF39C12),
-                width: 2,
-              ),
+              border: Border.all(color: const Color(0xFFF39C12), width: 2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.add_circle_outline,
-                  color: Color(0xFFF39C12),
-                  size: 20,
-                ),
+                const Icon(Icons.add_circle_outline,
+                    color: Color(0xFFF39C12), size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Add Participants',
@@ -618,25 +631,250 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     );
   }
 
-  // ─── Add Participants Bottom Sheet ───────────────────────────────────────────
-  //
-  // FIX: Replaced showGeneralDialog (unconstrained overlay) with
-  // showModalBottomSheet + DraggableScrollableSheet. This gives the Column
-  // a definite bounded height so Expanded / Flexible children resolve
-  // correctly and no longer overflow.
-  //
-  // Inside the sheet:
-  //  • Header, search bar, and section label are fixed (non-scrolling).
-  //  • The friends list uses ListView with shrinkWrap: false and the sheet's
-  //    own scrollController, so scrolling is handled by DraggableScrollableSheet.
-  // ────────────────────────────────────────────────────────────────────────────
+  /// Toggle between "Split Equally" and "Custom" modes.
+  Widget _buildSplitModeToggle(double width) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEEEEE),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          _splitModeTab('Split Equally', _isEqualSplit,
+              () => _toggleSplitMode(true), width),
+          _splitModeTab(
+              'Custom', !_isEqualSplit, () => _toggleSplitMode(false), width),
+        ],
+      ),
+    );
+  }
+
+  Widget _splitModeTab(
+      String label, bool active, VoidCallback onTap, double width) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    )
+                  ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: width * 0.035,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+              color: active ? const Color(0xFFF39C12) : const Color(0xFF888888),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shows total vs sum-of-shares so the user knows if there's a remainder.
+  Widget _buildSplitSummary(double width) {
+    final total = double.tryParse(_amountController.text.trim()) ?? 0.0;
+    final assigned = _selectedParticipants.fold(
+        0.0, (sum, uid) => sum + (_splitAmounts[uid] ?? 0.0));
+    final payerShare = double.parse((total - assigned).toStringAsFixed(2));
+    final remaining = double.parse((total - assigned).toStringAsFixed(2));
+    final isBalanced = remaining.abs() < 0.01;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isBalanced ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isBalanced ? const Color(0xFF81C784) : const Color(0xFFF39C12),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your share',
+                style:
+                    TextStyle(fontSize: width * 0.032, color: Colors.grey[600]),
+              ),
+              Text(
+                payerShare >= 0 ? payerShare.toStringAsFixed(2) : '—',
+                style: TextStyle(
+                  fontSize: width * 0.04,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                isBalanced ? 'Fully assigned' : 'Unassigned',
+                style: TextStyle(
+                    fontSize: width * 0.032,
+                    color: isBalanced
+                        ? const Color(0xFF2E7D32)
+                        : Colors.orange[800]),
+              ),
+              Text(
+                isBalanced ? '✓' : remaining.toStringAsFixed(2),
+                style: TextStyle(
+                  fontSize: width * 0.04,
+                  fontWeight: FontWeight.w700,
+                  color:
+                      isBalanced ? const Color(0xFF2E7D32) : Colors.orange[800],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParticipantRow(String uid, double width) {
+    final name = _friendNames[uid] ?? 'Unknown';
+    final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    _participantControllers.putIfAbsent(uid, () => TextEditingController());
+
+    // Keep controller text in sync when in equal-split mode.
+    final currentAmount = _splitAmounts[uid] ?? 0.0;
+    final controller = _participantControllers[uid]!;
+    if (_isEqualSplit) {
+      final formatted =
+          currentAmount > 0 ? currentAmount.toStringAsFixed(2) : '';
+      if (controller.text != formatted) {
+        controller.text = formatted;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF39C12).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Text(initials,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFF39C12))),
+          ),
+          const SizedBox(width: 10),
+
+          // Name + "owes you" label
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1A1A1A))),
+                Text('owes you',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              ],
+            ),
+          ),
+
+          // Amount input
+          SizedBox(
+            width: 100,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              readOnly: _isEqualSplit,
+              onChanged: _isEqualSplit
+                  ? null
+                  : (value) {
+                      setState(() {
+                        final parsed = double.tryParse(value) ?? 0.0;
+                        _splitAmounts[uid] = parsed < 0 ? 0.0 : parsed;
+                      });
+                    },
+              decoration: InputDecoration(
+                hintText: '0.00',
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                filled: _isEqualSplit,
+                fillColor:
+                    _isEqualSplit ? const Color(0xFFF5F5F5) : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFF39C12), width: 2),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                isDense: true,
+              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+
+          // Remove button
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedParticipants.remove(uid);
+                _splitAmounts.remove(uid);
+                _participantControllers[uid]?.dispose();
+                _participantControllers.remove(uid);
+                _onParticipantsChanged();
+              });
+            },
+            child: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Add Participants Bottom Sheet ────────────────────────────────────────
+
   void _showAddParticipantsDialog() {
     _searchController.clear();
     _searchQuery = '';
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // lets the sheet grow beyond 50 %
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.55),
       builder: (context) {
@@ -646,7 +884,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
               initialChildSize: 0.78,
               minChildSize: 0.4,
               maxChildSize: 0.95,
-              expand: false, // sheet sizes itself; no full-screen stretch
+              expand: false,
               builder: (context, scrollController) {
                 return Container(
                   decoration: const BoxDecoration(
@@ -654,10 +892,9 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(28)),
                   ),
-                  // Column has a definite height from DraggableScrollableSheet
                   child: Column(
                     children: [
-                      // ── Drag Handle ──────────────────────────────────────
+                      // Drag handle
                       Padding(
                         padding: const EdgeInsets.only(top: 12, bottom: 4),
                         child: Container(
@@ -670,7 +907,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         ),
                       ),
 
-                      // ── Header ───────────────────────────────────────────
+                      // Header
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
                         child: Row(
@@ -712,11 +949,9 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                   color: Colors.white.withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                  color: Colors.white.withOpacity(0.55),
-                                ),
+                                child: Icon(Icons.close_rounded,
+                                    size: 18,
+                                    color: Colors.white.withOpacity(0.55)),
                               ),
                             ),
                           ],
@@ -725,7 +960,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
                       const SizedBox(height: 18),
 
-                      // ── Search Bar ───────────────────────────────────────
+                      // Search bar
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
@@ -733,20 +968,14 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                             color: Colors.white.withOpacity(0.07),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.1),
-                            ),
+                                color: Colors.white.withOpacity(0.1)),
                           ),
                           child: TextField(
                             controller: _searchController,
                             style: const TextStyle(
-                              color: Color(0xFFF5F0EB),
-                              fontSize: 15,
-                            ),
-                            onChanged: (value) {
-                              setDialogState(() {
-                                _searchQuery = value.toLowerCase();
-                              });
-                            },
+                                color: Color(0xFFF5F0EB), fontSize: 15),
+                            onChanged: (v) => setDialogState(
+                                () => _searchQuery = v.toLowerCase()),
                             decoration: InputDecoration(
                               hintText: 'Search friends...',
                               hintStyle: TextStyle(
@@ -756,22 +985,16 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                               prefixIcon: Padding(
                                 padding:
                                     const EdgeInsets.only(left: 14, right: 10),
-                                child: Icon(
-                                  Icons.search_rounded,
-                                  size: 20,
-                                  color:
-                                      const Color(0xFFF39C12).withOpacity(0.8),
-                                ),
+                                child: Icon(Icons.search_rounded,
+                                    size: 20,
+                                    color: const Color(0xFFF39C12)
+                                        .withOpacity(0.8)),
                               ),
                               prefixIconConstraints: const BoxConstraints(
-                                minWidth: 44,
-                                minHeight: 44,
-                              ),
+                                  minWidth: 44, minHeight: 44),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 4,
-                              ),
+                                  vertical: 14, horizontal: 4),
                             ),
                           ),
                         ),
@@ -779,7 +1002,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
                       const SizedBox(height: 6),
 
-                      // ── Section Label ────────────────────────────────────
+                      // Section label
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 10, 24, 6),
                         child: Row(
@@ -804,10 +1027,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         ),
                       ),
 
-                      // ── Friends List (scrollable, fills remaining space) ──
-                      //
-                      // Expanded works here because DraggableScrollableSheet
-                      // gives this Column a tight, finite height constraint.
+                      // Friends list
                       Expanded(
                         child: StreamBuilder<List<Map<String, dynamic>>>(
                           stream: friendsService.getFriends(_currentUserId),
@@ -815,24 +1035,17 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
-                                child: CircularProgressIndicator(
-                                  valueColor:
-                                      AlwaysStoppedAnimation(Color(0xFFF39C12)),
-                                  strokeWidth: 2,
-                                ),
-                              );
+                                  child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation(
+                                          Color(0xFFF39C12)),
+                                      strokeWidth: 2));
                             }
-
                             if (snapshot.hasError) {
                               return Center(
-                                child: Text(
-                                  'Something went wrong',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.4),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              );
+                                  child: Text('Something went wrong',
+                                      style: TextStyle(
+                                          color: Colors.white.withOpacity(0.4),
+                                          fontSize: 14)));
                             }
 
                             final friendships = snapshot.data ?? [];
@@ -846,13 +1059,11 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                         size: 38,
                                         color: Colors.white.withOpacity(0.15)),
                                     const SizedBox(height: 10),
-                                    Text(
-                                      'No friends yet',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.35),
-                                      ),
-                                    ),
+                                    Text('No friends yet',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white
+                                                .withOpacity(0.35))),
                                   ],
                                 ),
                               );
@@ -864,63 +1075,50 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                 if (namesSnapshot.connectionState ==
                                     ConnectionState.waiting) {
                                   return const Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation(
-                                          Color(0xFFF39C12)),
-                                      strokeWidth: 2,
-                                    ),
-                                  );
+                                      child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation(
+                                              Color(0xFFF39C12)),
+                                          strokeWidth: 2));
                                 }
 
                                 final friendNames = namesSnapshot.data ?? {};
 
-                                List<MapEntry<dynamic, String>>
-                                    filteredFriends =
-                                    friendships.map((friendship) {
-                                  final friendId = friendship['requesterId'] ==
-                                          _currentUserId
-                                      ? friendship['receiverId']
-                                      : friendship['requesterId'];
-                                  return MapEntry(friendId,
-                                      friendNames[friendId] ?? 'Unknown');
-                                }).where((entry) {
-                                  if (entry.key == _currentUserId) return false;
-                                  if (_searchQuery.isEmpty) return true;
-                                  return entry.value
-                                      .toLowerCase()
-                                      .contains(_searchQuery);
-                                }).toList();
+                                var filtered = friendships
+                                    .map((f) {
+                                      final fid =
+                                          f['requesterId'] == _currentUserId
+                                              ? f['receiverId']
+                                              : f['requesterId'];
+                                      return MapEntry(
+                                          fid, friendNames[fid] ?? 'Unknown');
+                                    })
+                                    .where((e) =>
+                                        e.key != _currentUserId &&
+                                        (_searchQuery.isEmpty ||
+                                            e.value
+                                                .toLowerCase()
+                                                .contains(_searchQuery)))
+                                    .toList();
 
-                                if (_searchQuery.isEmpty &&
-                                    filteredFriends.length > 5) {
-                                  filteredFriends =
-                                      filteredFriends.sublist(0, 5);
-                                }
-
-                                if (filteredFriends.isEmpty) {
+                                if (filtered.isEmpty) {
                                   return Center(
-                                    child: Text(
-                                      'No results for "$_searchQuery"',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.35),
-                                      ),
-                                    ),
-                                  );
+                                      child: Text(
+                                          'No results for "$_searchQuery"',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white
+                                                  .withOpacity(0.35))));
                                 }
 
-                                // shrinkWrap: false + scrollController from
-                                // DraggableScrollableSheet = correct scroll
-                                // behaviour with no overflow.
                                 return ListView.separated(
                                   controller: scrollController,
                                   padding:
                                       const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                                  itemCount: filteredFriends.length,
+                                  itemCount: filtered.length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final entry = filteredFriends[index];
+                                  itemBuilder: (context, i) {
+                                    final entry = filtered[i];
                                     final friendId = entry.key;
                                     final friendName = entry.value;
                                     final isSelected = _selectedParticipants
@@ -935,15 +1133,19 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                           if (isSelected) {
                                             _selectedParticipants
                                                 .remove(friendId);
+                                            _splitAmounts.remove(friendId);
+                                            _participantControllers[friendId]
+                                                ?.dispose();
+                                            _participantControllers
+                                                .remove(friendId);
                                           } else {
                                             _selectedParticipants.add(friendId);
-                                          }
-                                        });
-                                        // Sync chip strip on the parent page
-                                        setState(() {
-                                          if (!isSelected) {
                                             _friendNames[friendId] = friendName;
                                           }
+                                        });
+                                        setState(() {
+                                          _friendNames[friendId] = friendName;
+                                          _onParticipantsChanged();
                                         });
                                       },
                                       child: AnimatedContainer(
@@ -970,7 +1172,6 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                         ),
                                         child: Row(
                                           children: [
-                                            // Avatar
                                             Container(
                                               width: 40,
                                               height: 40,
@@ -984,40 +1185,33 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                                     BorderRadius.circular(12),
                                               ),
                                               alignment: Alignment.center,
-                                              child: Text(
-                                                initials,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: isSelected
-                                                      ? const Color(0xFFF39C12)
-                                                      : Colors.white
-                                                          .withOpacity(0.55),
-                                                ),
-                                              ),
+                                              child: Text(initials,
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isSelected
+                                                        ? const Color(
+                                                            0xFFF39C12)
+                                                        : Colors.white
+                                                            .withOpacity(0.55),
+                                                  )),
                                             ),
-
                                             const SizedBox(width: 13),
-
-                                            // Name
                                             Expanded(
-                                              child: Text(
-                                                friendName,
-                                                style: TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.w400,
-                                                  color: isSelected
-                                                      ? const Color(0xFFF5F0EB)
-                                                      : Colors.white
-                                                          .withOpacity(0.65),
-                                                  letterSpacing: 0.1,
-                                                ),
-                                              ),
+                                              child: Text(friendName,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.w600
+                                                        : FontWeight.w400,
+                                                    color: isSelected
+                                                        ? const Color(
+                                                            0xFFF5F0EB)
+                                                        : Colors.white
+                                                            .withOpacity(0.65),
+                                                    letterSpacing: 0.1,
+                                                  )),
                                             ),
-
-                                            // Checkmark
                                             AnimatedSwitcher(
                                               duration: const Duration(
                                                   milliseconds: 200),
@@ -1035,11 +1229,9 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                                                 .circular(7),
                                                       ),
                                                       child: const Icon(
-                                                        Icons.check_rounded,
-                                                        size: 15,
-                                                        color: Colors.white,
-                                                      ),
-                                                    )
+                                                          Icons.check_rounded,
+                                                          size: 15,
+                                                          color: Colors.white))
                                                   : Container(
                                                       key: const ValueKey(
                                                           'empty'),
@@ -1070,7 +1262,7 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         ),
                       ),
 
-                      // ── Bottom Action Bar ────────────────────────────────
+                      // Bottom action bar
                       Container(
                         padding: EdgeInsets.fromLTRB(
                           20,
@@ -1080,14 +1272,11 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                         ),
                         decoration: BoxDecoration(
                           border: Border(
-                            top: BorderSide(
-                              color: Colors.white.withOpacity(0.07),
-                            ),
-                          ),
+                              top: BorderSide(
+                                  color: Colors.white.withOpacity(0.07))),
                         ),
                         child: Row(
                           children: [
-                            // Selected count badge
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
                               child: _selectedParticipants.isEmpty
@@ -1102,8 +1291,8 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                         color: Colors.white.withOpacity(0.07),
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: Colors.white.withOpacity(0.1),
-                                        ),
+                                            color:
+                                                Colors.white.withOpacity(0.1)),
                                       ),
                                       child: Text(
                                         '${_selectedParticipants.length} selected',
@@ -1115,7 +1304,6 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                       ),
                                     ),
                             ),
-
                             Expanded(
                               child: GestureDetector(
                                 onTap: () => Navigator.pop(context),
@@ -1134,15 +1322,13 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
                                     ],
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text(
-                                    'Confirm',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
+                                  child: const Text('Confirm',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                      )),
                                 ),
                               ),
                             ),
@@ -1157,31 +1343,28 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
           },
         );
       },
-    ).then((_) {
-      setState(() {});
-    });
+    ).then((_) => setState(() {}));
   }
+
+  // ─── Firestore helpers ────────────────────────────────────────────────────
 
   Future<Map<String, String>> _getFriendNames(
       List<Map<String, dynamic>> friendships) async {
-    final friendNames = <String, String>{};
+    final result = <String, String>{};
     final firestore = FirebaseFirestore.instance;
-
-    for (final friendship in friendships) {
-      final friendId = friendship['requesterId'] == _currentUserId
-          ? friendship['receiverId']
-          : friendship['requesterId'];
-
+    for (final f in friendships) {
+      final fid = f['requesterId'] == _currentUserId
+          ? f['receiverId']
+          : f['requesterId'];
       try {
-        final userDoc = await firestore.collection('Users').doc(friendId).get();
-        if (userDoc.exists) {
-          friendNames[friendId] = userDoc.data()?['username'] ?? 'Unknown';
+        final doc = await firestore.collection('Users').doc(fid).get();
+        if (doc.exists) {
+          result[fid] = doc.data()?['username'] ?? 'Unknown';
         }
-      } catch (e) {
-        friendNames[friendId] = 'Unknown';
+      } catch (_) {
+        result[fid] = 'Unknown';
       }
     }
-
-    return friendNames;
+    return result;
   }
 }
