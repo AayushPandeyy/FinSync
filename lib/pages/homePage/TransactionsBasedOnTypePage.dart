@@ -3,6 +3,7 @@ import 'package:finance_tracker/pages/homePage/EditTransactionPage.dart';
 import 'package:finance_tracker/service/TransactionFirestoreService.dart';
 import 'package:finance_tracker/utilities/Categories.dart';
 import 'package:finance_tracker/utilities/DialogBox.dart';
+import 'package:finance_tracker/utilities/TransferRules.dart';
 import 'package:finance_tracker/widgets/common/StandardAppBar.dart';
 import 'package:finance_tracker/widgets/TransactionTile.dart';
 import 'package:finance_tracker/widgets/homePage/RecentTransactionsWidget.dart';
@@ -23,16 +24,22 @@ class _TransactionsBasedOnTypePageState
     extends State<TransactionsBasedOnTypePage> {
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F8FA),
-        appBar: StandardAppBar(
-          title: widget.type,
-          useCustomDesign: true,
-        ),
-        body: StreamBuilder(
-            stream: TransactionFirestoreService().getTransactionsBasedOnType(
-                FirebaseAuth.instance.currentUser!.uid, widget.type),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F8FA),
+      appBar: StandardAppBar(
+        title: widget.type,
+        useCustomDesign: true,
+      ),
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder(
+            // This page is the drill-down for the home screen's income/expense
+            // totals, which come from the `Users` aggregates and never counted
+            // transfers — so the transfer legs are left out here too.
+            stream: TransactionFirestoreService()
+                .getTransactionsBasedOnType(
+                    FirebaseAuth.instance.currentUser!.uid, widget.type)
+                .map(TransferRules.exclude),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -115,7 +122,10 @@ class _TransactionsBasedOnTypePageState
                                                         category:
                                                             data["category"],
                                                         date: data["date"]
-                                                            .toDate())));
+                                                            .toDate(),
+                                                        wallet:
+                                                            data["wallet"] ??
+                                                                'Cash')));
                                       },
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
@@ -124,6 +134,7 @@ class _TransactionsBasedOnTypePageState
                                     ),
                                   ]),
                               child: TransactionTile(
+                                  wallet: data["wallet"] ?? 'Cash',
                                   title: data["title"],
                                   date: data["date"].toDate(),
                                   amount: (data["amount"] as num).toDouble(),

@@ -10,10 +10,10 @@ class CurrencyFormatter {
   }
 
   /// Format amount with currency symbol (simple string concatenation)
-  /// Returns formatted string like "Rs 1000" or "$ 1000"
+  /// Returns formatted string like "Rs 1000.00" or "$ 1000.00"
   static Future<String> formatAmountSimple(double amount) async {
     final symbol = await CurrencyService.getCurrencySymbol();
-    return '$symbol ${amount.toStringAsFixed(0)}';
+    return '$symbol ${amount.toStringAsFixed(2)}';
   }
 
   /// Format amount with currency symbol (with decimal places)
@@ -32,6 +32,6 @@ class CurrencyFormatter {
   /// This is a fallback - prefer async versions
   static String formatAmountSync(double amount) {
     final symbol = CurrencyService.getCurrencySymbolSync();
-    return '$symbol ${amount.toStringAsFixed(0)}';
+    return '$symbol ${amount.toStringAsFixed(2)}';
   }
 }

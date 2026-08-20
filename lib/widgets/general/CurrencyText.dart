@@ -25,7 +25,7 @@ class CurrencyText extends StatelessWidget {
         final symbol = snapshot.data ?? 'Rs';
         final formattedAmount = decimals != null
             ? amount.toStringAsFixed(decimals!)
-            : amount.toStringAsFixed(0);
+            : amount.toStringAsFixed(2);
         return Text(
           "$symbol $formattedAmount",
           style: style,

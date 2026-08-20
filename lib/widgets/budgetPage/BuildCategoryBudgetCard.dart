@@ -90,7 +90,7 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$_currencySymbol ${widget.spent.toStringAsFixed(0)} of $_currencySymbol ${widget.budget.toStringAsFixed(0)}',
+                        '$_currencySymbol ${widget.spent.toStringAsFixed(2)} of $_currencySymbol ${widget.budget.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],

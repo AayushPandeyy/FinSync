@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:finance_tracker/utilities/Globals.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -5,6 +8,17 @@ class BannerService {
   InterstitialAd? _interstitialAd;
 
   void showInterstitialAd() {
+    final randomNumber = Random().nextInt(1000) + 1;
+
+    if (randomNumber.isOdd) {
+      debugPrint('InterstitialAd skipped because roll was $randomNumber');
+      return;
+    }
+    if (Globals.environment == 'dev') {
+      debugPrint('InterstitialAd skipped because environment is dev');
+      return;
+    }
+
     InterstitialAd.load(
       // adUnitId: 'ca-app-pub-3940256099942544/1033173712', // test Ad Unit ID
       adUnitId: 'ca-app-pub-3804780729029008/1042521213',
