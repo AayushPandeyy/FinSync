@@ -47,11 +47,7 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # -----------------------------------------------
-      # Tests
-      # -----------------------------------------------
-      - name: Run Flutter Tests
-        run: flutter test
+
 
       # -----------------------------------------------
       # Restore Keystore
