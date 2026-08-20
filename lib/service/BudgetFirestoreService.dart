@@ -104,6 +104,15 @@ class BudgetFirestoreService {
   //       .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   // }
 
+  Future<void> deleteBudget(String uid, String budgetId) async {
+    await firestore
+        .collection('Budgets')
+        .doc(uid)
+        .collection('budgets')
+        .doc(budgetId)
+        .delete();
+  }
+
   Stream<List<Map<String, dynamic>>> getBudget(String uid) async* {
     final cacheKey = 'budgets_$uid';
     final cached = await OfflineCacheService.readList(cacheKey);

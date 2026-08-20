@@ -14,14 +14,13 @@ class IOUTile extends StatefulWidget {
   final VoidCallback onSettle;
   final VoidCallback onPartialSettle;
 
-  const IOUTile({
-    super.key,
-    required this.iou,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onSettle,
-    required this.onPartialSettle
-  });
+  const IOUTile(
+      {super.key,
+      required this.iou,
+      required this.onEdit,
+      required this.onDelete,
+      required this.onSettle,
+      required this.onPartialSettle});
 
   @override
   State<IOUTile> createState() => _IOUTileState();
@@ -50,19 +49,32 @@ class _IOUTileState extends State<IOUTile> {
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
     final isSettled = widget.iou.status == IOUStatus.SETTLED;
-    final isOverdue =
-        widget.iou.dueDate != null && widget.iou.dueDate!.isBefore(DateTime.now());
+    final isOverdue = widget.iou.dueDate != null &&
+        widget.iou.dueDate!.isBefore(DateTime.now());
+    final hasPartialSettlement = widget.iou.settledAmount > 0 && !isSettled;
+    final remaining = widget.iou.amount - widget.iou.settledAmount;
+    final progress = widget.iou.amount > 0
+        ? (widget.iou.settledAmount / widget.iou.amount).clamp(0.0, 1.0)
+        : 0.0;
 
     Color getStatusColor() {
       if (isSettled) return const Color(0xFF4A90E2); // Blue for settled
       if (isOverdue) return const Color(0xFFF57C00); // Orange for overdue
-      return const Color(0xFFF57C00); // Green for pending
+      return const Color(0xFFF57C00); // Pending
     }
 
     String getStatusText() {
       if (isSettled) return 'Settled';
+      if (hasPartialSettlement) return 'Partial';
       if (isOverdue) return 'Overdue';
       return 'Pending';
+    }
+
+    Color getStatusBadgeColor() {
+      if (isSettled) return const Color(0xFF4A90E2);
+      if (hasPartialSettlement) return const Color(0xFF4A90E2);
+      if (isOverdue) return const Color(0xFFF57C00);
+      return const Color(0xFFF57C00);
     }
 
     return GestureDetector(
@@ -70,7 +82,6 @@ class _IOUTileState extends State<IOUTile> {
         showDialog(
           context: context,
           builder: (context) => IOUDetailPopup(
-            
             iou: widget.iou,
             onEdit: widget.onEdit,
             onDelete: widget.onDelete,
@@ -94,90 +105,135 @@ class _IOUTileState extends State<IOUTile> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Left: Person info ---
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.iou.personName,
-                      style: TextStyle(
-                          fontSize: width * 0.042,
-                          fontWeight: FontWeight.w600,
-                          decoration:
-                              isSettled ? TextDecoration.lineThrough : null)),
-                  SizedBox(height: width * 0.01),
-                  Text(widget.iou.description,
-                      style: TextStyle(
-                          fontSize: width * 0.032,
-                          color: const Color(0xFF999999)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-
-            // --- Right: Amount + Type + Status ---
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Row(
               children: [
-                // Amount
-                Text(
-                  '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: widget.iou.iouType == IOUType.OWE
-                        ? const Color(0xFFE63946)
-                        : const Color(0xFF06D6A0),
-                    fontSize: width * 0.042,
-                    fontWeight: FontWeight.w600,
-                    decoration: isSettled ? TextDecoration.lineThrough : null,
+                // --- Left: Person info ---
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.iou.personName,
+                          style: TextStyle(
+                              fontSize: width * 0.042,
+                              fontWeight: FontWeight.w600,
+                              decoration: isSettled
+                                  ? TextDecoration.lineThrough
+                                  : null)),
+                      SizedBox(height: width * 0.01),
+                      Text(widget.iou.description,
+                          style: TextStyle(
+                              fontSize: width * 0.032,
+                              color: const Color(0xFF999999)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
 
-                // IOU Type badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: widget.iou.iouType == IOUType.OWE
-                        ? const Color(0xFFE63946).withOpacity(0.1)
-                        : const Color(0xFF06D6A0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    widget.iou.iouType == IOUType.OWE ? 'I Owe' : 'Owes Me',
-                    style: TextStyle(
-                        fontSize: width * 0.028,
-                        fontWeight: FontWeight.w600,
+                // --- Right: Amount + Type + Status ---
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Amount
+                    Text(
+                      '$_currencySymbol ${widget.iou.amount.toStringAsFixed(0)}',
+                      style: TextStyle(
                         color: widget.iou.iouType == IOUType.OWE
                             ? const Color(0xFFE63946)
-                            : const Color(0xFF06D6A0)),
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                // --- Status badge ---
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: getStatusColor().withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    getStatusText(),
-                    style: TextStyle(
-                      fontSize: width * 0.028,
-                      fontWeight: FontWeight.w600,
-                      color: getStatusColor(),
+                            : const Color(0xFF06D6A0),
+                        fontSize: width * 0.042,
+                        fontWeight: FontWeight.w600,
+                        decoration:
+                            isSettled ? TextDecoration.lineThrough : null,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+
+                    // IOU Type badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: widget.iou.iouType == IOUType.OWE
+                            ? const Color(0xFFE63946).withOpacity(0.1)
+                            : const Color(0xFF06D6A0).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        widget.iou.iouType == IOUType.OWE ? 'I Owe' : 'Owes Me',
+                        style: TextStyle(
+                            fontSize: width * 0.028,
+                            fontWeight: FontWeight.w600,
+                            color: widget.iou.iouType == IOUType.OWE
+                                ? const Color(0xFFE63946)
+                                : const Color(0xFF06D6A0)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // --- Status badge ---
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: getStatusBadgeColor().withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        getStatusText(),
+                        style: TextStyle(
+                          fontSize: width * 0.028,
+                          fontWeight: FontWeight.w600,
+                          color: getStatusBadgeColor(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+
+            // --- Settlement progress bar ---
+            if (hasPartialSettlement) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 5,
+                  backgroundColor: const Color(0xFFE5E5E5),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF4A90E2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Settled: $_currencySymbol ${widget.iou.settledAmount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: width * 0.028,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF4A90E2),
+                    ),
+                  ),
+                  Text(
+                    'Remaining: $_currencySymbol ${remaining.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: width * 0.028,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

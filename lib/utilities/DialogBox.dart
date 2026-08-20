@@ -3,128 +3,92 @@ import 'package:finance_tracker/widgets/homePage/TransactionDetailPopUp.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
+// Design tokens
+class _DT {
+  static const bg = Color(0xFFFFFFFF);
+  static const surface = Color(0xFFF5F5F4);
+  static const border = Color(0xFFE7E5E4);
+  static const textPrimary = Color(0xFF1C1917);
+  static const textSecondary = Color(0xFF78716C);
+  static const success = Color(0xFF16A34A);
+  static const successSurface = Color(0xFFF0FDF4);
+  static const danger = Color(0xFFDC2626);
+  static const dangerSurface = Color(0xFFFEF2F2);
+  static const warning = Color(0xFFD97706);
+  static const warningSurface = Color(0xFFFFFBEB);
+  static const btnText = Color(0xFFFFFFFF);
+
+  static const radius = 20.0;
+  static const radiusSm = 12.0;
+}
+
 class DialogBox {
-  // Success/Failure Message Dialog - money-minded design
-  void showMessageDialog(
+  // ─── Success / Failure ───────────────────────────────────────────────────
+  Future<void> showMessageDialog(
     BuildContext context, {
     required bool isSuccess,
     required String title,
     required String message,
-  }) {
-    final color = isSuccess ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    final icon = isSuccess ? Icons.check_circle : Icons.error;
+  }) async {
+    final color = isSuccess ? _DT.success : _DT.danger;
+    final surfaceColor = isSuccess ? _DT.successSurface : _DT.dangerSurface;
+    final icon =
+        isSuccess ? Icons.check_circle_outline_rounded : Icons.cancel_outlined;
 
-    showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.35),
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                color.withOpacity(0.05),
-              ],
-            ),
-            border: Border.all(
-              color: color.withOpacity(0.3),
-              width: 1.5,
-            ),
+            color: _DT.bg,
+            borderRadius: BorderRadius.circular(_DT.radius),
+            border: Border.all(color: _DT.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon with gradient background
+              // Icon chip
               Container(
-                padding: const EdgeInsets.all(16),
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
+                  color: surfaceColor,
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color,
-                      color.withOpacity(0.7),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 48,
-                ),
+                child: Icon(icon, color: color, size: 32),
               ),
               const SizedBox(height: 20),
-              // Title with money-minded font
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                  letterSpacing: 0.5,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: _DT.textPrimary,
+                  letterSpacing: -0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
-              // Message
+              const SizedBox(height: 8),
               Text(
                 message,
                 style: const TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF6B7280),
-                  height: 1.5,
+                  fontSize: 14,
+                  color: _DT.textSecondary,
+                  height: 1.6,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              // OK Button with gradient
-              GestureDetector(
+              _FilledButton(
+                label: 'OK',
+                color: color,
                 onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        color,
-                        color.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
               ),
             ],
           ),
@@ -133,7 +97,7 @@ class DialogBox {
     );
   }
 
-  // Confirmation Dialog - money-minded design
+  // ─── Confirmation ─────────────────────────────────────────────────────────
   Future<bool> showConfirmationDialog(
     BuildContext context, {
     required String title,
@@ -142,168 +106,76 @@ class DialogBox {
     String cancelText = 'Cancel',
     bool isDangerous = false,
   }) async {
+    final confirmColor = isDangerous ? _DT.danger : _DT.success;
+    final iconColor = isDangerous ? _DT.danger : _DT.warning;
+    final iconSurface = isDangerous ? _DT.dangerSurface : _DT.warningSurface;
+    final icon =
+        isDangerous ? Icons.delete_outline_rounded : Icons.help_outline_rounded;
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.35),
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Color(0xFFF9FAFB),
-              ],
-            ),
-            border: Border.all(
-              color: const Color(0xFFE5E7EB),
-              width: 1,
-            ),
+            color: _DT.bg,
+            borderRadius: BorderRadius.circular(_DT.radius),
+            border: Border.all(color: _DT.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon
+              // Icon chip
               Container(
-                padding: const EdgeInsets.all(16),
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
+                  color: iconSurface,
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDangerous
-                        ? [
-                            const Color(0xFFEF4444),
-                            const Color(0xFFDC2626),
-                          ]
-                        : [
-                            const Color(0xFFF59E0B),
-                            const Color(0xFFD97706),
-                          ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isDangerous
-                              ? const Color(0xFFEF4444)
-                              : const Color(0xFFF59E0B))
-                          .withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: Icon(
-                  isDangerous
-                      ? Icons.warning_rounded
-                      : Icons.help_outline_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: Icon(icon, color: iconColor, size: 30),
               ),
               const SizedBox(height: 20),
-              // Title
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDangerous
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF1F2937),
-                  letterSpacing: 0.5,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: _DT.textPrimary,
+                  letterSpacing: -0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
-              // Message
+              const SizedBox(height: 8),
               Text(
                 message,
                 style: const TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF6B7280),
-                  height: 1.5,
+                  fontSize: 14,
+                  color: _DT.textSecondary,
+                  height: 1.6,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              // Buttons
               Row(
                 children: [
-                  // Cancel Button
                   Expanded(
-                    child: GestureDetector(
+                    child: _OutlineButton(
+                      label: cancelText,
                       onTap: () => Navigator.pop(context, false),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFE5E7EB),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          cancelText,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                            letterSpacing: 0.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Confirm Button
                   Expanded(
-                    child: GestureDetector(
+                    child: _FilledButton(
+                      label: confirmText,
+                      color: confirmColor,
                       onTap: () => Navigator.pop(context, true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isDangerous
-                                ? [
-                                    const Color(0xFFEF4444),
-                                    const Color(0xFFDC2626),
-                                  ]
-                                : [
-                                    const Color(0xFF10B981),
-                                    const Color(0xFF059669),
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isDangerous
-                                      ? const Color(0xFFEF4444)
-                                      : const Color(0xFF10B981))
-                                  .withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          confirmText,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -316,7 +188,7 @@ class DialogBox {
     return result ?? false;
   }
 
-  // Loading Dialog (kept for backward compatibility with other pages)
+  // ─── Loading ──────────────────────────────────────────────────────────────
   void showLoadingDialog(BuildContext context) {
     showDialog(
       barrierDismissible: false,
@@ -326,6 +198,7 @@ class DialogBox {
         onPopInvokedWithResult: (pop, res) => false,
         child: AlertDialog(
           backgroundColor: Colors.transparent,
+          elevation: 0,
           content: Center(
             child: LoadingAnimationWidget.twistingDots(
               leftDotColor: const Color(0xFF1A1A3F),
@@ -338,21 +211,99 @@ class DialogBox {
     );
   }
 
+  // ─── Transaction Detail ───────────────────────────────────────────────────
   void showTransactionDetailPopUp(
       BuildContext context, TransactionModel transaction, IconData icon) {
     showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-              backgroundColor: Colors.transparent,
-              content: TransactionDetailPopUp(
-                icon: icon,
-                title: transaction.title,
-                amount: transaction.amount.toString(),
-                date: transaction.date,
-                description: transaction.transactionDescription,
-                category: transaction.category,
-                type: transaction.type,
-              ),
-            ));
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.35),
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        content: TransactionDetailPopUp(
+          icon: icon,
+          title: transaction.title,
+          amount: transaction.amount.toString(),
+          date: transaction.date,
+          description: transaction.transactionDescription,
+          category: transaction.category,
+          type: transaction.type,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Shared button widgets ────────────────────────────────────────────────────
+
+class _FilledButton extends StatelessWidget {
+  const _FilledButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(_DT.radiusSm),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: _DT.btnText,
+            letterSpacing: 0.2,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _OutlineButton extends StatelessWidget {
+  const _OutlineButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: _DT.surface,
+          borderRadius: BorderRadius.circular(_DT.radiusSm),
+          border: Border.all(color: _DT.border),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: _DT.textSecondary,
+            letterSpacing: 0.2,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 }

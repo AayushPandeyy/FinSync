@@ -1,15 +1,25 @@
 import 'package:finance_tracker/firebase_options.dart';
-import 'package:finance_tracker/pages/SplashScreen.dart';
-import 'package:finance_tracker/pages/auth/LoginChecker.dart';
+import 'package:finance_tracker/pages/common/SplashScreen.dart';
+import 'package:finance_tracker/pages/common/auth/LoginChecker.dart';
+import 'package:finance_tracker/utilities/Globals.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Globals.loadPersistedMode();
   MobileAds.instance.initialize();
+
+  // await FirebaseMessaging.instance.subscribeToTopic('all');
 
   runApp(const MyApp());
 }
@@ -21,7 +31,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'FinSync',
       theme: ThemeData(
         textTheme: GoogleFonts.afacadTextTheme(),
         // This is the theme of your application.

@@ -34,26 +34,59 @@ class IOU {
   // Firestore serialization
   // -----------------------------
 
-  factory IOU.fromMap(Map<String, dynamic> map) {
+  factory IOU.fromMap(Map<String, dynamic> map, {String? fallbackId}) {
+    DateTime parseDate(dynamic value, {DateTime? fallback}) {
+      if (value is Timestamp) return value.toDate();
+      if (value is DateTime) return value;
+      if (value is String) {
+        final parsed = DateTime.tryParse(value);
+        if (parsed != null) return parsed;
+      }
+      return fallback ?? DateTime.now();
+    }
+
+    DateTime? parseOptionalDate(dynamic value) {
+      if (value == null) return null;
+      if (value is Timestamp) return value.toDate();
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.tryParse(value);
+      return null;
+    }
+
+    IOUType parseType(dynamic value) {
+      final normalized = (value ?? '').toString().trim().toUpperCase();
+      if (normalized == 'OWED' || normalized == 'OWES_ME') {
+        return IOUType.OWED;
+      }
+      return IOUType.OWE;
+    }
+
+    IOUStatus parseStatus(dynamic value) {
+      final normalized = (value ?? '').toString().trim().toUpperCase();
+      if (normalized == 'SETTLED') return IOUStatus.SETTLED;
+      return IOUStatus.PENDING;
+    }
+
+    double parseAmount(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final parsed = double.tryParse(value);
+        if (parsed != null) return parsed;
+      }
+      return 0.0;
+    }
+
     return IOU(
-      id: map['id'] as String,
-      personName: map['personName'] as String,
-      amount: (map['amount'] as num).toDouble(),
-      description: map['description'] as String,
-      date: (map['date'] as Timestamp).toDate(),
-      dueDate: map['dueDate'] != null
-          ? (map['dueDate'] as Timestamp).toDate()
-          : null,
-      iouType: IOUType.values.firstWhere(
-        (e) => e.name == map['iouType'],
-      ),
-      status: IOUStatus.values.firstWhere(
-        (e) => e.name == map['status'],
-      ),
-      category: map['category'] as String,
-      settledAmount: map['settledAmount'] != null
-          ? (map['settledAmount'] as num).toDouble()
-          : 0.0,
+      id: (map['id'] ?? fallbackId ?? '').toString(),
+      personName: (map['personName'] ?? map['name'] ?? 'Unknown').toString(),
+      amount: parseAmount(map['amount']),
+      description: (map['description'] ?? '').toString(),
+      date: parseDate(map['date']),
+      dueDate: parseOptionalDate(map['dueDate']),
+      iouType: parseType(map['iouType']),
+      status: parseStatus(map['status']),
+      category: (map['category'] ?? 'Other').toString(),
+      settledAmount: parseAmount(map['settledAmount']),
     );
   }
 

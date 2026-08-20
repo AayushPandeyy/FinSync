@@ -23,7 +23,14 @@ class Ioufirestoreservice {
     final cacheKey = 'ious_$uid';
     final cached = await OfflineCacheService.readList(cacheKey);
     if (cached != null) {
-      yield cached.map((map) => IOU.fromMap(map)).toList(growable: false);
+      try {
+        yield cached
+            .map((map) => IOU.fromMap(map))
+            .where((iou) => iou.id.isNotEmpty)
+            .toList(growable: false);
+      } catch (_) {
+        // Ignore a malformed cache payload and continue with network data.
+      }
     }
 
     yield* firestore
@@ -36,7 +43,10 @@ class Ioufirestoreservice {
       final data =
           snapshot.docs.map((doc) => doc.data()).toList(growable: false);
       await OfflineCacheService.saveList(cacheKey, data);
-      return data.map((doc) => IOU.fromMap(doc)).toList(growable: false);
+      return snapshot.docs
+          .map((doc) => IOU.fromMap(doc.data(), fallbackId: doc.id))
+          .where((iou) => iou.id.isNotEmpty)
+          .toList(growable: false);
     });
   }
 
