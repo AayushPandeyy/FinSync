@@ -14,13 +14,20 @@ class IOUTile extends StatefulWidget {
   final VoidCallback onSettle;
   final VoidCallback onPartialSettle;
 
+  /// Supplied for IOUs a split bill created. When present, tapping the tile
+  /// opens the bill instead of the edit/settle popup — a split-linked IOU is
+  /// owned by its bill and must not be settled privately, or the two sides of
+  /// the mirror drift apart.
+  final VoidCallback? onOpenSplitBill;
+
   const IOUTile(
       {super.key,
       required this.iou,
       required this.onEdit,
       required this.onDelete,
       required this.onSettle,
-      required this.onPartialSettle});
+      required this.onPartialSettle,
+      this.onOpenSplitBill});
 
   @override
   State<IOUTile> createState() => _IOUTileState();
@@ -77,8 +84,15 @@ class _IOUTileState extends State<IOUTile> {
       return const Color(0xFFF57C00);
     }
 
+    final isSplitLinked = widget.iou.isSplitLinked;
+    final awaitingApproval = widget.iou.hasPendingApproval;
+
     return GestureDetector(
       onTap: () {
+        if (isSplitLinked && widget.onOpenSplitBill != null) {
+          widget.onOpenSplitBill!();
+          return;
+        }
         showDialog(
           context: context,
           builder: (context) => IOUDetailPopup(
@@ -129,6 +143,34 @@ class _IOUTileState extends State<IOUTile> {
                               color: const Color(0xFF999999)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
+                      if (isSplitLinked) ...[
+                        SizedBox(height: width * 0.015),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF39C12).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.call_split,
+                                  size: width * 0.03,
+                                  color: const Color(0xFFF39C12)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Split bill',
+                                style: TextStyle(
+                                  fontSize: width * 0.026,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFF39C12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -196,6 +238,37 @@ class _IOUTileState extends State<IOUTile> {
                 ),
               ],
             ),
+
+            // --- Awaiting the payer's approval ---
+            if (awaitingApproval) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF39C12).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.schedule,
+                        size: 14, color: Color(0xFFF39C12)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$_currencySymbol ${widget.iou.pendingSettleAmount.toStringAsFixed(0)} awaiting approval',
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF8A6114),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             // --- Settlement progress bar ---
             if (hasPartialSettlement) ...[

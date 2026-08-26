@@ -1,6 +1,9 @@
+import 'package:finance_tracker/models/SettlementRequest.dart';
 import 'package:finance_tracker/models/SplitBill.dart';
 import 'package:finance_tracker/service/SplitBillsFirestoreService.dart';
 import 'package:finance_tracker/utilities/CurrencyService.dart';
+import 'package:finance_tracker/widgets/splitBills/SettleSplitDialog.dart';
+import 'package:finance_tracker/widgets/splitBills/SettlementRequestTile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +21,19 @@ class SplitBillDetailPage extends StatefulWidget {
 
 class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
   final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final SplitBillsFirestoreService _service = SplitBillsFirestoreService();
+
   late Future<Map<String, String>> _usernamesFuture;
+
+  /// Guards the approve / decline buttons while a transaction is in flight, so
+  /// a double tap cannot fire the same resolution twice.
+  bool _isResolving = false;
+
+  static const _amber = Color(0xFFF39C12);
+  static const _green = Color(0xFF2E7D32);
+  static const _red = Color(0xFFE63946);
+  static const _ink = Color(0xFF1A1A1A);
+  static const _muted = Color(0xFF999999);
 
   @override
   void initState() {
@@ -29,9 +44,19 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
     });
   }
 
+  /// Names come off the bill when it has them. Only bills written before names
+  /// were denormalised need the per-participant lookup.
   Future<Map<String, String>> _fetchUsernames() async {
+    final bill = widget.splitBill;
     final Map<String, String> result = {};
-    for (final uid in widget.splitBill.participants) {
+
+    for (final uid in bill.participants) {
+      final stamped = bill.participantNames[uid];
+      if (stamped != null && stamped.trim().isNotEmpty) {
+        result[uid] = stamped;
+        continue;
+      }
+
       try {
         final doc =
             await FirebaseFirestore.instance.collection('Users').doc(uid).get();
@@ -79,7 +104,104 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
     }
   }
 
-  void _showDeleteDialog() {
+  void _snack(String message, {Color background = _ink}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: background),
+      );
+  }
+
+  // ─── Actions ───────────────────────────────────────────────────────────────
+
+  Future<void> _openSettleDialog(SplitBill bill) async {
+    final sent = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => SettleSplitDialog(
+        bill: bill,
+        payeeUid: currentUserId,
+        actorUid: currentUserId,
+        mode: SettleMode.request,
+      ),
+    );
+
+    if (sent == true) {
+      _snack('Settlement sent for approval.', background: _amber);
+    }
+  }
+
+  Future<void> _openRecordDialog(SplitBill bill, String payeeUid) async {
+    final recorded = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => SettleSplitDialog(
+        bill: bill,
+        payeeUid: payeeUid,
+        actorUid: currentUserId,
+        mode: SettleMode.record,
+      ),
+    );
+
+    if (recorded == true) {
+      _snack('Payment recorded.', background: _green);
+    }
+  }
+
+  Future<void> _resolve(
+    SplitBill bill,
+    SettlementRequest request, {
+    required bool approve,
+  }) async {
+    if (_isResolving) return;
+    setState(() => _isResolving = true);
+
+    try {
+      if (approve) {
+        await _service.approveSettlement(
+          bill: bill,
+          request: request,
+          approverUid: currentUserId,
+        );
+        _snack('Settlement approved.', background: _green);
+      } else {
+        await _service.rejectSettlement(
+          bill: bill,
+          request: request,
+          approverUid: currentUserId,
+        );
+        _snack('Settlement declined.', background: _red);
+      }
+    } on SettlementException catch (e) {
+      _snack(e.message, background: _red);
+    } catch (_) {
+      _snack('Something went wrong. Please try again.', background: _red);
+    } finally {
+      if (mounted) setState(() => _isResolving = false);
+    }
+  }
+
+  Future<void> _cancelOwnRequest(SplitBill bill) async {
+    if (_isResolving) return;
+    setState(() => _isResolving = true);
+
+    try {
+      await _service.cancelSettlementRequest(
+        bill: bill,
+        fromUid: currentUserId,
+      );
+      _snack('Request withdrawn.');
+    } on SettlementException catch (e) {
+      _snack(e.message, background: _red);
+    } catch (_) {
+      _snack('Could not withdraw the request.', background: _red);
+    } finally {
+      if (mounted) setState(() => _isResolving = false);
+    }
+  }
+
+  void _showDeleteDialog(SplitBill bill) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -90,14 +212,15 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
         title: const Text(
           'Delete Split Bill',
           style: TextStyle(
-            color: Color(0xFF1A1A1A),
+            color: _ink,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
         ),
         content: const Text(
-          'Are you sure you want to delete this split bill? This action cannot be undone.',
-          style: TextStyle(color: Color(0xFF999999), fontSize: 14),
+          'This removes the bill for everyone, along with the IOUs it created '
+          'and its settlement history. This cannot be undone.',
+          style: TextStyle(color: _muted, fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -110,10 +233,7 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
               ),
               child: const Text(
                 'Cancel',
-                style: TextStyle(
-                  color: Color(0xFF999999),
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -121,22 +241,16 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await SplitBillsFirestoreService().deleteSplitBill(
-                    widget.splitBill.paidBy, widget.splitBill.id);
+                await _service.deleteSplitBill(bill);
                 if (mounted) Navigator.pop(context, true);
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Failed to delete. Please try again.')),
-                  );
-                }
+                _snack('Failed to delete. Please try again.', background: _red);
               }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF39C12),
+                color: _amber,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -153,185 +267,281 @@ class _SplitBillDetailPageState extends State<SplitBillDetailPage> {
     );
   }
 
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
-    final bill = widget.splitBill;
-    final bool isPayer = bill.paidBy == currentUserId;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Nav Bar ──────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F8FA),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new,
-                          size: 18, color: Color(0xFF1A1A1A)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Split Bill Details',
-                          style: TextStyle(
-                            color: const Color(0xFF1A1A1A),
-                            fontWeight: FontWeight.w700,
-                            fontSize: width * 0.045,
-                          ),
-                        ),
-                        const Text(
-                          'Expense breakdown',
-                          style: TextStyle(
-                            color: Color(0xFF999999),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isPayer)
-                    GestureDetector(
-                      onTap: _showDeleteDialog,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEEEE),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.delete_outline,
-                            size: 20, color: Color(0xFFE63946)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+    // Live so an approval on the other side lands here without a reopen.
+    return StreamBuilder<SplitBill?>(
+      stream: _service.watchSplitBill(
+          widget.splitBill.paidBy, widget.splitBill.id),
+      builder: (context, billSnapshot) {
+        final bill = billSnapshot.data ?? widget.splitBill;
+        final bool isPayer = bill.paidBy == currentUserId;
 
-            // ── Body ─────────────────────────────────────────────────
-            Expanded(
-              child: FutureBuilder<Map<String, String>>(
-                future: _usernamesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(
-                      child:
-                          CircularProgressIndicator(color: Color(0xFFF39C12)),
-                    );
-                  }
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F8FA),
+          body: SafeArea(
+            child: Column(
+              children: [
+                _navBar(width, bill, isPayer),
+                Expanded(
+                  child: FutureBuilder<Map<String, String>>(
+                    future: _usernamesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: _amber),
+                        );
+                      }
 
-                  final usernames = snapshot.data ?? {};
+                      // Live bill names win; the future only fills the gaps.
+                      final usernames = <String, String>{
+                        ...?snapshot.data,
+                        ...bill.participantNames,
+                      };
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Hero Card ───────────────────────────────
-                        _HeroCard(
-                          bill: bill,
-                          width: width,
-                          categoryIcon: _categoryIcon(bill.category),
-                          formatCurrency: _formatCurrency,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Paid By ─────────────────────────────────
-                        _InfoCard(
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            _HeroCard(
+                              bill: bill,
+                              width: width,
+                              categoryIcon: _categoryIcon(bill.category),
+                              formatCurrency: _formatCurrency,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // ── Your position + settle action ──────────
+                            _BalanceCard(
+                              bill: bill,
+                              isPayer: isPayer,
+                              currentUserId: currentUserId,
+                              width: width,
+                              formatCurrency: _formatCurrency,
+                              isBusy: _isResolving,
+                              onSettle: () => _openSettleDialog(bill),
+                              onCancelRequest: () => _cancelOwnRequest(bill),
+                            ),
+                            const SizedBox(height: 16),
+
+                            _sectionTitle('Paid by', width),
+                            const SizedBox(height: 8),
+                            _InfoCard(
                               children: [
-                                Text(
-                                  'Paid by',
-                                  style: TextStyle(
-                                    color: const Color(0xFF999999),
-                                    fontSize: width * 0.038,
-                                  ),
-                                ),
-                                Text(
-                                  usernames[bill.paidBy] ?? 'Unknown',
-                                  style: TextStyle(
-                                    color: const Color(0xFFF39C12),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: width * 0.038,
-                                  ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      isPayer ? 'You paid this bill' : 'Paid by',
+                                      style: TextStyle(
+                                        color: _muted,
+                                        fontSize: width * 0.038,
+                                      ),
+                                    ),
+                                    Text(
+                                      isPayer
+                                          ? 'You'
+                                          : (usernames[bill.paidBy] ??
+                                              'Unknown'),
+                                      style: TextStyle(
+                                        color: _amber,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: width * 0.038,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 16),
+
+                            _sectionTitle('Who Owes What', width),
+                            const SizedBox(height: 8),
+                            _InfoCard(
+                              children: bill.participants
+                                  .map((uid) => _ParticipantRow(
+                                        uid: uid,
+                                        bill: bill,
+                                        username:
+                                            usernames[uid] ?? 'Unknown',
+                                        isPayer: uid == bill.paidBy,
+                                        isCurrentUser: uid == currentUserId,
+                                        viewerIsPayer: isPayer,
+                                        formatCurrency: _formatCurrency,
+                                        width: width,
+                                        onRecordPayment: () =>
+                                            _openRecordDialog(bill, uid),
+                                      ))
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // ── Settlement activity ────────────────────
+                            _settlementSection(bill, usernames, width, isPayer),
+
+                            const SizedBox(height: 16),
+                            _sectionTitle('Split Summary', width),
+                            const SizedBox(height: 8),
+                            _SummaryCard(
+                              bill: bill,
+                              usernames: usernames,
+                              formatCurrency: _formatCurrency,
+                              width: width,
+                            ),
+                            const SizedBox(height: 24),
                           ],
                         ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-                        const SizedBox(height: 16),
-
-                        // ── Who Owes What ───────────────────────────
-                        Text(
-                          'Who Owes What',
-                          style: TextStyle(
-                            color: const Color(0xFF1A1A1A),
-                            fontWeight: FontWeight.w600,
-                            fontSize: width * 0.038,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _InfoCard(
-                          children: bill.splitAmounts.entries
-                              .map((entry) => _ParticipantRow(
-                                    uid: entry.key,
-                                    amount: entry.value,
-                                    username: usernames[entry.key] ?? 'Unknown',
-                                    isPayer: entry.key == bill.paidBy,
-                                    isCurrentUser: entry.key == currentUserId,
-                                    formatCurrency: _formatCurrency,
-                                    width: width,
-                                  ))
-                              .toList(),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Summary Footer ──────────────────────────
-                        Text(
-                          'Split Summary',
-                          style: TextStyle(
-                            color: const Color(0xFF1A1A1A),
-                            fontWeight: FontWeight.w600,
-                            fontSize: width * 0.038,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _SummaryCard(
-                          bill: bill,
-                          usernames: usernames,
-                          formatCurrency: _formatCurrency,
-                          width: width,
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  );
-                },
+  Widget _navBar(double width, SplitBill bill, bool isPayer) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F8FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.arrow_back_ios_new,
+                  size: 18, color: _ink),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Split Bill Details',
+                  style: TextStyle(
+                    color: _ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: width * 0.045,
+                  ),
+                ),
+                Text(
+                  bill.isFullySettled
+                      ? 'Everyone is settled up'
+                      : 'Expense breakdown',
+                  style: TextStyle(
+                    color: bill.isFullySettled ? _green : _muted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isPayer)
+            GestureDetector(
+              onTap: () => _showDeleteDialog(bill),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEEEE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.delete_outline,
+                    size: 20, color: _red),
               ),
             ),
-          ],
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _sectionTitle(String text, double width) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: _ink,
+        fontWeight: FontWeight.w600,
+        fontSize: width * 0.038,
+      ),
+    );
+  }
+
+  /// The bill's settlement history, with approve / decline on anything still
+  /// open when the viewer is the payer.
+  Widget _settlementSection(
+    SplitBill bill,
+    Map<String, String> usernames,
+    double width,
+    bool isPayer,
+  ) {
+    return StreamBuilder<List<SettlementRequest>>(
+      stream: _service.getSettlementRequestsStream(bill.paidBy, bill.id),
+      builder: (context, snapshot) {
+        final requests = snapshot.data ?? const <SettlementRequest>[];
+        if (requests.isEmpty) return const SizedBox.shrink();
+
+        final pendingCount = requests.where((r) => r.isPending).length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _sectionTitle('Settlement Activity', width),
+                const SizedBox(width: 8),
+                if (pendingCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _amber.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isPayer
+                          ? '$pendingCount to review'
+                          : '$pendingCount pending',
+                      style: const TextStyle(
+                        color: _amber,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...requests.map((request) => SettlementRequestTile(
+                  request: request,
+                  requesterName: request.fromUid == currentUserId
+                      ? 'You'
+                      : (usernames[request.fromUid] ?? 'Unknown'),
+                  currencySymbol: CurrencyService.getCurrencySymbolSync(),
+                  canApprove: isPayer && request.fromUid != currentUserId,
+                  canCancel: request.fromUid == currentUserId,
+                  isBusy: _isResolving,
+                  onApprove: () => _resolve(bill, request, approve: true),
+                  onReject: () => _resolve(bill, request, approve: false),
+                  onCancel: () => _cancelOwnRequest(bill),
+                )),
+          ],
+        );
+      },
     );
   }
 }
@@ -353,6 +563,9 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settled = bill.isFullySettled;
+    final progress = bill.settlementProgress;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -420,23 +633,299 @@ class _HeroCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFFFCC80)),
-            ),
-            child: Text(
-              bill.category,
-              style: const TextStyle(
-                color: Color(0xFFF39C12),
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
+          const SizedBox(height: 14),
+
+          // Settlement progress across the whole bill.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                settled ? 'Fully settled' : 'Settled so far',
+                style: TextStyle(
+                  color: settled
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFF999999),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '${formatCurrency(bill.totalSettled)} of ${formatCurrency(bill.totalOwedToPayer)}',
+                style: const TextStyle(
+                  color: Color(0xFF666666),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: const Color(0xFFF0F0F0),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                settled ? const Color(0xFF2E7D32) : const Color(0xFFF39C12),
               ),
             ),
           ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFFFCC80)),
+                ),
+                child: Text(
+                  bill.category,
+                  style: const TextStyle(
+                    color: Color(0xFFF39C12),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              if (settled) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                  ),
+                  child: const Text(
+                    'Settled',
+                    style: TextStyle(
+                      color: Color(0xFF2E7D32),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Balance / action card ───────────────────────────────────────────────────
+
+/// The one thing the reader came for: what they owe or are owed on this bill,
+/// and the button that does something about it.
+class _BalanceCard extends StatelessWidget {
+  final SplitBill bill;
+  final bool isPayer;
+  final String currentUserId;
+  final double width;
+  final String Function(double) formatCurrency;
+  final bool isBusy;
+  final VoidCallback onSettle;
+  final VoidCallback onCancelRequest;
+
+  const _BalanceCard({
+    required this.bill,
+    required this.isPayer,
+    required this.currentUserId,
+    required this.width,
+    required this.formatCurrency,
+    required this.isBusy,
+    required this.onSettle,
+    required this.onCancelRequest,
+  });
+
+  static const _amber = Color(0xFFF39C12);
+  static const _green = Color(0xFF2E7D32);
+  static const _red = Color(0xFFE63946);
+
+  @override
+  Widget build(BuildContext context) {
+    // A viewer who is neither payer nor payee has nothing to act on.
+    if (!isPayer && !bill.participants.contains(currentUserId)) {
+      return const SizedBox.shrink();
+    }
+
+    if (isPayer) return _payerView();
+    return _payeeView();
+  }
+
+  Widget _payerView() {
+    final remaining = bill.totalRemaining;
+    final settled = bill.isFullySettled;
+    final pendingCount = bill.pendingRequestCount;
+
+    return _shell(
+      accent: settled ? _green : _green,
+      label: settled ? 'Everyone has settled up' : 'You are owed',
+      amount: settled ? bill.totalOwedToPayer : remaining,
+      amountColor: settled ? _green : _green,
+      caption: settled
+          ? 'Collected ${formatCurrency(bill.totalSettled)} in total'
+          : '${formatCurrency(bill.totalSettled)} of ${formatCurrency(bill.totalOwedToPayer)} collected',
+      footer: pendingCount > 0
+          ? _pendingNotice(
+              pendingCount == 1
+                  ? '1 settlement is waiting for your approval'
+                  : '$pendingCount settlements are waiting for your approval',
+            )
+          : null,
+    );
+  }
+
+  Widget _payeeView() {
+    final share = bill.shareOf(currentUserId);
+    final remaining = bill.remainingFor(currentUserId);
+    final pending = bill.pendingFor(currentUserId);
+    final settleable = bill.settleableFor(currentUserId);
+    final isSettled = bill.isSettledFor(currentUserId);
+
+    return _shell(
+      accent: isSettled ? _green : _red,
+      label: isSettled ? 'You are settled up' : 'You owe',
+      amount: isSettled ? share : remaining,
+      amountColor: isSettled ? _green : _red,
+      caption: isSettled
+          ? 'Your full share of ${formatCurrency(share)} is cleared'
+          : '${formatCurrency(bill.settledOf(currentUserId))} of ${formatCurrency(share)} settled',
+      footer: pending > 0
+          ? _pendingNotice(
+              '${formatCurrency(pending)} is waiting for approval',
+              action: TextButton(
+                onPressed: isBusy ? null : onCancelRequest,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Withdraw',
+                  style: TextStyle(
+                    color: Color(0xFF8A6114),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+            )
+          : null,
+      action: (!isSettled && settleable > 0)
+          ? SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: isBusy ? null : onSettle,
+                icon: const Icon(Icons.payments_outlined, size: 18),
+                label: Text(
+                  pending > 0
+                      ? 'Settle the remaining ${formatCurrency(settleable)}'
+                      : 'Settle up',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF06D6A0),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _pendingNotice(String text, {Widget? action}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+      decoration: BoxDecoration(
+        color: _amber.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.schedule, size: 16, color: _amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.3,
+                color: Color(0xFF8A6114),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (action != null) action else const SizedBox(width: 6),
+        ],
+      ),
+    );
+  }
+
+  Widget _shell({
+    required Color accent,
+    required String label,
+    required double amount,
+    required Color amountColor,
+    required String caption,
+    Widget? footer,
+    Widget? action,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF999999),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            formatCurrency(amount),
+            style: TextStyle(
+              color: amountColor,
+              fontWeight: FontWeight.w800,
+              fontSize: width * 0.065,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            caption,
+            style: const TextStyle(color: Color(0xFF999999), fontSize: 12),
+          ),
+          if (footer != null) ...[
+            const SizedBox(height: 12),
+            footer,
+          ],
+          if (action != null) ...[
+            const SizedBox(height: 14),
+            action,
+          ],
         ],
       ),
     );
@@ -483,46 +972,64 @@ class _InfoCard extends StatelessWidget {
 
 class _ParticipantRow extends StatelessWidget {
   final String uid;
-  final double amount;
+  final SplitBill bill;
   final String username;
   final bool isPayer;
   final bool isCurrentUser;
+
+  /// True when the person reading this is the payer, who alone may record a
+  /// payment on someone else's behalf.
+  final bool viewerIsPayer;
+
   final String Function(double) formatCurrency;
   final double width;
+  final VoidCallback onRecordPayment;
 
   const _ParticipantRow({
     required this.uid,
-    required this.amount,
+    required this.bill,
     required this.username,
     required this.isPayer,
     required this.isCurrentUser,
+    required this.viewerIsPayer,
     required this.formatCurrency,
     required this.width,
+    required this.onRecordPayment,
   });
 
   @override
   Widget build(BuildContext context) {
+    final amount = bill.shareOf(uid);
+    final settled = bill.settledOf(uid);
+    final remaining = bill.remainingFor(uid);
+    final pending = bill.pendingFor(uid);
+    final isSettled = !isPayer && bill.isSettledFor(uid);
+
     final Color amountColor;
     final String label;
     final Color? rowTint;
 
     if (isPayer) {
       amountColor = const Color(0xFF2E7D32);
-      label = 'You paid / Your share';
+      label = 'Paid the bill · own share';
       rowTint = null;
     } else if (isCurrentUser) {
-      amountColor = const Color(0xFFF39C12);
-      label = 'Your share';
+      amountColor = isSettled ? const Color(0xFF2E7D32) : const Color(0xFFF39C12);
+      label = _statusLine(settled, remaining, pending, isSettled, 'Your share');
       rowTint = const Color(0xFFFFF8EE);
     } else {
-      amountColor = const Color(0xFFE63946);
-      label = '';
+      amountColor =
+          isSettled ? const Color(0xFF2E7D32) : const Color(0xFFE63946);
+      label = _statusLine(settled, remaining, pending, isSettled, 'Owes');
       rowTint = null;
     }
 
+    // The payer can log cash they have already been handed.
+    final canRecord =
+        viewerIsPayer && !isPayer && remaining > 0;
+
     Widget row = Row(
       children: [
-        // Avatar
         Container(
           width: 38,
           height: 38,
@@ -535,53 +1042,77 @@ class _ParticipantRow extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: Center(
-            child: Text(
-              username.isNotEmpty ? username[0].toUpperCase() : '?',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: isPayer
-                    ? const Color(0xFF2E7D32)
-                    : isCurrentUser
-                        ? const Color(0xFFF39C12)
-                        : const Color(0xFF999999),
-              ),
-            ),
+            child: isSettled
+                ? const Icon(Icons.check, size: 18, color: Color(0xFF2E7D32))
+                : Text(
+                    username.isNotEmpty ? username[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: isPayer
+                          ? const Color(0xFF2E7D32)
+                          : isCurrentUser
+                              ? const Color(0xFFF39C12)
+                              : const Color(0xFF999999),
+                    ),
+                  ),
           ),
         ),
         const SizedBox(width: 12),
-        // Name + label
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                username,
+                isCurrentUser ? '$username (You)' : username,
                 style: TextStyle(
                   color: const Color(0xFF1A1A1A),
                   fontWeight: FontWeight.w600,
                   fontSize: width * 0.038,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (label.isNotEmpty)
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Color(0xFF999999),
+                  style: TextStyle(
+                    color: pending > 0
+                        ? const Color(0xFFF39C12)
+                        : const Color(0xFF999999),
                     fontSize: 11,
                   ),
                 ),
             ],
           ),
         ),
-        // Amount
-        Text(
-          formatCurrency(amount),
-          style: TextStyle(
-            color: amountColor,
-            fontWeight: FontWeight.w700,
-            fontSize: width * 0.038,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              formatCurrency(amount),
+              style: TextStyle(
+                color: amountColor,
+                fontWeight: FontWeight.w700,
+                fontSize: width * 0.038,
+              ),
+            ),
+            if (canRecord)
+              GestureDetector(
+                onTap: onRecordPayment,
+                child: const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Text(
+                    'Record payment',
+                    style: TextStyle(
+                      color: Color(0xFF06D6A0),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );
@@ -601,6 +1132,18 @@ class _ParticipantRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: row,
     );
+  }
+
+  String _statusLine(double settled, double remaining, double pending,
+      bool isSettled, String prefix) {
+    if (isSettled) return 'Settled up';
+    if (pending > 0) {
+      return '${formatCurrency(pending)} awaiting approval';
+    }
+    if (settled > 0) {
+      return '${formatCurrency(remaining)} still owed';
+    }
+    return prefix;
   }
 }
 
@@ -706,7 +1249,7 @@ class _SummaryCard extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

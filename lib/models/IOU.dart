@@ -17,6 +17,22 @@ class IOU {
   final String category;
   final double settledAmount;
 
+  /// Non-null when this IOU is a mirror of a split bill. Split-linked IOUs are
+  /// read-only on the IOU page — the bill document owns them.
+  final String? splitBillId;
+
+  /// UID the split bill document lives under (the payer). Needed to build the
+  /// bill path from either side of the mirror.
+  final String? splitBillOwnerId;
+
+  /// The other party in this IOU. For a payee's OWE row this is the payer; for
+  /// the payer's OWED row this is the payee.
+  final String? counterpartyUid;
+
+  /// Amount sitting in a PENDING settlement request awaiting the payer's
+  /// approval. Not yet deducted from [settledAmount].
+  final double pendingSettleAmount;
+
   const IOU({
     required this.id,
     required this.personName,
@@ -28,6 +44,10 @@ class IOU {
     this.status = IOUStatus.PENDING,
     required this.category,
     this.settledAmount = 0.0,
+    this.splitBillId,
+    this.splitBillOwnerId,
+    this.counterpartyUid,
+    this.pendingSettleAmount = 0.0,
   });
 
   // -----------------------------
@@ -76,6 +96,12 @@ class IOU {
       return 0.0;
     }
 
+    String? parseOptionalString(dynamic value) {
+      if (value == null) return null;
+      final text = value.toString().trim();
+      return text.isEmpty ? null : text;
+    }
+
     return IOU(
       id: (map['id'] ?? fallbackId ?? '').toString(),
       personName: (map['personName'] ?? map['name'] ?? 'Unknown').toString(),
@@ -87,6 +113,10 @@ class IOU {
       status: parseStatus(map['status']),
       category: (map['category'] ?? 'Other').toString(),
       settledAmount: parseAmount(map['settledAmount']),
+      splitBillId: parseOptionalString(map['splitBillId']),
+      splitBillOwnerId: parseOptionalString(map['splitBillOwnerId']),
+      counterpartyUid: parseOptionalString(map['counterpartyUid']),
+      pendingSettleAmount: parseAmount(map['pendingSettleAmount']),
     );
   }
 
@@ -102,6 +132,10 @@ class IOU {
       'status': status.name,
       'category': category,
       'settledAmount': settledAmount,
+      'splitBillId': splitBillId,
+      'splitBillOwnerId': splitBillOwnerId,
+      'counterpartyUid': counterpartyUid,
+      'pendingSettleAmount': pendingSettleAmount,
     };
   }
 
@@ -120,6 +154,10 @@ class IOU {
     IOUStatus? status,
     String? category,
     double? settledAmount,
+    String? splitBillId,
+    String? splitBillOwnerId,
+    String? counterpartyUid,
+    double? pendingSettleAmount,
   }) {
     return IOU(
       id: id ?? this.id,
@@ -132,8 +170,36 @@ class IOU {
       status: status ?? this.status,
       category: category ?? this.category,
       settledAmount: settledAmount ?? this.settledAmount,
+      splitBillId: splitBillId ?? this.splitBillId,
+      splitBillOwnerId: splitBillOwnerId ?? this.splitBillOwnerId,
+      counterpartyUid: counterpartyUid ?? this.counterpartyUid,
+      pendingSettleAmount: pendingSettleAmount ?? this.pendingSettleAmount,
     );
   }
+
+  // -----------------------------
+  // Derived
+  // -----------------------------
+
+  /// True when this IOU is managed by a split bill rather than entered by hand.
+  bool get isSplitLinked =>
+      splitBillId != null && splitBillId!.isNotEmpty;
+
+  /// What is still outstanding, ignoring anything awaiting approval.
+  double get remainingAmount {
+    final remaining = amount - settledAmount;
+    return remaining < 0 ? 0.0 : remaining;
+  }
+
+  /// What can still be requested — the remainder minus anything already
+  /// sitting in a pending request.
+  double get settleableAmount {
+    final settleable = remainingAmount - pendingSettleAmount;
+    return settleable < 0 ? 0.0 : settleable;
+  }
+
+  /// True while a settlement request on this IOU is waiting on the payer.
+  bool get hasPendingApproval => pendingSettleAmount > 0;
 
   @override
   String toString() {

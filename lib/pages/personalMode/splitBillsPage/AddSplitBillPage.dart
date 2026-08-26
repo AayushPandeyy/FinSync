@@ -44,6 +44,12 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
 
   late String _currentUserId;
 
+  /// The payer's own display name, denormalised onto the bill so the other
+  /// participants can see who paid without a lookup per bill. Resolved once at
+  /// startup and awaited on save, so a slow lookup cannot stamp a placeholder
+  /// onto the bill that everyone else would then read as the payer's name.
+  late Future<String> _currentUserName;
+
   final List<String> _categories = [
     'Food',
     'Entertainment',
@@ -74,6 +80,8 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
     // Recompute equal split whenever the total amount field changes.
     _amountController.addListener(_onAmountChanged);
 
+    _currentUserName = _resolveCurrentUserName();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _guardOfflineEntry());
   }
 
@@ -87,6 +95,28 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Reads the payer's username so it can be stamped onto the bill and onto
+  /// every payee's IOU. Falls back through the auth profile before giving up.
+  Future<String> _resolveCurrentUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final fallback = user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!.trim()
+        : (user?.email?.split('@').first ?? 'Someone');
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(_currentUserId)
+          .get();
+      final username = (doc.data()?['username'] ?? '').toString().trim();
+      if (username.isNotEmpty) return username;
+    } catch (_) {
+      // Keep the auth-profile fallback; a missing name must not block the form.
+    }
+
+    return fallback;
   }
 
   // ─── Connectivity guard ───────────────────────────────────────────────────
@@ -237,6 +267,14 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
             double.parse((_splitAmounts[uid] ?? 0.0).toStringAsFixed(2));
       }
 
+      // Names are stamped onto the bill at creation so every participant can
+      // read them off the bill stream instead of resolving UIDs one by one.
+      final Map<String, String> participantNames = {
+        _currentUserId: await _currentUserName,
+        for (final uid in _selectedParticipants)
+          uid: _friendNames[uid] ?? 'Unknown',
+      };
+
       final splitBill = SplitBill(
         id: const Uuid().v1(),
         title: _titleController.text.trim(),
@@ -247,9 +285,12 @@ class _AddSplitBillPageState extends State<AddSplitBillPage> {
         splitAmounts: finalSplitAmounts,
         category: _selectedCategory,
         participants: _allParticipants,
+        participantNames: participantNames,
       );
 
-      await splitBillsService.addSplitBill(_currentUserId, splitBill);
+      // Writes the bill and both sides of every debt in one batch, so the
+      // split lands on everyone's IOU page at the same moment it lands here.
+      await splitBillsService.createSplitBillWithIOUs(splitBill);
 
       _hideLoadingDialog();
       if (!mounted) return;

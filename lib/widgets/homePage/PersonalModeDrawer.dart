@@ -192,12 +192,12 @@ class PersonalModeDrawer extends StatelessWidget {
                   ),
                   // Split Bills is hidden from the menu but still fully
                   // implemented — SplitBillsPage and its route remain.
-                  // _DrawerTile(
-                  //   icon: Icons.apps_rounded,
-                  //   title: 'Split Bills',
-                  //   color: const Color(0xFF34495E),
-                  //   onTap: () => _openService(context, 'Split Bills'),
-                  // ),
+                  _DrawerTile(
+                    icon: Icons.apps_rounded,
+                    title: 'Split Bills',
+                    color: const Color(0xFF34495E),
+                    onTap: () => _openService(context, 'Split Bills'),
+                  ),
                   _DrawerTile(
                     icon: Icons.dashboard_customize,
                     title: 'Templates',

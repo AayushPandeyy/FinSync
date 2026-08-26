@@ -12,6 +12,9 @@ import 'package:finance_tracker/enums/IOU/IOUStatus.dart';
 import 'package:finance_tracker/enums/IOU/IOUType.dart';
 import 'package:finance_tracker/pages/personalMode/IOUpage/AddIOUPage.dart';
 import 'package:finance_tracker/service/ConnectivityService.dart';
+import 'package:finance_tracker/models/SplitBill.dart';
+import 'package:finance_tracker/pages/personalMode/splitBillsPage/SplitBillDetailPage.dart';
+import 'package:finance_tracker/service/SplitBillsFirestoreService.dart';
 
 class IOUPage extends StatefulWidget {
   const IOUPage({super.key});
@@ -28,6 +31,47 @@ class _IOUPageState extends State<IOUPage> {
 
   String uid = FirebaseAuth.instance.currentUser!.uid;
   final Ioufirestoreservice firestoreService = Ioufirestoreservice();
+  final SplitBillsFirestoreService splitBillsService =
+      SplitBillsFirestoreService();
+
+  /// Opens the split bill behind a mirrored IOU. Settling and approving both
+  /// live there, so this is the only route the IOU page offers for them.
+  Future<void> _openSplitBill(IOU iou) async {
+    final ownerId = iou.splitBillOwnerId;
+    final billId = iou.splitBillId;
+
+    if (ownerId == null || billId == null) {
+      _snack('This split bill could not be found.');
+      return;
+    }
+
+    SplitBill? bill;
+    try {
+      bill = await splitBillsService.getSplitBill(ownerId, billId);
+    } catch (_) {
+      bill = null;
+    }
+
+    if (!mounted) return;
+
+    if (bill == null) {
+      _snack('This split bill is no longer available.');
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SplitBillDetailPage(splitBill: bill!)),
+    );
+    if (mounted) setState(() {});
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   Future<void> _loadCurrencySymbol() async {
     final symbol = await CurrencyService.getCurrencySymbol();
@@ -62,17 +106,19 @@ class _IOUPageState extends State<IOUPage> {
     return filtered;
   }
 
+  // Totals count what is still outstanding, not the original figure —
+  // partially settled IOUs would otherwise overstate both sides.
   double _totalIOwe(List<IOU> ious) {
     return ious
         .where((i) => i.iouType == IOUType.OWE && i.status == IOUStatus.PENDING)
-        .fold(0.0, (sum, i) => sum + i.amount);
+        .fold(0.0, (sum, i) => sum + i.remainingAmount);
   }
 
   double _totalOwedToMe(List<IOU> ious) {
     return ious
         .where(
             (i) => i.iouType == IOUType.OWED && i.status == IOUStatus.PENDING)
-        .fold(0.0, (sum, i) => sum + i.amount);
+        .fold(0.0, (sum, i) => sum + i.remainingAmount);
   }
 
   void _showFilterDialog() {
@@ -435,6 +481,9 @@ class _IOUPageState extends State<IOUPage> {
                             final iou = filteredIOUs[index];
                             return IOUTile(
                               iou: iou,
+                              onOpenSplitBill: iou.isSplitLinked
+                                  ? () => _openSplitBill(iou)
+                                  : null,
                               onEdit: () {
                                 Navigator.push(
                                   context,
